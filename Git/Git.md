@@ -389,3 +389,213 @@ $ git add README
 如果是直接通过文件管理器而不是`git mv`的方式移动了文件，则`git status`会认为是在源路径删除了文件，在目标路径新增了文件。
 
 此时则需要通过 `git add` 和 `git rm` 手动跟踪文件和取消跟踪文件
+
+
+
+#  查看提交历史
+
+`git log` 命令，不传入任何参数的默认情况下，这个命令会按时间先后顺序列出所有的提交，最近的更新排在最上面。 正如你所看到的，这个命令会列出每个提交的 SHA-1 校验和、作者的名字和电子邮件地址、提交时间以及提交说明。
+
+
+
+## --patch
+
+`-p` 或 `--patch` ，它会显示每次提交所引入的差异（按 **补丁** 的格式输出）。 你也可以限制显示的日志条目数量，例如使用 `-2` 选项来只显示最近的两次提交：
+
+```
+$ git log -p -2
+commit ca82a6dff817ec66f44342007202690a93763949
+Author: Scott Chacon <schacon@gee-mail.com>
+Date:   Mon Mar 17 21:52:11 2008 -0700
+
+    changed the version number
+
+diff --git a/Rakefile b/Rakefile
+index a874b73..8f94139 100644
+--- a/Rakefile
++++ b/Rakefile
+@@ -5,7 +5,7 @@ require 'rake/gempackagetask'
+ spec = Gem::Specification.new do |s|
+     s.platform  =   Gem::Platform::RUBY
+     s.name      =   "simplegit"
+-    s.version   =   "0.1.0"
++    s.version   =   "0.1.1"
+     s.author    =   "Scott Chacon"
+     s.email     =   "schacon@gee-mail.com"
+     s.summary   =   "A simple gem for using Git in Ruby code."
+
+commit 085bb3bcb608e1e8451d4b2432f8ecbe6306e7e7
+Author: Scott Chacon <schacon@gee-mail.com>
+Date:   Sat Mar 15 16:40:33 2008 -0700
+
+    removed unnecessary test
+
+diff --git a/lib/simplegit.rb b/lib/simplegit.rb
+index a0a60ae..47c6340 100644
+--- a/lib/simplegit.rb
++++ b/lib/simplegit.rb
+@@ -18,8 +18,3 @@ class SimpleGit
+     end
+
+ end
+-
+-if $0 == __FILE__
+-  git = SimpleGit.new
+-  puts git.show
+-end
+```
+
+
+
+##  --stat
+
+`--stat` 选项，以为 `git log` 附带一系列的总结性选项。 比如你想看到每次提交的简略统计信息。
+
+```
+C:\Users\Xiaoshae\Desktop\文档>git log --stat -2
+commit 41ae8362e5572f577cda9b8fdf49981c9a5e2c31 (HEAD -> master)
+Author: Xiaoshae <xiaoshae@gmail.com>
+Date:   Thu Jan 4 14:30:20 2024 +0800
+
+    version 3.0.0 to add rm and mv
+
+ Git/Git mini.md |  83 ++++++++++++++++++++++++++++++++++++++++++
+ Git/Git.md      | 109 +++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 191 insertions(+), 1 deletion(-)
+
+commit dd46045796baebdfe1ec0698b2d4dfe8e427c9ce
+Author: Xiaoshae <xiaoshae@gmail.com>
+Date:   Thu Jan 4 14:07:18 2024 +0800
+
+    to git diff and git diff --cached
+
+ Git/Git mini.md | 148 +++++++++++++++++++++++++++++
+ Git/Git.md      | 284 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 432 insertions(+)
+```
+
+
+
+##  --pretty
+
+`--pretty`。 这个选项可以使用不同于默认格式的方式展示提交历史。 这个选项有一些内建的子选项供你使用。 比如 `oneline` 会将每个提交放在一行显示，在浏览大量的提交时非常有用。 另外还有 `short`，`full` 和 `fuller` 选项，它们展示信息的格式基本一致，但是详尽程度不一：
+
+
+
+### oneline
+
+```
+git log --pretty=oneline
+ca82a6dff817ec66f44342007202690a93763949 changed the version number
+085bb3bcb608e1e8451d4b2432f8ecbe6306e7e7 removed unnecessary test
+a11bef06a3f659402fe7563abf99ad00de2209e6 first commit
+```
+
+
+
+### format
+
+可以定制记录的显示格式。
+
+```
+git log --pretty=format:"%h - %an, %ar : %s"
+ca82a6d - Scott Chacon, 6 years ago : changed the version number
+085bb3b - Scott Chacon, 6 years ago : removed unnecessary test
+a11bef0 - Scott Chacon, 6 years ago : first commit
+```
+
+| 选项  | 说明                                          |
+| :---- | :-------------------------------------------- |
+| `%H`  | 提交的完整哈希值                              |
+| `%h`  | 提交的简写哈希值                              |
+| `%T`  | 树的完整哈希值                                |
+| `%t`  | 树的简写哈希值                                |
+| `%P`  | 父提交的完整哈希值                            |
+| `%p`  | 父提交的简写哈希值                            |
+| `%an` | 作者名字                                      |
+| `%ae` | 作者的电子邮件地址                            |
+| `%ad` | 作者修订日期（可以用 --date=选项 来定制格式） |
+| `%ar` | 作者修订日期，按多久以前的方式显示            |
+| `%cn` | 提交者的名字                                  |
+| `%ce` | 提交者的电子邮件地址                          |
+| `%cd` | 提交日期                                      |
+| `%cr` | 提交日期（距今多长时间）                      |
+| `%s`  | 提交说明                                      |
+
+
+
+## graph
+
+当 `oneline` 或 `format` 与另一个 `log` 选项 `--graph` 结合使用时尤其有用。 这个选项添加了一些 ASCII 字符串来形象地展示你的分支、合并历史
+
+```console
+$ git log --pretty=format:"%h %s" --graph
+* 2d3acf9 ignore errors from SIGCHLD on trap
+*  5e3ee11 Merge branch 'master' of git://github.com/dustin/grit
+|\
+| * 420eac9 Added a method for getting the current branch.
+* | 30e367c timeout code and tests
+* | 5a09431 add timeout protection to grit
+* | e1193f8 support for heads with slashes in them
+|/
+* d6016bc require time for xmlschema
+*  11d191e Merge branch 'defunkt' into local
+```
+
+
+
+## git log 其他常用
+
+| 选项              | 说明                                                         |
+| :---------------- | :----------------------------------------------------------- |
+| `-p`              | 按补丁格式显示每个提交引入的差异。                           |
+| `--stat`          | 显示每次提交的文件修改统计信息。                             |
+| `--shortstat`     | 只显示 --stat 中最后的行数修改添加移除统计。                 |
+| `--name-only`     | 仅在提交信息后显示已修改的文件清单。                         |
+| `--name-status`   | 显示新增、修改、删除的文件清单。                             |
+| `--abbrev-commit` | 仅显示 SHA-1 校验和所有 40 个字符中的前几个字符。            |
+| `--relative-date` | 使用较短的相对时间而不是完整格式显示日期（比如“2 weeks ago”）。 |
+| `--graph`         | 在日志旁以 ASCII 图形显示分支与合并历史。                    |
+| `--pretty`        | 使用其他格式显示历史提交信息。可用的选项包括 oneline、short、full、fuller 和 format（用来定义自己的格式）。 |
+| `--oneline`       | `--pretty=oneline --abbrev-commit` 合用的简写。              |
+
+
+
+## 限制输出长度
+
+`git log` 还有许多非常实用的限制输出长度的选项，也就是只输出一部分的提交。 实际上，你可以使用类似 `-<n>` 的选项，其中的 `n` 可以是任何整数，表示仅显示最近的 `n` 条提交。 
+
+类似 `--since` 和 `--until` 这种按照时间作限制的选项很有用。 例如，下面的命令会列出最近两周的所有提交：
+
+```console
+git log --since=2.weeks
+```
+
+该命令可用的格式十分丰富——可以是类似 `"2008-01-15"` 的具体的某一天，也可以是类似 `"2 years 1 day 3 minutes ago"` 的相对日期。
+
+
+
+还可以过滤出匹配指定条件的提交。 用 `--author` 选项显示指定作者的提交，用 `--grep` 选项搜索提交说明中的关键字。
+
+
+
+### 限制 `git log` 输出的选项
+
+| 选项              | 说明                                       |
+| ----------------- | ------------------------------------------ |
+| -<n>              | 仅显示最近的 n 条提交。                    |
+| --since, --after  | 仅显示指定时间之后的提交。                 |
+| --until, --before | 仅显示指定时间之前的提交。                 |
+| --author          | 仅显示作者匹配指定字符串的提交。           |
+| --committer       | 仅显示提交者匹配指定字符串的提交。         |
+| --grep            | 仅显示提交说明中包含指定字符串的提交。     |
+| -S                | 仅显示添加或删除内容匹配指定字符串的提交。 |
+
+
+
+# 作者和提交者区别
+
+*作者* 和 *提交者* 之间究竟有何差别， 其实作者指的是实际作出修改的人，提交者指的是最后将此工作成果提交到仓库的人。 所以，当你为某个项目发布补丁，然后某个核心成员将你的补丁并入项目时，你就是作者，而那个核心成员就是提交者。
+
+
+
