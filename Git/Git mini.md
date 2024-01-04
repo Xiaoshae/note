@@ -449,3 +449,39 @@ git log --since=2.weeks
 
 
 
+
+
+# 撤销操作
+
+## 提交覆盖
+
+ `--amend` 命令会将暂存区中的文件提交，覆盖上一次提交。
+
+ 如果自上次提交以来你还未做任何修改（例如，在上次提交后马上执行了此命令）， 那么快照会保持不变，而你所修改的只是提交信息。
+
+```console
+$ git commit --amend
+```
+
+
+
+## 取消暂存的文件
+
+使用 `git reset HEAD <file>…` 来取消暂存。 将文件从暂存区中移除
+
+```
+git reset HEAD <file>
+```
+
+
+
+## 撤消对文件的修改
+
+`git checkout — <file>` 将指定的文件还原成上次提交时的版本。
+
+```console
+git checkout — <file>
+```
+
+
+
