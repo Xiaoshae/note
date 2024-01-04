@@ -1,0 +1,1713 @@
+# 基础配置
+
+
+
+
+
+## 视图
+
+- 用户视图
+
+    在用户视图下，用户可以完成查看运行状态和统计信息等功能。
+
+    进入视图：用户从终端成功登录至设备即进入用户视图，在屏幕上显示：
+
+    ```
+    <HUAWEI>
+    ```
+
+- 系统视图
+
+    在系统视图下，用户可以配置系统参数以及通过该视图进入其他的功能配置视图。
+
+    进入视图：在用户视图下，输入命令[**system-view**](https://support.huawei.com/hedex/api/pages/EDOC1100318314/AZM08011/03/resources/cmdqueryname=system-view)后回车，进入系统视图。
+
+    ```
+    <HUAWEI> system-view
+    Enter system view, return user view with return command.
+    [HUAWEI]
+    ```
+
+- 接口视图
+
+    配置接口参数的视图称为接口视图。在该视图下可以配置接口相关的物理属性、链路层特性及IP地址等重要参数。
+
+    进入视图：使用**interface**命令并指定接口类型及接口编号可以进入相应的接口视图。以10GE接口为例：
+
+    ```
+    [HUAWEI] interface 10ge X/Y/Z 
+    [HUAWEI-10GEX/Y/Z] 
+    ```
+
+    *X/Y/Z*为需要配置的接口的编号，分别对应“槽位号/子卡号/接口序号”。
+
+- 路由协议视图
+
+    路由协议的大部分参数是在相应的路由协议视图下进行配置的。例如IS-IS协议视图、OSPF协议视图、RIP协议视图。
+
+    进入视图：在系统视图下，使用路由协议进程运行命令可以进入到相应的路由协议视图。
+
+    ```
+    [HUAWEI] isis
+    [HUAWEI-isis-1] 
+    ```
+
+
+
+命令行提示符**“HUAWEI”是缺省的主机名（sysname）**。通过提示符可以判断当前所处的视图，例如：**“<>”表示用户视图，“[]”表示除用户视图以外的其他视图。**
+
+用户可以在任意视图中，**执行!或#加字符串，此时的用户输入将全部（包括!和#在内）作为系统的注释行内容**，不会产生对应的配置信息。
+
+
+
+## 退出视图
+
+执行quit命令，即可从当前视图退出至上一层视图。
+
+例如，执行**quit**命令从AAA视图退回到系统视图，再执行**quit**命令退回到用户视图。
+
+```
+<HUAWEI> system-view
+[HUAWEI] aaa
+[HUAWEI-aaa] quit
+[HUAWEI] quit
+<HUAWEI>
+```
+
+如果需要从AAA视图直接退回到用户视图，则可以在键盘上键入快捷键**<Ctrl+Z>**或者执行**quit**命令。
+
+使用快捷键<Ctrl+Z>直接退回到用户视图。
+
+```
+<HUAWEI> system-view
+[HUAWEI] aaa
+[HUAWEI-aaa]           //键入<Ctrl+Z>
+<HUAWEI> 
+```
+
+执行**quit**命令直接退回到用户视图。
+
+```
+<HUAWEI> system-view
+[HUAWEI] aaa
+[HUAWEI-aaa] return
+<HUAWEI> 
+```
+
+
+
+## 命令行智能回退功能
+
+每条命令行都有支持的视图，比如**vlan**命令支持的视图是系统视图。在业务部署过程中，用户可能需要在不同视图下配置命令行，这样操作步骤较多，业务部署效率低。
+
+设备支持命令行智能回退功能，即如果命令行在当前视图下无法匹配成功，系统会自动回退到系统视图下，如果可以匹配该命令行，则可以直接下发配置，从而减少了命令行操作步骤。
+
+例如，**interface**命令支持的视图是系统视图，但是若用户正在VLAN视图下执行操作，可以直接在VLAN视图下执行**interface**命令行进入接口视图。
+
+```
+<HUAWEI> system-view
+[HUAWEI] vlan 2
+[HUAWEI-vlan2] interface 10ge 1/0/1
+[HUAWEI-10GE1/0/1]
+```
+
+如果用户想去使能命令行智能回退功能，可以在用户视图下执行命令**undo terminal command forward matched upper-view**，去使能命令行智能回退功能。缺省情况下，命令行智能回退功能使能。
+
+
+
+## 帮助
+
+### 部分帮助
+
+当用户输入命令时，如果只记得此命令关键字的开头一个或几个字符，可以使用命令行的部分帮助获取以该字符串开头的所有关键字的提示。下面给出几种部分帮助的实例供参考：
+
+- 键入一字符串，其后紧接“?”，列出以该字符串开头的所有关键字。举例如下：
+
+    ```
+    <HUAWEI> d?
+      debugging                               delete
+      dir                                     display
+    <HUAWEI> d
+    ```
+
+- 键入一条命令，后接一字符串紧接“?”，列出命令以该字符串开头的所有关键字。举例如下：
+
+    ```
+    <HUAWEI> display s?
+      sysname                                     system  
+    ```
+
+- 输入命令的某个关键字的前几个字母，按下**<tab>**键，可以显示出完整的关键字，前提是这几个字母可以唯一标示出该关键字，否则，连续按下<tab>键，可出现不同的关键字，用户可以从中选择所需要的关键字。
+
+
+
+### 完全帮助
+
+当用户输入命令时，可以使用命令行的完全帮助获取全部关键字和参数的提示。下面给出几种完全帮助的实例供参考：
+
+- 在任一命令视图下，键入“?”获取该命令视图下所有的命令及其简单描述。举例如下：
+
+    ```
+    <HUAWEI> ?
+    Current view commands:
+      activate        Activate locked user
+      cd              Change current directory
+      clear           Clear operation
+      clock           Clock status and configuration information
+      copy            Copy from one file to another
+    ...
+    ```
+
+- 键入一条命令的部分关键字，后接以空格分隔的“?”，如果该位置为关键字，则列出全部关键字及其简单描述。举例如下：
+
+    ```
+    <HUAWEI> system-view
+    [HUAWEI] user-interface vty 0 4
+    [HUAWEI-ui-vty0-4] authentication-mode ?
+      aaa       AAA authentication
+      password  Authentication through the password of a user terminal interface
+    ```
+
+    其中“aaa”和“password”是关键字，“AAA authentication”和“Authentication through the password of a user terminal interface”是对关键字的描述。
+
+- 键入一条命令的部分关键字，后接以空格分隔的“?”，如果该位置为参数，则列出有关的参数名和参数描述。举例如下：
+
+    ```
+    <HUAWEI> system-view
+    [HUAWEI] ssh server timeout ?
+      INTEGER<1-35791>  Set the authentication timeout, the default value is 60 seconds 
+    [HUAWEI] ssh server timeout 35 ?
+     <cr>
+    [HUAWEI] ssh server timeout 35
+    ```
+
+    其中，“INTEGER<1-35791>”是参数取值的说明，“Set the authentication timeout, the default value is 60”是对参数作用的简单描述。“<cr>”表示该位置没有关键字或参数，直接键入回车即可执行。
+
+
+
+## 基础设置
+
+1.设置设备名称。
+
+```
+sysname host-name
+```
+
+缺省情况下，设备主机名为HUAWEI。
+
+可以执行命令**undo sysname**恢复默认的设备主机名。
+
+
+
+2.配置设备所在地区及其对应的时区。
+
+```
+clock timezone time-zone-name { add | minus } offset
+```
+
+缺省情况下，设备采用UTC（Universal Time Coordinated）时区，时区名称默认值“DefaultZoneName”。
+
+**add**将在UTC标准时间的基础上增加指定的时区偏移量。在系统默认的UTC时区的基础上，加上*offset*，就可以得到*time-zone-name*所标识的时区时间。
+
+**minus**将在UTC标准时间的基础上减去指定的时区偏移量。在系统默认的UTC时区的基础上，减去*offset*，就可以得到*time-zone-name*所标识的时区时间。
+
+设置时区后，设备本地日志的时间格式为：原系统时间±*offset*。例如Apr 27 2020 22:36:09+08:00。
+
+
+
+3.设置当前时间和日期。
+
+```
+clock datetime [ utc ] time date
+```
+
+无缺省值。其中，*time*以“HH:MM:SS”的格式配置设备的当前小时、分钟、秒，*date*以“YYYY-MM-DD”的格式配置的设备当前的年、月、日。
+
+
+
+
+
+
+
+# VLAN配置
+
+VLAN划分方式有以下四种：基于接口的划分、基于MAC地址的划分、基于子网的划分和基于协议的划分。
+
+
+
+# 基于接口划分VLAN
+
+基于接口划分VLAN支持配置接口类型，有以下几种接口类型：Access、Trunk、Hybrid和QinQ口。默认接口Hybrid，为详细介绍这三种接口的不同。
+
+## Access口
+
+| 接口属性   | 对接收不带Tag的报文处理           | 对接收带Tag的报文处理                                        | 对发送报文的处理                                             | 用途                                            |
+| ---------- | --------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ----------------------------------------------- |
+| Access接口 | 接收该报文，并打上缺省VLAN的Tag。 | 当VLAN ID与缺省VLAN ID相同时，接收该报文。当VLAN ID与缺省VLAN ID不同时，丢弃该报文。 | 当VLAN ID与缺省VLAN ID相同时，去掉Tag，发送该报文。否则丢弃报文。 | 接口只能属于1个VLAN，用于设备与计算机直接连接。 |
+
+注意：在Access接口，缺省VLAN ID称之为default vlan，默认为vlan1。
+
+## Trunk口
+
+| 接口属性  | 对接收不带Tag的报文处理                                      | 对接收带Tag的报文处理                                        | 对发送报文的处理                                             | 用途                                                         |
+| --------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| Trunk接口 | 打上缺省的VLAN ID（PVID），当缺省VLAN ID在允许通过的VLAN ID列表里时，接收该报文。不在列表里时，丢弃该报文。 | 当VLAN ID在接口允许通过的VLAN ID列表里时，接收该报文。不在列表里时，丢弃该报文。 | 当VLAN ID与缺省VLAN ID相同，且是该接口允许通过的VLAN ID时，去掉Tag，发送该报文。与缺省VLAN ID不同，保持原有Tag，发送该报文。不在允许通过的接口中 | 接口允许多个VLAN通过，可以接收和发送多个VLAN的报文，一般用于网络设备之间连接。 |
+
+注意：在Trunk口中，缺省的VLAN ID称之为Pvid，pvid只能设置为一个vlan，默认为vlan 1。
+
+## Hybrid口
+
+| 接口属性   | 对接收不带Tag的报文处理                                      | 对接收带Tag的报文处理                                 | 对发送报文的处理                                             | 用途                                                         |
+| ---------- | ------------------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| Hybrid接口 | 打上缺省VLAN ID（PVID），如果缺省VLAN ID在tagged或untagged中则接受报文。否则丢弃。 | 如果VLAN ID在tagged或untagged中则接受报文。否则丢弃。 | 如果VLAN ID在tagged中则携带tag发送报文。如果VLAN ID在untagged中则不携带tag发送报文。如果即不在tagged又不在untagged中则丢弃报文。 | 接口允许多个VLAN通过，可以接收和发送多个VLAN的报文，可以用于网络设备之间连接，也可以用于网络设备与用户设备之间连接。 |
+
+注意：在Hybrid口中，缺省的VLAN ID称之为Pvid。pvid只能设置为一个vlan，默认为vlan 1。如果一个vlan加入了tagged则不能加入untagged，反过来也是一样。默认tagged中没有vlan，untagged中默认加入了vlan 1.
+
+
+
+## 配置示例
+
+1. 执行命令**system-view**，进入系统视图。
+
+2. 
+
+     
+
+    执行命令**vlan** vlan-id，创建VLAN并进入VLAN视图。如果VLAN已经创建，则直接进入VLAN视图。
+
+    
+
+    VLAN ID的取值范围是1～4094。如果需要批量创建VLAN，可以先使用命令**vlan batch** { vlan-id1 [ to vlan-id2 ] } &<1-10>批量创建，再使用命令**vlan** vlan-id进入相应的VLAN视图。
+
+    
+
+3. 执行命令**quit**，返回系统视图。
+
+4. 配置以太网接口属性。
+
+     
+
+    1. 执行命令**interface** interface-type interface-number，进入需要加入VLAN的以太网接口视图。
+    2. 执行命令**port link-type** { access | dot1q-tunnel | hybrid | trunk }，配置以太网接口的链路类型。
+
+
+
+1. 关联接口和VLAN
+
+     
+
+    以下步骤，请根据需要任选一种。
+
+    - Access类型接口
+
+        执行命令**port default vlan** vlan-id，将接口加入到指定的VLAN中。
+
+        如果需要批量将接口加入VLAN，可在VLAN视图下执行命令**port** interface-type { interface-number1 [ to interface-number2 ] } &<1-10>向VLAN中添加一个或一组接口。
+
+    
+
+    - Trunk类型接口
+
+        - 执行命令**port trunk allow-pass vlan** { { vlan-id1 [ to vlan-id2 ] } &<1-10> | all }，将接口加入到指定的VLAN中。
+
+        - （可选）执行命令**port trunk pvid vlan** vlan-id，配置Trunk类型接口的缺省VLAN。
+
+            当接口下通过的VLAN配置为接口的缺省VLAN时，该VLAN对应的报文将以Untagged方式进行转发。也就是说接口是以Untagged方式加入该VLAN的。
+
+    
+
+    - Hybrid类型接口
+
+        - 选择执行其中一个步骤配置Hybrid接口加入VLAN的方式：
+
+            - 执行命令**port hybrid untagged vlan** { { vlan-id1 [ to vlan-id2 ] } &<1-10> | all }，将Hybrid接口以Untagged方式加入VLAN。
+
+                Untagged形式是指接口在发送帧时会将帧中的Tag剥掉，适用于以太网接口直接与终端连接。**默认情况下untagged加入vlan 1标签。**
+
+            - 执行命令**port hybrid tagged vlan** { { vlan-id1 [ to vlan-id2 ] } &<1-10> | all }，将Hybrid接口以Tagged方式加入VLAN。
+
+                Tagged形式是指接口在发送帧时不将帧中的Tag剥掉，适用于以太网接口与另一台交换机设备的接口连接。**默认情况下tagged中没有任何vlan标签**
+
+        - （可选）执行命令**port hybrid pvid vlan** vlan-id，配置Hybrid类型接口的缺省VLAN ID。
+
+        缺省情况下，缺省VLAN是VLAN1。
+
+    
+
+# 给VLAN添加MAC地址
+
+1. 执行命令**system-view**，进入系统视图。
+2. 执行命令**vlan** vlan-id，进入VLAN视图。
+3. - 参数*mac-address*格式是H-H-H。其中H为4位的十六进制数，可以输入1～4位，如00e0、fc01。当输入不足4位时，表示前面的几位为0，如：输入e0，等同于00e0。MAC地址不可设置为全F、全0或组播地址。
+    - 若已经选择参数[ mac-address-mask | mac-address-mask-length ]配置了包含掩码（48位或全F掩码除外，此时等同于未配置掩码）的MAC VLAN项，则修改priority只能先通过命令**undo mac-vlan mac-address**将该MAC VLAN项删除，再重新使用命令**mac-vlan mac-address**配置。
+    - 可选参数*priority*是MAC地址对应VLAN的802.1p优先级。取值范围是0～7，值越大优先级越高。缺省值是0。配置过程中，可以指定MAC地址对应VLAN的802.1p优先级，用于当交换机阻塞时，优先发送优先级高的数据包。
+
+注意：使用**mac-vlan mac-address**命令关联VLAN和MAC地址，若多条配置指定的mac-address相同，则mac-vlan按最长匹配规则生效。
+
+```
+#vlan 10 绑定了一个MAC地址   11-11-00-00-00-01/48
+#vlna 20 绑定了一个MAC地址   11-11-00-00-00-00/16
+#接口开启了MAC-VLAN
+#收到了源MAC地址为11-11-00-00-00-01的报文，则打上VLAN 10的标签
+#收到了源MAC地址为11-11-57-42-16-44的报文，则打上VLAN 20的标签
+```
+
+4.接口开启MAC地址划分VLAN
+
+```
+#进入接口
+interface ethernet 0/0/1
+#开启mac地址划分VLAN
+mac-vlan enable
+```
+
+注意：与其说是VLAN添加MAC地址，不如说是MAC地址表中添加VLAN映射。
+
+## 以下是我个人的理解
+
+|       MAC地址        | VLAN ID |
+| :------------------: | :-----: |
+| 11-11-00-00-00-01/48 |   10    |
+| 11-11-00-00-00-00/16 |   20    |
+
+- 在基于MAC地址划分VLAN的情况下，交换机中有一张MAC地址映射VLAN表。
+- 当接口收到一个无VLAN标签的数据包时，交换机会根据多种方式划分VLAN的优先级来打上标签。
+- 如果基于MAC地址划分VLAN的优先级最高，交换机就会使用源MAC地址在MAC地址与VLAN映射表中进行匹配。
+- 如果匹配到了，则打上对应的标签。如果没有匹配到，则交由下一级优先级的VLAN划分进行处理。
+- 如果都没有匹配到，则基于接口划分VLAN，也就是打上缺省VLAN ID。
+
+~~接口开启了MAC地址划分VLAN，如果这个接口收到了一个无VLAN标签的数据包，则会根据多种方式划分VLAN的优先级（假如本接口只开启了基于MAC地址和基于接口划分VLAN，且基于MAC地址划分VLAN的优先级最高）来打上标签，因为本接口基于MAC划分VLAN的优先级最高，交换机就会使用源MAC地址在MAC地址与VLAN映射表中进行匹配，如果匹配到了（按最长匹配原则），则打上对应的标签。然后按照接口类型和规则是否进行匹配。如果没有匹配到，则交由下一级优先级的VLAN划分进行处理。如果都没有匹配到，则基于接口划分VLAN，也就是打上缺省VLAN ID。~~
+
+
+
+# 给VLAN添加IP子网
+
+1. 执行命令**system-view**，进入系统视图。
+
+2. 执行命令**vlan** vlan-id，进入VLAN视图。
+
+     
+
+3. 执行命令**ip-subnet-vlan** [ ip-subnet-index ] ip ip-address { mask | mask-length } [ priority priority ]，关联IP子网和VLAN。
+
+     
+
+    - 可选参数*ip-subnet-index*是IP子网索引值。子网索引可以由用户指定，也可由系统根据IP子网划分VLAN的顺序自动编号产生。
+    - 参数*ip-address*是基于IP子网划分VLAN依据的源IP地址或网络地址。点分十进制格式。
+    - 可选参数*priority*是IP地址或网段对应VLAN的802.1p优先级。取值范围是0～7，值越大优先级越高。缺省值是0。配置过程中，可以指定IP地址或网段对应VLAN的802.1p优先级，用于当交换机阻塞时，优先发送优先级高的数据包。
+
+4.接口开启IP子网划分VLAN
+
+```
+#进入接口
+interface ethernet 0/0/1
+#开启IP子网地址划分VLAN
+ip-subnet-vlan enable
+```
+
+基于IP子网划分VLAN也有类似于mac-vlan按最长匹配的规则。当您使用 `ip-subnet-vlan` 命令关联IP子网和VLAN时，如果多条配置指定的IP地址或网络地址相同，则按最长匹配规则生效。
+
+例如，如果您在 VLAN 10 中绑定了 IP 地址 `192.168.1.0/24`，并且在 VLAN 20 中绑定了 IP 地址 `192.168.0.0/16`，那么：
+
+- 当接口收到源 IP 地址为 `192.168.1.100` 的报文时，它将打上 VLAN 10 的标签。
+- 当接口收到源 IP 地址为 `192.168.2.100` 的报文时，它将打上 VLAN 20 的标签。
+
+这是因为您在 VLAN 10 中绑定了一个精确的 IP 地址 `192.168.1.0/24`，并且在 VLAN 20 中绑定了一个更宽泛的 IP 地址 `192.168.0.0/16`。当接口收到报文时，它会根据报文的源 IP 地址与绑定的 IP 地址进行匹配，然后打上相应的 VLAN 标签。
+
+**IP子网与VLAN ID映射表与基于MAC地址的也类似，其流程也一样。**
+
+
+
+# 基于协议划分VLAN
+
+1. 执行命令**system-view**，进入系统视图。
+
+2. 执行命令**vlan** vlan-id，进入VLAN视图。
+
+3. 执行命令**protocol-vlan** [ protocol-index ] { at | ipv4 | ipv6 | ipx { ethernetii | llc | raw | snap } | mode { ethernetii-etype etype-id1 | llc dsap dsap-id ssap ssap-id | snap-etype etype-id2 } }，关联协议和VLAN，并指定协议模板。
+
+     
+
+    - 可选参数*protocol-index*是协议模板索引值。
+
+        协议模板由协议类型+封装格式确定，一个协议VLAN可由一个协议模板定义。
+
+    - 配置源和目的服务接入点时，需要注意以下几点：
+
+        - *dsap-id*和*ssap-id*不能同时设置成0xaa。
+        - *dsap-id*和*ssap-id*不能同时设置成0xe0，0xe0对应的是IPX报文的llc封装格式。
+        - *dsap-id*和*ssap-id*也不能同时设成0xff，0xff对应的是IPX报文的raw封装格式。
+
+    
+
+    例如，假设您在 VLAN 10 中绑定了 IPv4 协议，在 VLAN 20 中绑定了 IPv6 协议，并且在接口上开启了基于协议划分VLAN。您可以执行以下命令：
+
+    我们在 VLAN 10 中绑定了 IPv4 协议，在 VLAN 20 中绑定了 IPv6 协议，并且在接口上开启了基于协议划分VLAN。当接口收到报文时，它会根据报文的协议类型与绑定的协议类型进行匹配，然后打上相应的 VLAN 标签。
+
+    - 当接口收到一个没有标签且协议类型为 IPv4 的报文时，它将打上 VLAN 10 的标签。
+    - 当接口收到一个没有标签且协议类型为 IPv6 的报文时，它将打上 VLAN 20 的标签。
+
+    **协议类型与VLAN ID映射表与基于MAC地址的也类似，其流程也一样。**
+
+
+
+# VLAN划分优先级
+
+如果设备同时支持多种方式划分VLAN，设备规定的优先使用顺序是：
+
+1. 基于MAC地址划分VLAN和基于子网划分VLAN
+
+    缺省情况下，优先基于MAC地址划分VLAN。但是可以通过命令**vlan precedence**改变基于MAC地址划分VLAN和基于子网划分VLAN的优先级，从而决定优先划分VLAN的方式。
+
+2. 基于协议划分VLAN
+
+3. 基于接口划分VLAN
+
+    基于接口划分VLAN的优先级最低，但是是最常用的VLAN划分方式。
+
+## 以下是我个人的理解
+
+- 假设一个接口开启了四种划分的方式，按照默认的优先级，接受收到一个没有报文的标签，先根据源MAC地址查询MAC与VLAN ID映射表，如果匹配到了则打上对应的标签。
+- 如果没有匹配到，则交给下一级标签（基于Ip子网划分VLAN），先根据源IP地址查询IP子网与VLAN ID映射表，如果匹配到了则打上对应的标签。
+- 如果没有匹配到，则交给下一级标签（基于协议划分VLAN），先根据报文协议类型查询协议类型与VLAN ID映射表，如果匹配到了则打上对应的标签。
+- 如果没有匹配到，则交给下一级标签（基于接口划分VLAN），先打上缺省VLAN ID，在根据接口的类型和规则决定是**接收报文**还是丢弃报文。
+- 如果一个接口即使开启了四种划分方式，也只会按照接口的类型和规则决定**发送报文**还是丢弃报文。
+
+华为交换机的vlan划分分为两个模块，一个是vlan标签模块（接收到数据的对标签进行处理），另一个是vlan审核模块（决定是否丢弃该vlan标签的报文）。
+
+**接收报文先交由vlan标签模块，对报文中的vlan标签进行处理，再交由vlan审核模块，（根据处理后的vlan标签决定）是否接收报文。**
+
+**发送报文先（交由vlan审核模块决定）是否接发送该报文（如果在剥离列表中，则剥离标签），再交由vlan标签模块，对报文中的vlan标签进行处理，最后发送报文。**
+
+接收：模块1（qinq等模块） —> 模块2（mac、接口划分vlan等模块）   —>    模块3（标签是否通过等模块）
+
+发送：模块3（标签是否通过（是否剥离标签）等模块）—>  模块2（mac、接口划分vlan等模块）   —>  模块1（qinq等模块）
+
+~~假设一个接口开启了四种划分的方式，按照默认的优先级，接受收到一个没有报文的标签，先根据源MAC地址查询MAC与VLAN ID映射表，如果匹配到了则打上对应的标签，如果没有匹配到，则交给下一级标签（基于Ip子网划分VLAN），先根据源IP地址查询IP子网与VLAN ID映射表，如果匹配到了则打上对应的标签，如果没有匹配到，则交给下一级标签（基于协议划分VLAN），先根据报文协议类型查询协议类型与VLAN ID映射表，如果匹配到了则打上对应的标签，如果没有匹配到，则交给下一级标签（基于接口划分VLAN），先打上缺省VLAN ID，在根据接口的类型和规则决定是接收报文还是丢弃报文。~~
+
+~~如果一个接口即使开启了四种划分方式，也只会按照接口的类型和规则决定发送报文还是丢弃报文。~~
+
+# VLANIF接口（个人理解）
+
+![image-20230404205655728](E:/test/%25E4%25B8%2593%25E4%25B8%259A%25E6%2596%2587%25E6%25A1%25A3/%25E8%25AE%25A1%25E7%25AE%2597%25E6%259C%25BA%25E7%25BD%2591%25E7%25BB%259C/%25E4%25BA%25A4%25E6%258D%25A2%25E6%259C%25BA%25E5%2592%258C%25E8%25B7%25AF%25E7%2594%25B1%25E5%2599%25A8/Huawei%2520VLAN.assets/image-20230404205655728.png)
+
+在华为交换机中，有一个虚拟路由器，它负责连接不同的vlanif逻辑接口。当您创建一个新的vlanif逻辑接口时，虚拟路由器会自动连接到这个接口。这样，它就能够加入到这个vlan的广播域中，并且您可以为这个接口配置一个IP地址。
+
+例如，如果您创建了两个vlan（vlan10和vlan20），并为它们分别创建了相应的vlanif接口（vlanif10和vlanif20），并分别设置了IP地址（192.168.110.254/24和192.168.120.254/24），那么虚拟路由器就会连接到这两个接口上。
+
+当主机A在vlan10中，并将其网关配置为vlanif10接口的IP地址，而主机B在vlan20中，并将其网关配置为vlanif20接口的IP地址时，主机A向主机B发送数据时，数据将通过虚拟路由器进行转发。具体来说：
+
+1. 主机A首先发送广播ARP请求路由器vlanif10接口的MAC地址。
+
+2. 路由器回复arp请求。
+
+3. 主机A将数据单播发送到路由器vlanif10接口（此时的数据的vlan标签是10）。
+
+4. 路由器通过vlanif20接口发送arp请求，请求主机B的mac地址。
+
+5. 主机B响应ARP请求。
+
+6. 路由器将数据从vlanif20接口发出（此时数据由于从vlanif20接口出来，所有数据中的vlanid变成了vlan20）给主机B。
+
+7. 配置Switch
+
+    \# 创建VLAN
+
+    ```
+    <Quidway> system-view
+    [Quidway] sysname Switch
+    [Switch] vlan batch 10 20
+    ```
+
+    \# 配置接口加入VLAN
+
+    ```
+    [Switch] interface ethernet 0/0/1
+    [Switch-Ethernet0/0/1] port link-type access
+    [Switch-Ethernet0/0/1] port default vlan 10
+    [Switch-Ethernet0/0/1] quit
+    [Switch] interface ethernet 0/0/2
+    [Switch-Ethernet0/0/2] port link-type access
+    [Switch-Ethernet0/0/2] port default vlan 20
+    [Switch-Ethernet0/0/2] quit
+    ```
+
+    \# 配置VLANIF接口的IP地址
+
+    ```
+    [Switch] interface vlanif 10
+    [Switch-Vlanif10] ip address 10.10.10.2 24
+    [Switch-Vlanif10] quit
+    [Switch] interface vlanif 20
+    [Switch-Vlanif20] ip address 20.20.20.2 24
+    [Switch-Vlanif20] quit
+    ```
+
+8. 检查配置结果
+
+    在VLAN10中的User1主机上配置IP地址为10.10.10.3/24，缺省网关为VLANIF10接口的IP地址10.10.10.2/24。
+
+    在VLAN20中的User2主机上配置IP地址为20.20.20.3/24，缺省网关为VLANIF20接口的IP地址20.20.20.2/24。
+
+    配置完成后，VLAN10内的User1与VLAN20内的User2能够相互访问。
+
+Switch的配置文件
+
+```
+#
+sysname Switch
+#
+vlan batch 10 20
+#
+interface Vlanif10
+ ip address 10.10.10.2 255.255.255.0
+#
+interface Vlanif20
+ ip address 20.20.20.2 255.255.255.0
+#
+interface Ethernet0/0/1
+ port link-type access
+ port default vlan 10
+#
+interface Ethernet0/0/2
+ port link-type access
+ port default vlan 20
+#
+return
+```
+
+~~华为交换机中有一台虚拟路由器，只连接vlanif逻辑接口，默认已经连接vlanif 1接口，创建vlanif逻辑接口，路由器就会自动连接这个vlanif接口（交换机中只有一台虚拟路由器，只要创建了vlanif接口就会自动加入到这台虚拟路由器），连接这个接口后，就会加入这个vlan的广播域，可以给这个接口配置一个IP地址，也就是路由器会接受这个vlan广播域中的报文，和发送给这个接口（所绑定的IP地址）的报文。然后华为交换机会根据连接的vlanif逻辑接口和设置的IP地址来生成路由表。~~
+
+~~例如：创建了两个vlan10和vlan20，然后根据这两个接口创建了vlanif10和vlanif20，分别设置IP地址为192.168.110.254/24 和 192.168.120.254/24，就相当于路由器添加了两张网卡，连接了两台二层交换机，然后给两张网卡配置了IP地址。假设vlan10“交换机”中的主机发送广播数据（或者单播数据），路由器就会就接收到，根据数据内容是否进行转发或者响应arp等等。~~
+
+~~例如：主机A在vlan10，配置网关为vlanif10接口的IP地址，主机B在vlan10，配置网关为vlanif20接口的地址，两个vlan不在同一网段，假设主机A向主机B发送数据，因为跨网段通讯，主机A首先发送广播ARP，请求路由器vlanif10接口的MAC地址，然后路由器回复arp请求，然后主机A将数据单播发送到路由器vlanif10接口（此时的数据的vlan标签是10），然后路由器通过vlanif20接口发送arp请求，请求主机B的mac地址，然后主机B响应ARP请求，然后路由器将数据从vlanif20接口发出（此时数据由于从vlanif20接口出来，所有数据中的vlanid变成了vlan20）给主机B。~~
+
+# 给接口配置多个IP地址
+
+交换机的每个三层接口可以配置多个IP地址，其中一个为主IP地址，其余为从IP地址，每个三层接口最多可配置8个从IP地址。
+
+1. 执行命令**system-view**，进入系统视图。
+2. 执行命令interface interface-type interface-number，进入接口视图。
+3. 执行命令**ip address** ip-address { mask | mask-length } sub，配置从IP地址。
+
+## 示例
+
+![image-20230420144018946](E:/test/%25E4%25B8%2593%25E4%25B8%259A%25E6%2596%2587%25E6%25A1%25A3/%25E8%25AE%25A1%25E7%25AE%2597%25E6%259C%25BA%25E7%25BD%2591%25E7%25BB%259C/%25E4%25BA%25A4%25E6%258D%25A2%25E6%259C%25BA%25E5%2592%258C%25E8%25B7%25AF%25E7%2594%25B1%25E5%2599%25A8/Huawei%2520VLAN.assets/image-20230420144018946.png)
+
+1. 配置Quidway的Ethernet 0/0/1接口所属VLANIF 100接口的IP地址。
+
+    ```
+    <Quidway> system-view
+    [Quidway] vlan 100
+    [Quidway-Vlan100] quit
+    [Quidway] interface ethernet 0/0/1
+    [Quidway-Ethernet0/0/1] port hybrid pvid vlan 100
+    [Quidway-Ethernet0/0/1] port hybrid untagged vlan 100
+    [Quidway-Ethernet0/0/1] quit
+    [Quidway] interface vlanif 100
+    [Quidway-Vlanif100] ip address 172.16.1.1 24
+    [Quidway-Vlanif100] ip address 172.16.2.1 24 sub
+    [Quidway-Vlanif100] quit
+    [Quidway] quit
+    ```
+
+# 借用其他接口的IP地址
+
+略
+
+# vlan聚合
+
+![image-20230404213810835](E:/test/%25E4%25B8%2593%25E4%25B8%259A%25E6%2596%2587%25E6%25A1%25A3/%25E8%25AE%25A1%25E7%25AE%2597%25E6%259C%25BA%25E7%25BD%2591%25E7%25BB%259C/%25E4%25BA%25A4%25E6%258D%25A2%25E6%259C%25BA%25E5%2592%258C%25E8%25B7%25AF%25E7%2594%25B1%25E5%2599%25A8/Huawei%2520VLAN.assets/image-20230404213810835.png)
+
+Super-VLAN不能加入物理接口，但可以创建对应的VLANIF接口。Sub-VLAN可以加入物理接口，但不能创建对应的VLANIF接口，不同Sub-VLAN之间二层是隔离的。
+
+VLAN聚合是一种节省IP地址的方法，它通过创建一个Super-VLAN，将多个子VLAN的广播域合并到一个广播域中（super-vlan是所有子vlan的广播域的合集）。子VLAN之间仍然是隔离的，但它们都可以与Super-VLAN通信。在配置Super-VLAN时，可以选择使能Super-VLAN对应的VLANIF接口的Proxy ARP功能。这样，当子VLAN中的主机发送ARP请求时，Super-VLAN对应的VLANIF接口会代替目标主机响应ARP请求，从而实现子VLAN之间的通信。
+
+1. 配置接口类型
+
+    \# 配置接口Eth0/0/1为Access类型。
+
+    ```
+    <Quidway> system-view
+    [Quidway] sysname Switch
+    [Switch] interface ethernet 0/0/1
+    [Switch-Ethernet0/0/1] port link-type access
+    [Switch-Ethernet0/0/1] quit
+    ```
+
+    接口Eth0/0/2、Eth0/0/3、Eth0/0/4配置与Eth0/0/1相同，不再赘述。
+
+2. 创建VLAN2并向VLAN2中加入Eth0/0/1和Eth0/0/2。
+
+    ```
+    [Switch] vlan 2
+    [Switch-vlan2] port ethernet 0/0/1 0/0/2
+    [Switch-vlan2] quit
+    ```
+
+3. 创建VLAN3并向VLAN3中加入Eth0/0/3和Eth0/0/4。
+
+    ```
+    [Switch] vlan 3
+    [Switch-vlan3] port ethernet 0/0/3 0/0/4
+    [Switch-vlan3] quit
+    ```
+
+4. 配置VLAN4
+
+    \# 配置super-VLAN。
+
+    ```
+    [Switch] vlan 4
+    [Switch-vlan4] aggregate-vlan
+    [Switch-vlan4] access-vlan 2 to 3
+    [Switch-vlan4] quit
+    ```
+
+    \# 配置VLANIF。
+
+    ```
+    [Switch] interface vlanif 4
+    [Switch-Vlanif4] ip address 100.1.1.12 255.255.255.0
+    [Switch-Vlanif4] quit
+    ```
+
+5. 配置用户IP地址
+
+    分别为各用户配置IP地址，并使它们和VLAN4处于同一网段。
+
+    配置成功后，各用户与Switch之间可以相互ping通，但VLAN2的用户与VLAN3的用户间不可以相互ping通。还需要在Switch上配置Proxy ARP。
+
+6. 配置Proxy ARP
+
+    ```
+    [Switch] interface vlanif 4 
+    [Switch-Vlanif4] arp-proxy inter-sub-vlan-proxy enable
+    [Switch-Vlanif4] quit
+    ```
+
+7. 检查配置结果
+
+    配置完成后，VLAN2的用户与VLAN3的用户可以相互ping通。
+
+Switch的配置文件
+
+```
+#
+sysname Switch
+#
+vlan batch 2 to 4
+#
+vlan 4
+ aggregate-vlan
+ access-vlan 2 to 3
+#
+interface Vlanif4
+ ip address 100.1.1.12 255.255.255.0
+ arp-proxy inter-sub-vlan-proxy enable
+#
+interface Ethernet0/0/1
+ port link-type access
+ port default vlan 2
+#
+interface Ethernet0/0/2
+ port link-type access
+ port default vlan 2
+#
+interface Ethernet0/0/3
+ port link-type access
+ port default vlan 3
+#
+interface Ethernet0/0/4
+ port link-type access
+ port default vlan 3
+#
+return
+```
+
+# mux-vlan
+
+MUX VLAN（Multiplex VLAN）提供了一种通过VLAN进行网络资源控制的机制。例如，在企业网络中，企业员工和企业客户可以访问企业的服务器。对于企业来说，希望企业内部员工之间可以互相交流，而企业客户之间是隔离的，不能够互相访问。
+
+MUX VLAN分为主VLAN和从VLAN，从VLAN又分为隔离型从VLAN和互通型从VLAN。主VLAN（Principal VLAN）：Principal port可以和MUX VLAN内的所有接口进行通信。隔离型从VLAN（Separate VLAN）：Separate port只能和Principal port进行通信，和其他类型的接口实现完全隔离。互通型从VLAN（Group VLAN）：Group port可以和Principal port进行通信，在同一组内的接口也可互相通信，但不能和其他组接口或Separate port通信。
+
+根据MUX VLAN特性，企业可以用Principal port连接企业服务器，Separate port连接企业客户，Group port连接企业员工。这样就能够实现企业客户、企业员工都能够访问企业服务器，而企业员工内部可以通信、企业客户间不能通信、企业客户和企业员工之间不能互访的目的。
+
+![image-20230405103036948](E:/test/%25E4%25B8%2593%25E4%25B8%259A%25E6%2596%2587%25E6%25A1%25A3/%25E8%25AE%25A1%25E7%25AE%2597%25E6%259C%25BA%25E7%25BD%2591%25E7%25BB%259C/%25E4%25BA%25A4%25E6%258D%25A2%25E6%259C%25BA%25E5%2592%258C%25E8%25B7%25AF%25E7%2594%25B1%25E5%2599%25A8/Huawei%2520VLAN.assets/image-20230405103036948.png)
+
+1. 配置MUX VLAN
+
+    \# 创建VLAN2、VLAN3和VLAN4。
+
+    ```
+    <Quidway> system-view
+    [Quidway] vlan batch 2 3 4
+    ```
+
+    \# 配置MUX VLAN中的Group VLAN和Separate VLAN。
+
+    ```
+    [Quidway] vlan 2
+    [Quidway-vlan2] mux-vlan
+    [Quidway-vlan2] subordinate group 3
+    [Quidway-vlan2] subordinate separate 4
+    [Quidway-vlan2] quit
+    ```
+
+    \# 配置接口加入VLAN并使能MUX VLAN功能。
+
+    ```
+    [Quidway] interface ethernet 0/0/1
+    [Quidway-Ethernet0/0/1] port link-type access
+    [Quidway-Ethernet0/0/1] port default vlan 2
+    [Quidway-Ethernet0/0/1] port mux-vlan enable
+    [Quidway-Ethernet0/0/1] quit
+    [Quidway] interface ethernet 0/0/2
+    [Quidway-Ethernet0/0/2] port link-type access
+    [Quidway-Ethernet0/0/2] port default vlan 3
+    [Quidway-Ethernet0/0/2] port mux-vlan enable
+    [Quidway-Ethernet0/0/2] quit
+    [Quidway] interface ethernet 0/0/3
+    [Quidway-Ethernet0/0/3] port link-type access
+    [Quidway-Ethernet0/0/3] port default vlan 3
+    [Quidway-Ethernet0/0/3] port mux-vlan enable
+    [Quidway-Ethernet0/0/3] quit
+    [Quidway] interface ethernet 0/0/4
+    [Quidway-Ethernet0/0/4] port link-type access
+    [Quidway-Ethernet0/0/4] port default vlan 4
+    [Quidway-Ethernet0/0/4] port mux-vlan enable
+    [Quidway-Ethernet0/0/4] quit
+    [Quidway] interface ethernet 0/0/5
+    [Quidway-Ethernet0/0/5] port link-type access
+    [Quidway-Ethernet0/0/5] port default vlan 4
+    [Quidway-Ethernet0/0/5] port mux-vlan enable
+    [Quidway-Ethernet0/0/5] quit
+    ```
+
+    
+
+2. 检查配置结果
+
+    Server和HostB、HostC、HostD、HostE在同一网段。
+
+    Server和HostB、HostC、HostD、HostE二层流量互通。
+
+    HostB和HostC二层流量互通。
+
+    HostD和HostE二层流量不通。
+
+    HostB、HostC和HostD、HostE二层流量不通。
+
+# VLAN Mapping
+
+VLAN Mapping，也叫做VLAN Translation，可以实现不同VLAN间的通信。**VLAN Mapping发生在报文从入端口接收进来之后，从出端口转发出去之前。**执行本命令可实现端口在接收到tagged帧后，依据帧中的VLAN ID进行映射操作，将帧中的VLAN ID映射为指定的VLAN ID。
+
+接口上配置了**port vlan-mapping** **vlan** *vlan-id1* [ **to** *vlan-id2* ] **map-vlan** *vlan-id3* [ **remark-8021p** *8021p-value* ]后，入方向将*vlan-id1* [ **to** *vlan-id2* ]映射为*vlan-id3*，出方向将*vlan-id3*映射为*vlan-id1* [ **to** *vlan-id2* ]。
+
+**N:1的VLAN Mapping功能要求N侧先发送报文**。对于N:1的VLAN Mapping，若从1侧先发送报文，由于未生成ACL表项，导致无法判断应还原的VLAN，造成报文被丢弃。
+
+```
+例如 port vlan-mapping vlan 100 to 110 map-vlan 10
+接口收到 vlan 100 至 110 的报文，将报文vlan标签转换为vlan100，再由接口配置规则决定是否接收vlan100标签的报文
+接口发送vlan100标签的报文，先接口配置规则决定是否发送vlan100标签的报文，在将vlan100标签（根据表项）转为vlan100 至 110 中的一个vlan标签。
+接收，先转换，在判断 前面转后面
+发送，先判断，在转换 后面转前面
+```
+
+
+
+## N:1配置示例
+
+![image-20230405154415820](E:/test/%25E4%25B8%2593%25E4%25B8%259A%25E6%2596%2587%25E6%25A1%25A3/%25E8%25AE%25A1%25E7%25AE%2597%25E6%259C%25BA%25E7%25BD%2591%25E7%25BB%259C/%25E4%25BA%25A4%25E6%258D%25A2%25E6%259C%25BA%25E5%2592%258C%25E8%25B7%25AF%25E7%2594%25B1%25E5%2599%25A8/Huawei%2520VLAN.assets/image-20230405154415820.png)
+
+1. 配置Switch
+
+     
+
+    \# 创建VLAN。
+
+    ```
+    <Quidway> system-view
+    [Quidway] vlan batch 10 100 to 110
+    ```
+
+    \# 配置接口加入VLAN。
+
+    ```
+    [Quidway] interface ethernet 0/0/1
+    [Quidway-Ethernet0/0/1] port hybrid tagged vlan 10 100 to 110
+    ```
+
+    \# 配置VLAN Mapping功能。
+
+    ```
+    [Quidway-Ethernet0/0/1] qinq vlan-translation enable
+    ```
+
+    ```
+    [Quidway-Ethernet0/0/1] port vlan-mapping vlan 100 to 110 map-vlan 10
+    [Quidway-Ethernet0/0/1] quit
+    
+    #如果只要1:1，也就是vlan 100 与 vlan10 之间的转换
+    # port vlan-mapping vlan 100 map-vlan 10
+    
+    # 如果只需要vlan 100 和 vlan 110 ，而不是vlan100至vlan110，则
+    # port vlan-mapping vlan 100 map-vlan 10
+    # port vlan-mapping vlan 110 map-vlan 10
+    ```
+
+2. 验证配置结果
+
+    VLAN100～110的用户可以通过Switch正常访问网络。
+
+**注意：全局vlan mapping由于ensp不支持，暂时不讲。**
+
+# Qinq
+
+## 基本Qinq
+
+- 接收到报文（没有开启vlan mapping）时，根据报文是否带有vlan标签，进行不同的处理：
+    - 没有vlan标签，外层标签不打，内层（按照vlan划分优先级）打上的vlan标签，放行。
+    - 如果开启了基于mac、子网、协议的vlan划分，匹配到了打上对应的vlan标签，没有匹配到打上缺省的vlan标签。
+    - 如果只有基于接口的划分，直接打上缺省vlan标签。
+    - 一个vlan标签，外层打上缺省的vlan标签（内层标签不改变），放行。
+    - 两个vlan标签，外层标签与缺省标签一致（外层和内层都标签不改变），放行。
+- 发送报文时，根据报文是否带有两个vlan标签，进行不同的处理：
+    - 没有vlan标签，不可能出现这种情况。
+    - 一个vlan标签，内层标签与缺省vlan标签一致，剥离内层标签，放行。
+    - 两个vlan标签，外层标签与缺省vlan 标签一致，剥离外层标签（保留内层标签），放行。
+
+### vlan mapping
+
+- 接收到报文时，根据报文是否带有一个或两个vlan标签，进行不同的处理：
+    - 如果没有收到的报文没有带标签，则跳过vlan mapping流程。
+    - 如果收到了带一个标签的报文，且标签在映射的匹配范围内，对内层标签进行映射，在外层打上缺省的vlan标签。
+    - 两个vlan标签，外层标签且外层标签在映射的匹配范围内，对外层标签进行映射，内层标签不变，放行。
+- 发送报文时，根据报文是否带有两个vlan标签，进行不同的处理：
+    - 一个vlan标签，内层标签与缺省vlan标签一致，剥离内层标签，放行。
+    - 两个vlan标签，外层标签与缺省vlan 标签一致，剥离外层标签（保留内层标签），内层标签在映射的匹配范围内，对内层标签进行映射，放行。
+
+## 灵活QinQ
+
+接收到报文
+
+- 如果报文没有vlan标签，说明是来自未划分vlan的用户，不打外层标签，根据接口或者其他方式（如mac、子网、协议）划分vlan，打上内层vlan标签，放行。
+- 如果报文有一个vlan标签，说明是来自已划分vlan的用户，根据内层vlan标签ID匹配对应的规则，如果匹配到了，打上外层vlan标签，如果没有匹配到，则不打外层vlan标签，内层标签不变，放行。
+- 如果报文有两个vlan标签，不进行qinq处理，判断外层vlan标签是否在允许接收的列表中（tagged或untagged），如果在列表中，放行（内层外层标签不改变），如果不在列表中，则丢弃报文。。
+
+发送报文
+
+- 发送报文时不会经过qinq流程，只会经过vlan审核模块。
+- 如果报文没有vlan标签，不可能出现这种情况。
+- 如果报文有一个vlan标签，判断内层vlan标签是否在tagged列表中，如果在，则不改变内层标签；如果在untagged列表中，则剥离内层标签放行；如果两个都不在，则丢弃报文。
+- 如果报文有两个vlan标签，判断外层vlan标签是否在tagged列表中，如果在，则不改变外层和内层标签；如果在untagged列表中，则剥离外层标签放行；如果两个都不在，则丢弃报文。
+
+### VLAN Mapping
+
+接收到报文
+
+- 如果报文没有vlan标签，同上。
+- 如果报文有一个vlan标签，说明是来自已划分vlan的用户，如果内层标签在映射的匹配范围内，对内层标签进行映射，然后根据映射后的内层vlan标签ID匹配对应的规则，如果匹配到了，打上外层vlan标签，如果没有匹配到，则不打外层vlan标签，内层标签不变，放行。
+- 如果报文有两个vlan标签，说明是来自其他交换机或路由器的报文，如果外层标签在映射的匹配范围内，对外层标签进行映射，然后判断映射后的
+
+发送报文
+
+- 发送报文时不会经过qinq流程，只会经过vlan审核模块。
+- 如果报文没有vlan标签，不可能出现这种情况。
+- 如果报文有一个vlan标签，判断内层vlan标签是否在tagged列表中，如果在，则不改变内层标签；如果在untagged列表中，则剥离内层标签放行，如果两个都不在，则丢弃报文。
+- 如果报文有两个vlan标签，判断内层vlan标签是否在tagged列表中，如果在，则不改变内层标签；如果在untagged列表中，则剥离内层标签（保留内层标签），然后判断内层标签是否在映射的匹配范围内，如果在，则对内层标签进行映射放行；如果不在，则丢弃报文。
+
+## ~~基本Qinq~~
+
+~~接收到报文（没有开启vlan mapping）~~
+
+~~没有vlan标签，外层标签不打，内层（按照vlan划分优先级）打上的vlan标签，放行~~
+
+~~如果开启了基于mac、子网、协议的vlan划分，匹配到了打上对应的vlan标签，没有匹配到打上缺省的vlan标签~~
+
+~~如果只有基于接口的划分，直接打上缺省vlan标签~~
+
+~~一个vlan标签，外层打上缺省的vlan标签（内层标签不改变），放行~~
+
+~~两个vlan标签，外层标签与缺省标签一致（外层和内层都标签不改变），放行~~
+
+~~（开启了vlan mapping）~~
+
+~~如果没有收到的报文没有带标签，则跳过vlan mapping流程。~~
+
+~~如果收到了带一个标签的报文，且标签在映射的匹配范围内，对内层标签进行映射，在外层打上缺省的vlan标签。~~
+
+~~两个vlan标签，外层标签且外层标签在映射的匹配范围内，对外层标签进行映射，内层标签不变，放行。~~
+
+
+
+~~发送报文~~
+
+~~没有vlan标签，不可能出现这种情况~~
+
+~~一个vlan标签，内层标签与缺省vlan标签一致，剥离内层标签，放行~~
+
+~~两个vlan标签，外层标签与缺省vlan 标签一致，剥离外层标签（保留内层标签），放行~~
+
+~~（开启了vlan mapping）~~
+
+~~一个vlan标签，内层标签与缺省vlan标签一致，剥离内层标签，放行~~
+
+~~两个vlan标签，外层标签与缺省vlan 标签一致，剥离外层标签（保留内层标签），内层标签在映射的匹配范围内，对内层标签进行映射，放行~~
+
+
+
+## ~~灵活Qinq~~
+
+~~接收到报文（没有开启vlan mapping）~~
+
+~~没有vlan标签，外层标签不打，内层（按照vlan划分优先级）打上的vlan标签，放行~~
+
+~~如果开启了基于mac、子网、协议的vlan划分，匹配到了打上对应的vlan标签，没有则打上缺省的vlan标签（pvid）~~
+
+~~如果只有基于接口的划分，直接打上缺省vlan标签（pvid）~~
+
+~~一层vlan标签，根据内层vlan标签ID匹配对应的规则，匹配到了外层标签打上对应的标签，没有匹配到则不打外层vlan标签，内层标签不变，放行~~
+
+~~二层vlan标签，外层vlan标签是否在允许接收的列表中（tagged或untagged），在列表中，放行（外层和内层标签都不改变）~~
+
+~~qinq 只有在接收报文的时候才会启动，首先会检查报文中有几个vlan，如果是0个或者1个，将处理，如果有两个vlan则不会处理（跳过qinq处理流程）。~~
+
+~~（开启了vlan mapping）~~
+
+~~没有vlan标签，外层标签不打，内层（按照vlan划分优先级）打上的vlan标签，放行~~
+
+~~一层vlan标签，内层标签在映射的匹配范围内，对内层标签进行映射，根据内层vlan标签ID匹配对应的规则，匹配到了外层标签打上对应的标签，没有匹配到则不打外层vlan标签，内层标签不变，放行~~
+
+~~二层vlan标签，外层标签在映射的匹配范围内，对外层标签进行映射，映射后的外层vlan标签是否在允许接收的列表中（tagged或untagged），在列表中，放行（内层标签不改变）~~
+
+
+
+~~发送报文（没有开启vlan mapping）~~
+
+~~发送报文的时候是不会经过qinq流程的，qinq流程只有在接收报文时才有可能启动，发送报文是否剥离标签等等，由vlan审核模块决定~~
+
+~~没有vlan标签，不可能出现这种情况~~
+
+~~一个vlan标签，内层vlan标签在tagged中，不改变内层标签，内层标签在untagged中，剥离内层标签放行，两个都不在则丢弃报文。~~
+
+~~两个vlan标签，外层vlan标签在tagged中，外层标签在untagged中，剥离内层标签，两个都不在则丢弃报文。（内层标签不改变）~~
+
+~~（开启了vlan mapping）~~
+
+~~一个vlan标签，内层标签与缺省vlan标签一致，剥离内层标签，放行~~
+
+~~两个vlan标签，外层标签与缺省vlan 标签一致，剥离外层标签（保留内层标签），内层标签在映射的匹配范围内，对内层标签进行映射，放行~~
+
+
+
+# STP生成树
+
+根桥
+
+树形网络结构必须有树根，于是STP/RSTP引入了根桥（Root Bridge）概念。
+
+对于一个STP/RSTP网络，根桥有且只有一个，它是整个网络的逻辑中心，但不一定是物理中心。但是根据网络拓扑的变化，根桥可能改变。
+
+
+
+BID（Bridge ID）：桥ID
+
+IEEE 802.1d标准中规定BID是由2字节的桥优先级（Bridge Priority）与桥MAC地址构成，即BID（8字节） = 桥优先级（2字节） + 桥MAC（6字节）。
+
+在STP网络中，桥ID最小的设备会被选举为根桥。在华为公司的设备上，桥优先级支持手工配置。
+
+
+
+PID（Port ID）：端口ID
+
+PID由两部分构成的，即PID（16位） = 端口优先级（4位） + 端口号（12位）。
+
+PID只在某些情况下对选择指定端口有作用，即在选择指定端口时，两个端口的根路径开销和发送交换设备BID都相同的情况下，比较端口的PID，PID小者为指定端口。
+
+
+
+路径开销
+
+路径开销是STP/RSTP协议用于选择链路的参考值。STP/RSTP协议通过计算路径开销，选择较为“强壮”的链路，阻塞多余的链路，将网络修剪成无环路的树形网络结构。根设备的端口的路径开销都为0。
+
+在一个STP/RSTP网络中，某端口到根桥累计的路径开销就是所经过的各个桥上的各端口的路径开销累加而成，这个值叫做根路径开销。
+
+## STP端口
+
+根端口：即去往根桥路径最近的端口。根端口负责向根桥方向转发数据，根端口同时还负责接收上游设备的BPDU报文和用户流量转发。根端口的选择标准是依据根路径开销判定。在一台设备上所有使能STP的端口中，根路径开销最小者，就是根端口。在一个运行STP/RSTP协议的设备上根端口有且只有一个，而且根桥上没有根端口。
+
+指定端口：对一台交换设备而言，它的指定端口是向下游交换设备转发BPDU报文的端口。根桥的所有端口都是指定端口。在环网的每一网段都会选举出一个指定端口，在一个网段上拥有指定端口的交换设备被称作该网段的指定桥。
+
+## STP选举流程
+
+1.所有开启了stp的交换机认为自己是根桥，所有端口均为指定端口，向所有指定端口发送BPDU报文，如果交换机收到BPDU报文中的BID小于自己，则将那条桥设置为根桥，并配置根端口，然后其他所有端口均为指定端口，交换机会为除了根端口外的其他端口发送BPDU报文。如果交换机收到的所有BPDU报文BID均大于自己，那么它就是根桥，所有端口均为指定端口，向所有指定端口发送BPDU报文。
+
+2.非根桥选举根端口，在一台设备上所有使能STP的端口中，根路径开销最小者，就是根端口。如果根路径开销相同，则比较对端交换机的BID，越小越优，如果对端交换机的BID相同，则比较对端的PID，越小越优，如果对端的PID相同，则比较本端的PID，越小越优。
+
+3.判断是否阻塞指定端口，交换机会发送和接收BPDU报文，如果对方的根路径开销等（根路径开销相同比较BID，BID相同比较PID）小于自己，则交换机会将该端口状态切换为阻塞，并停止在该接口上发送BPDU报文，只接收对方端口发送的BPDU报文。如果大于自己，则端口状态为转发状态，会转发用户数据和持续发送BPDU报文，也会监听BPDU报文。
+
+## 交换机故障
+
+根桥故障恢复过程
+
+1.根桥发生故障，停止发送BPDU
+
+2.MAX Age计时器（20s）超时，从而导致已经收到的BPDU报文丢失，有接收不到根桥发送的新的BPDU报文，从而得知上游出现故障。
+
+3.非根桥会互相发送配置BPDU，重新选举新的根桥
+
+4.经过重新选举后，会经过两个Forward Delay（15s）时间恢复转发状态。
+
+非根桥会在BPDU老化之后开始新的根桥选举
+
+根桥故障会导致50s左右的恢复时间
+
+如果是非根桥交换机发生故障，那么处理方法与（直连链路故障和非直连链路故障的处理结果几乎一致），如果是根桥发生故障，其他交换机重新选举根桥
+
+## 直连链路故障
+
+当交换机检测到根端口的链路发生故障时，则其备用端口会经过两倍的Foward Delay（15s）时间进入用户流量转发状态
+
+检测到直连链路故障后，预备端口转换为根端口
+
+经过两倍Forward Delay，重新选举端口角色
+
+## 非直连链路故障
+
+非直连链路故障，交换机无法立即检测到，要经过老化时间才会发现，然后再经过两倍Forward Delay重新后选举角色
+
+## 故障后MAC地址表问题
+
+在STP（生成树协议）中，TC（拓扑变化）和TCA（拓扑变化确认）是两种不同的BPDU（桥接协议数据单元）标记。
+
+TCA标记用于应答TCN BPDU报文。接收到TCN BPDU报文的交换机会向发送者发送带有TCA标记的配置BPDU报文，以通知发送者已经收到了TCN BPDU报文。
+
+下级交换机通过TCN BPDU告诉上级交换机，然后上级交换机向下级交换机发送TCA标记（拓扑变化）的配置BPDU，然后上级交换机在向上一级交换机发送TCN BPDU，直到根桥知道拓扑结构发生了变化，根桥发送TC标记（拓扑变化确认）的配置BPDU告诉所有节点（一级一级下方），加速老化MAC地址表。
+
+
+
+交换机故障、直连链路故障、非直连链路故障、故障后MAC地址表问题
+
+# RSTP
+
+Alternate端口：由于学习到其它设备发送的配置BPDU报文而阻塞的端口，作为根端口的备份端口，提供了从指定桥到根的另一条可切换路径。
+
+Backup端口：由于学习到自己发送的配置BPDU报文而阻塞的端口，指定端口的备份，提供了另外一条从根节点到叶节点的备份通路。
+
+edge（边缘）端口：连接用户计算机的端口
+
+在STP（生成树协议）中，当拓扑发生变化时，交换机会从自己的指定端口向外发送TCN（拓扑变化通知）BPDU报文。根交换机接收到TCN BPDU报文后，会向网络中发送带有TC（拓扑变化）标记的配置BPDU报文。收到带有TC标记的配置BPDU报文的交换机将MAC地址表老化时间设为较短的时间，以便快速更新MAC地址表。
+
+与STP不同，RSTP（快速生成树协议）中没有TCN BPDU报文。当拓扑发生变化时，交换机会立即发送带有TC标记的配置BPDU报文，以便快速更新MAC地址表。这样可以避免等待根交换机接收到TCN BPDU报文后再发送带有TC标记的配置BPDU报文，从而加快了拓扑变化处理的速度。
+
+当根端口失效时，Alternate端口会立刻接管并成为新端口，这个过程不需要等待时间
+
+Backup只有在连接交换机等设备时才会出现，backup端口转换为指定端口需要等待两倍Forward Delay时间
+
+# MSTP
+
+多生成树协议MSTP（Multiple Spanning Tree Protocol）将环路网络修剪成为一个无环的树型网络，避免报文在环路网络中的无限循环，同时还提供了数据转发的多个冗余路径，在数据转发过程中实现VLAN数据的负载均衡。
+
+
+
+MST域（MST Region）
+
+MST域是多生成树域（Multiple Spanning Tree Region），由交换网络中的多台交换设备以及它们之间的网络所构成。这些设备具有下列特点：
+
+- 都启动了MSTP。
+- 具有相同的域名。
+- 具有相同的VLAN到生成树实例映射配置。
+- 具有相同的MSTP修订级别配置。
+
+一个局域网可以存在多个MST域，各MST域之间在物理上直接或间接相连。用户可以通过MSTP配置命令把多台交换设备划分在同一个MST域内。
+
+
+
+域根
+
+域根（Regional Root）分为IST（Internal Spanning Tree）域根和MSTI域根。
+
+IST域根：IST生成树中距离总根（CIST Root）最近的交换设备是IST域根。
+
+MSTI域根是每个MSTI生成树实例的树根，域中不同的MSTI有各自的域根。
+
+- VLAN映射表
+
+    VLAN映射表是MST域的属性，它描述了VLAN和MSTI之间的映射关系。例如某个域的VLAN映射表是：
+
+    - VLAN1映射到MSTI1
+    - VLAN2和VLAN3映射到MSTI2
+    - 其余VLAN映射到MSTI0
+
+    MSTI之间彼此独立，MSTI可以与一个或者多个VLAN对应。但一个VLAN只能与一个MSTI对应。
+
+
+
+IST
+
+内部生成树IST（Internal Spanning Tree）是各MST域内的一棵生成树。
+
+IST是一个特殊的MSTI，MSTI的ID为0，通常称为MSTI0。
+
+
+
+CST
+
+公共生成树CST（Common Spanning Tree）是连接交换网络内所有MST域的一棵生成树。
+
+如果把每个MST域看作是一个节点，CST就是这些节点通过STP或RSTP协议计算生成的一棵生成树。
+
+
+
+CIST
+
+公共和内部生成树CIST是通过STP或RSTP协议计算生成的，连接一个交换网络内所有交换设备的单生成树。所有MST域的IST加上CST就构成一棵完整的生成树，即CIST。
+
+
+
+总根
+
+总根是CIST（Common and Internal Spanning Tree）的根桥。总根是区域A0中的某台设备。
+
+
+
+生成树的使命是将数据包转发到同一个广播域内的所有交换机中，并保证不会产生环路。
+
+每个MSI域都认为总根在本域，每一个域会选出一个总根，然后域之间交换BDPU报文，确定总根在哪个域中，然后其他域根据外部路径开销，选出IST域根。
+
+每一个域只能有一条链路连接到总根，如果有多条链路连接到总根，只会保留一条，其他链路将被阻塞。
+
+每个MSI域确定IST域根后，生成IST生成树。
+
+在每个域中，可能会有多个MSTI生成树，这些生成树不过是不同的路径，它们都会连接域中的每一台交换机。不
+
+同的VLAN通过不同的MSTI生成树路径进行域中数据的转发。如果没有匹配到的MSTI生成树，将使用IST生成树进
+
+行数据转发。
+
+域中使用MSTI或IST内部线路进行转发，跨域使用CST公共线路进行转发。
+
+
+
+如果其中一个域连接了一个STP生成树，且该生成树区域的BID比所有域的都小，那么所有域都会将它视为总根。如果BID大于MSTP域中的总根，则会将连接STP端口角色设为转发端口。
+
+# ARP
+
+## 动态ARP
+
+调整动态ARP参数主要是调整以下参数：
+
+- 调整动态ARP表项的老化时间，当表项到达老化时间时，设备向表项对应的出接口发送ARP请求报文，同时启动表项探测功能。如果ARP表项的老化时间设置太小，会使得ARP请求报文的发送太过频繁，建议使用默认的老化时间，即20分钟。
+- 调整动态ARP表项的老化探测次数，即在将一个动态ARP表项被老化删除之前，系统需要进行探测，如果超过设置的探测次数后设备仍没有收到应答来刷新此表项，则此ARP表项将被删除。
+- 调整动态ARP表项的老化探测模式，ARP表项老化之前，接口会发送ARP老化探测报文。
+
+#### 操作步骤
+
+1. 执行命令**system-view**，进入系统视图。
+
+2. 执行命令**interface** interface-type interface-number，进入接口视图。
+
+3. 执行命令**arp expire-time** expire-time，设置动态ARP表项的老化超时时间。
+
+    缺省情况下，动态ARP表项的老化超时时间为1200秒，即20分钟。
+
+    
+
+4. 执行命令**arp detect-times** detect-times，设置动态ARP表项的老化探测次数。
+
+    缺省情况下，动态ARP表项的老化探测次数为3次。
+
+    
+
+5. 执行命令**arp detect-mode** unicast，配置接口以单播方式发送ARP老化探测报文。
+
+    缺省情况下，接口以广播方式发送ARP老化探测报文。
+
+**其他支持的功能：ARP抑制、ARP二层拓扑探测**
+
+## 静态ARP
+
+#### 操作步骤
+
+1. 执行命令**system-view**，进入系统视图。
+2. 执行命令**arp static** ip-address mac-address [ vpn-instance vpn-instance-name [ vid vlan-id ] ]或者执行命令**arp static** ip-address mac-address vid vlan-id [ interface interface-type interface-number ]，配置静态ARP表项。
+
+## ARP代理
+
+**支持的功能：路由时proxy ARP、VLAN内 proxy ARP和VLAN间proxy ARP**
+
+**其他的ARP功能：出口ARP检测 和 IP地址冲突检测功能**
+
+# DHCP
+
+## 全局地址池
+
+**system-view**，进入系统视图。
+
+**ip pool** ip-pool-name，**创建全局地址池**，同时进入全局地址池视图。     缺省情况下，设备上没有创建任何全局地址池。
+
+
+
+**network** ip-address [ mask { mask | mask-length } ]，配置全局地址池可动态分配的IP地址范围。
+
+缺省情况下，系统未配置全局地址池下动态分配的IP地址范围。
+
+一个地址池中只能配置一个地址段，通过设定掩码长度可控制地址范围的大小。
+
+配置全局地址池可动态分配的IP地址范围时，请尽量保证该地址范围与DHCP服务器接口或DHCP中继接口地址的网段一致，以免分配错误的IP地址。
+
+
+
+### 网关设置
+
+执行命令**gateway-list** ip-address &<1-8>，配置DHCP客户端的出口网关地址。
+
+DHCP客户端访问本网段以外的服务器或主机时，数据必须通过出口网关进行收发。如果客户端连接DHCP服务器或DHCP中继的接口地址作为网关地址时，可以不用配置此步骤。
+
+为了对流量进行负载分担和提高网络的可靠性，可以配置多个出口网关，每个地址池最多可以配置8个网关地址。网关地址不能是子网广播地址。
+
+
+
+### DNS服务器
+
+**domain-name** domain-name，配置分配给DHCP客户端的DNS域名后缀。
+
+在DHCP服务器上，可以为每个地址池分别指定客户端使用的DNS域名后缀。
+
+
+
+**dns-list** ip-address &<1-8>，配置DHCP客户端使用的DNS服务器的IP地址。
+
+为了对流量进行负载分担和提高网络的可靠性，可配置多个DNS服务器。每个地址池最多可以配置8个DNS服务器地址。
+
+
+
+### 租期设置
+
+**lease** { day day [ hour hour [ minute minute ] ] | unlimited }，配置IP地址租期。
+
+缺省情况下，IP地址的租期为1天。
+
+对于不同的地址池，DHCP服务器可以指定不同的地址租用期限，但同一地址池中的地址都具有相同的租用期限。
+
+
+
+### 地址保留
+
+**excluded-ip-address** start-ip-address [ end-ip-address ]，配置地址池中不参与自动分配的IP地址。
+
+缺省情况下，地址池中所有IP地址都参与自动分配。
+
+地址池中部分IP地址需要保留以分配给其他的服务（比如分配给DNS服务器的IP地址），这些IP地址就不能再分配给DHCP客户端使用。用户多次执行该命令，可以配置多个不参与自动分配的IP地址段。
+
+
+
+**static-bind** ip-address ip-address mac-address mac-address，采用静态地址绑定方式将全局地址池中的IP地址与DHCP客户端的MAC地址绑定。
+
+缺省情况下，全局地址池下的IP地址没有与任何MAC地址绑定。
+
+当用户需要固定的IP地址时，可以将地址池中尚未分配的IP地址与用户的MAC地址绑定。
+
+采用静态地址绑定方式将全局地址池中的IP地址与MAC地址绑定时，该IP地址必须在全局地址池可动态分配的IP地址范围之内。
+
+
+
+执行命令**next-server** ip-address ，配置客户端自动获取IP地址后下一步使用的服务器地址。
+
+缺省情况下，设备未配置客户端自动获取IP地址后下一步使用的服务器地址。
+
+
+
+执行命令**vpn-instance** vpn-instance-name，配置地址池下的VPN实例。
+
+缺省情况下，地址池下没有配置VPN实例。
+
+
+
+执行命令**lock**，锁定IP地址池。
+
+缺省情况下，系统未锁定IP地址池。
+
+
+
+### 防止IP地址冲突
+
+执行命令**dhcp server** ping packet number，配置交换机发送Ping报文的最大数量。
+
+缺省情况下，DHCP服务器发送Ping报文最大数量为2。
+
+
+
+执行命令**dhcp server** ping timeout milliseconds，配置交换机发送Ping报文的最长等待响应时间。
+
+缺省情况下，设备等待Ping响应报文的最长时间为500毫秒。
+
+
+
+### DHCP数据保存功能
+
+**dhcp server** database enable，使能DHCP数据保存到存储器的功能。
+
+缺省情况下，未使能DHCP数据保存到存储器的功能。
+
+执行本命令后，系统将生成lease.txt和conflict.txt两个文件，存放在存储器中的dhcp文件夹中，分别保存正常的地址租借信息和地址冲突信息。执行命令**display dhcp server** database可以查看DHCP数据保存的存储器路径。
+
+
+
+**dhcp server** database write-delay interval，配置数据保存时间间隔。
+
+如果使能此功能，缺省情况下，每隔7200秒保存一次当前的DHCP数据，并覆盖之前的数据文件。
+
+
+
+**dhcp server** database recover，使能DHCP数据恢复功能。
+
+使能DHCP数据恢复功能后，系统重启时将从存储器的文件中恢复DHCP数据。
+
+
+
+### 配置接口工作在全局地址池模式
+
+**dhcp enable**，使能DHCP服务。
+
+**interface** interface-type interface-number，进入接口视图。
+
+**ip address** ip-address { mask | mask-length }，配置接口的IP地址。
+
+
+
+配置了接口的IP地址后，此接口下的用户申请IP地址时：
+
+- 如果DHCP客户端和作为DHCP服务器的交换机处于同一个网段，不需要中继进行转发时，交换机会选择与此接口的**主IP地址在同一个网段**的地址池来分配IP地址。如果接口未配置IP地址，或者没有和接口地址在相同网段的地址池，用户无法上线。
+- 如果DHCP客户端和作为DHCP服务器的交换机处于不同网段，需要中继进行转发时，DHCP服务器解析收到的DHCP请求报文中giaddr字段指定的IP地址，选择与此IP地址在同一个网段的地址池来进行IP地址分配，如果该IP地址匹配不到相应的地址池，则用户上线失败。
+
+
+
+**dhcp select global**，使能接口采用全局地址池的DHCP服务器功能。
+
+使能接口采用全局地址池的DHCP服务器后，从该接口上线的用户可以从全局地址池中获取IP地址等配置信息。
+
+
+
+## 接口地址池
+
+**dhcp enable**，使能DHCP服务。
+
+**interface** interface-type interface-number，进入接口视图。
+
+**ip address** ip-address { mask | mask-length }，配置接口的IP地址。
+
+**dhcp** select interface，使能接口采用接口地址池的DHCP服务器功能。
+
+接口地址池可动态分配的IP地址范围就是**接口的主IP地址所在的网段**，且只在此接口下有效。
+
+**网关的地址就是接口的主IP地址**
+
+### 租约时间
+
+dhcp server lease { day day [ hour hour [ minute minute ] ] | unlimited }，配置IP地址租期。
+
+缺省情况下，IP地址的租期为1天。
+
+
+
+### DNS服务器
+
+**interface** interface-type interface-number，进入接口视图。
+
+**dhcp server** domain-name domain-name，配置分配给DHCP客户端的DNS域名后缀。
+
+**dhcp server** dns-list ip-address &<1-8>，为DHCP客户端指定DNS服务器的IP地址。
+
+为了对流量进行负载分担和提高网络的可靠性，可配置多个DNS服务器。每个地址池最多可以配置8个DNS服务器地址。
+
+
+
+### 保留地址
+
+**dhcp server** excluded-ip-address start-ip-address [ end-ip-address ]，配置地址池中不参与自动分配的IP地址。
+
+地址池中的部分IP地址可能需要保留以提供其他的服务，如分配给DNS服务器的IP地址就不能再分配给DHCP客户端使用。用户可以多次执行该命令，配置多个不参与自动分配的IP地址。
+
+
+
+**dhcp server** static-bind ip-address ip-address mac-address mac-address，采用静态地址绑定方式将接口地址池中的IP地址与MAC地址绑定。
+
+当用户需要分配到固定的IP地址时，可以将地址池中尚未分配的IP地址与用户的MAC地址绑定。
+
+
+
+### 防止IP地址重复
+
+**dhcp server ping** packet number，配置交换机发送Ping报文的最大数量。
+
+缺省情况下，DHCP服务器发送Ping报文最大数量为2。
+
+
+
+**dhcp server ping** timeout milliseconds，配置交换机发送Ping报文的最长等待响应时间。
+
+缺省情况下，设备等待Ping响应报文的最长时间为500毫秒。
+
+
+
+### DHCP数据保护
+
+dhcp server database enable，使能DHCP数据保存到存储器的功能。
+
+缺省情况下，未使能DHCP数据保存到存储器的功能。
+
+执行本命令后，系统将生成lease.txt和conflict.txt两个文件，存放在存储器中的dhcp文件夹中，分别保存正常的地址租借信息和地址冲突信息。执行命令display dhcp server database可以查看DHCP数据保存的存储器路径。
+
+
+
+**dhcp server database** write-delay interval，配置数据保存时间间隔。
+
+如果使能此功能，缺省情况下，每隔7200秒保存一次当前的DHCP数据，并覆盖之前的数据文件。
+
+
+
+**dhcp server database** recover，使能DHCP数据恢复功能。
+
+使能DHCP数据恢复功能后，系统重启时将从存储器的文件中恢复DHCP数据。
+
+
+
+## 忽略的部分
+
+**此外不论是基于全局地址池还是基于接口地址池，都可以配置NetBIOS服务和Option等，这里展开讨论**
+
+
+
+## DHCP中继
+
+**system-view**，进入系统视图。
+
+
+
+### DHCP开启以及DHCP中继轮询
+
+**dhcp enable**，使能DHCP功能。
+
+（可选）执行命令**ip relay address cycle**，配置DHCP中继的轮询功能。
+
+
+
+### 创建DHCP服务器并添加服务器
+
+**dhcp server group** group-name，创建DHCP服务器组并进入DHCP服务器组视图。
+
+全局最多可以配置32个DHCP服务器组。每个DHCP服务器组下最多可以配置20个DHCP服务器。
+
+
+
+**dhcp-server** ip-address [ ip-address-index ]，向DHCP服务器组中添加DHCP服务器。
+
+每个DHCP服务器组下最多可以配置20个DHCP服务器。
+
+
+
+（可选）**vpn-instance** vpn-instance-name，将DHCP服务器组绑定到已创建好的VPN实例。
+
+
+
+### 开启DHCP中继功能
+
+**interface** interface-type interface-number，进入接口视图。
+
+**ip address** ip-address { mask | mask-length }，配置接口的IP地址。
+
+**dhcp relay server-select** group-name，指定接口对应的DHCP服务器组。
+
+一个接口下只能指定一个DHCP服务器组。
+
+也可执行**dhcp relay server-ip** ip-address命令添加接口对应的DHCP服务器。
+
+
+
+执行命令**dhcp select relay**，启动接口的DHCP中继功能。
+
+
+
+**其他：DHCP服务器释放客户端的IP地址、DHCP中继对Option82信息的处理策略**
+
+
+
+### 配置步骤
+
+#### DHCP服务器
+
+```
+#创建vlan
+vlan batch 100
+#
+dhcp enable
+#地址池1
+ip pool vlan10
+ gateway-list 10.10.10.254
+ network 10.10.10.0 mask 255.255.255.0
+ lease day 8 hour 0 minute 0
+ dns-list 8.8.8.8 114.114.114.114
+#地址池2
+ip pool vlan20
+ gateway-list 10.10.20.254
+ network 10.10.20.0 mask 255.255.255.0
+ lease day 8 hour 0 minute 0
+ dns-list 8.8.8.8 114.114.114.114
+#地址池3
+ip pool vlan30
+ gateway-list 10.10.30.254
+ network 10.10.30.0 mask 255.255.255.0
+ lease day 8 hour 0 minute 0
+ dns-list 8.8.8.8 114.114.114.114
+#DHCP服务器接口   开启全局
+interface Vlanif100
+ ip address 100.255.255.254 255.0.0.0
+ dhcp select global
+#
+
+#路由   保证DHCP服务器与DHCP中继的IP能互通
+ip route-static 10.10.10.0 255.255.255.0 100.0.0.1
+ip route-static 10.10.20.0 255.255.255.0 100.0.0.2
+ip route-static 10.10.30.0 255.255.255.0 100.0.0.3
+#
+```
+
+#### 中继服务器1
+
+```
+#
+vlan batch 10 100
+#
+dhcp enable
+# 创建DHCP中继转发组   并添加地址池
+dhcp server group vlan10
+ dhcp-server 100.255.255.254 0
+#
+#开启DHCP中继
+interface Vlanif10
+ ip address 10.10.10.254 255.255.255.0
+ dhcp select relay
+ dhcp relay server-select vlan10
+
+#  这里为了能与DHCP服务器进行跨网段通讯
+interface Vlanif100
+ ip address 100.0.0.1 255.0.0.0
+#
+```
+
+**其他的DHCP中继服务器配置省略**
+
+
+
+# RIP
+
+## 路由表怎么更新的？距离向量算法
+
+R1和R2两台路由器
+
+对于路由器来说，所有的直连路由的距离为1。
+R2对R1路由器发来的RIP报文，修改此报文中的所有项目：把“下一跳”字段中的改为R1（因为对于R2来说，目的网络需要通过R1到达），并把所有的“距离”字段+1（因为R1发送的时候的距离，是它自己到达目的网络的距离，从R1到R2又经过了一台路由器）。这里将这个修改后的rip报文称之为新rip报文
+
+1.如果R2没有R1发送来的路由条目，则把该项目填入R1路由表
+2.如果R2有这一条路由，则查看R2原路由表的下一跳路由器地址
+如果R2原路由表的下一跳路由器地址，是R1，则用收到的路由，替换源路由表中的路由
+如果R2原路由表的下一跳路由器地址，不是R1，则比较距离
+如果收到的路由的距离，小于源路由表中路由的距离，则用收到的路由，替换源路由表中的路由
+如果收到的路由的距离，大于或等于源路由表中路由的距离，则不做处理
+
+## rip问题
+
+1.两条路都可以去，距离相同，选哪一条，两条都会学习，做负载均衡
+
+2.如果出现了问题，超过了30S没有收到rip报文，会将相应的路由条目设置为16，并在接下来发送的rip包中告诉其他路有，我这一条路由我去不了了。其他路由如果知道如何去的话，会将新的路径进行恢复，如果其他路由也不知道去的话，其他路由也会通过rip报文通知它们的邻居。然后经过180秒后，删除这一条路由
+
+RIP1和RIP2的区别：
+       RIP还要提到一点是RIP分为RIP1与RIP2两个版本，区别如下：
+区别一：RIP1是一个有类路由协议，即所有的更新包中不含子网掩码，不支持VLSM， 所以就要求网络中所有设备必须使用相同的子网掩码，否则就会出错，而RIP2是一个无类的路由协议，它使用子网掩码。
+区别二：第二个不同的地方是RIP1是发送更新包的时候使用的是广播包，而RIP2默认使用的是组播224.0.0.9，也支持广播发送，这样相对于RIP1来说就节省了一部分网络带宽。
+区别三：第三个就是RIP2支持明文或者是 MD5验证，要求两台路由器在同步路由表的时候必须进行验证，通过才可以进行路由同步，这样可以加强安全性。
+
+### 水平分割
+
+禁止路由器将从一个接口学习到的路由，再从同一个接口出去【RIP2自带水平分割】
+即我从你这里学到的已经是最好的，既然是最好的，你就不可能再从我这学到更好的回去，因此我禁止再告诉你错误消息，避免环路
+
+### 毒性反转
+
+当路由器从一个接口学习到一条去往某个网络时，它就会通过这个接口通告一条该网络不可达的路由，距离设置为16【路由毒化】
+我有比你更好的路可以走，我告诉你不用再告诉我了，避免环路
+
+### 触发更新
+
+指当RIP路由表中的某些路由项的内容发生改变时，路由器应该立即向它的所有邻居发布响应消息，并不是等待更新定时器所规定的下一个响应消息的发送时刻。
+
+# OSPF协议
+
+## 路由器类型
+
+### 区域内路由器（Internal Router）
+
+该类设备的所有接口都属于同一个OSPF区域。
+
+### 区域边界路由器ABR（Area Border Router）
+
+该类设备可以同时属于两个以上的区域，但其中一个必须是骨干区域。
+
+ABR用来连接骨干区域和非骨干区域，它与骨干区域之间既可以是物理连接，也可以是逻辑上的连接。
+
+### 骨干路由器（Backbone Router）
+
+该类设备至少有一个接口属于骨干区域。
+
+所有的ABR和位于Area0的内部设备都是骨干路由器。
+
+### 自治系统边界路由器ASBR（AS Boundary Router）
+
+与其他AS交换路由信息的设备称为ASBR。
+
+ASBR并不一定位于AS的边界，它可能是区域内设备，也可能是ABR。只要一台OSPF设备引入了外部路由的信息，它就成为ASBR。
+
+
+
+## 区域类型
+
+### 普通区域
+
+缺省情况下，OSPF区域被定义为普通区域。普通区域包括标准区域和骨干区域。
+
+标准区域是最通用的区域，它传输区域内路由，区域间路由和外部路由。
+骨干区域是连接所有其他OSPF区域的中央区域。骨干区域通常用Area 0表示。
+
+### 区域
+
+不允许发布自治系统外部路由，只允许发布区域内路由和区域间的路由。
+
+在STUB区域中，路由器的路由表规模和路由信息传递的数量都会大大减少。
+
+为了保证到自治系统外的路由可达，由该区域的ABR发布Type3缺省路由传播到区域内，所有到自治系统外部的路由都必须通过ABR才能发布。
+
+### Totally STUB区域
+
+不允许发布自治系统外部路由和区域间的路由，只允许发布区域内路由。
+
+在Totally STUB区域中，路由器的路由表规模和路由信息传递的数量都会大大减少。
+
+为了保证到自治系统外和其他区域的路由可达，由该区域的ABR发布Type3缺省路由传播到区域内，所有到自治系统外部和其他区域的路由都必须通过ABR才能发布。
+
+### NSSA区域
+
+NSSA区域允许引入自治系统外部路由，由ASBR发布Type7 LSA通告给本区域，这些Type7 LSA在ABR上转换成Type5 LSA，并且泛洪到整个OSPF域中。
+
+NSSA区域同时保留自治系统内的STUB区域的特征。
+
+该区域的ABR发布Type7缺省路由传播到区域内，所有域间路由都必须通过ABR才能发布。
+
+### Totally NSSA区域
+
+Totally NSSA区域允许引入自治系统外部路由，由ASBR发布Type7 LSA通告给本区域，这些Type7 LSA在ABR上转换成Type5 LSA，并且泛洪到整个OSPF域中。
+
+Totally NSSA区域同时保留自治系统内的Totally STUB Area区域的特征。
+
+该区域的ABR发布Type3和Type7缺省路由传播到区域内，所有域间路由都必须通过ABR才能发布。
