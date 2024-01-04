@@ -30,4 +30,4 @@ FTP中选择FTP用户隔离，选择 在Active Directory中配置的FTP主目录
 
 数据连接超时时间：指定在数据通道上因不活动而超时时超时（以秒为单位）。 **注意：** 仅当达到此超时时，FTP 服务才会断开数据通道的连接
 
-![图形用户界面, 应用程序  描述已自动生成](./FTP%20%E9%85%8D%E7%BD%AE.assets/clip_image006.jpg)
+![image-20240104175154246](images/FTP.assets/image-20240104175154246.png)

@@ -96,4 +96,4 @@ CLR 由其自己的版本号标识。 .NET Framework 版本号在每次发布时
 
 ## 配置方法：
 
-![image-20230216144628452](./Web%20%E7%BD%91%E7%AB%99%E7%90%86%E8%AE%BA%E7%9F%A5%E8%AF%86.assets/image-20230216144628452.png)
+![image-20240104175141376](images/Web.assets/image-20240104175141376.png)
