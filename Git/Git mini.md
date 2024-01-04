@@ -48,6 +48,8 @@ $ git add README
 
 如果你想要跟踪工作目录中的所有文件，则可以在工作目录中的根目录中执行
 
+注意：git不会跟踪空文件夹
+
 ```
 git add .
 ```
@@ -146,3 +148,84 @@ doc/**/*.pdf
 
 `git diff --staged`命令用于比对已暂存文件与最后一次提交的文件差异
 
+
+
+
+
+## 从磁盘移除文件
+
+如果只是简单地从工作目录中手工删除文件
+
+运行 `git status` 时就会在 “Changes not staged for commit” 部分（也就是 *未暂存清单*）看到
+
+然后再运行 `git rm` 记录此次移除文件的操作：
+
+```console
+#手动从磁盘删除文件
+git rm 文件
+```
+
+
+
+## 移除已修改的文件
+
+如果要**删除之前修改过**或**已经放到暂存区**的文件，则必须使用强制删除选项 `-f`（译注：即 force 的首字母）。 这是一种安全特性，用于防止误删尚未添加到快照的数据，这样的数据不能被 Git 恢复。
+
+
+
+## 取消跟踪文件
+
+不从磁盘中删除文件，使用 `--cached` 选项：
+
+```
+git rm --cached README
+```
+
+
+
+## 删除文件夹
+
+使用`-r`选项
+
+
+
+
+
+# 移动文件
+
+移动（修改名称）文件或文件夹
+
+```console
+$ git mv file_from file_to
+```
+
+它会恰如预期般正常工作。 实际上，即便此时查看状态信息，也会明白无误地看到关于重命名操作的说明：
+
+```console
+$ git mv README.md README
+$ git status
+On branch master
+Your branch is up-to-date with 'origin/master'.
+Changes to be committed:
+  (use "git reset HEAD <file>..." to unstage)
+
+    renamed:    README.md -> README
+```
+
+
+
+其实，运行 `git mv` 就相当于运行了下面三条命令：
+
+```console
+$ mv README.md README
+$ git rm README.md
+$ git add README
+```
+
+
+
+## 在工作目录中移动
+
+如果是直接通过文件管理器而不是`git mv`的方式移动了文件，则`git status`会认为是在源路径删除了文件，在目标路径新增了文件。
+
+此时则需要通过 `git add` 和 `git rm` 手动跟踪文件和取消跟踪文件
