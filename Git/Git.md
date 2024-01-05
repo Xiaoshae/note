@@ -834,3 +834,196 @@ origin
 ```
 
 一旦你使用这种方式删除了一个远程仓库，那么所有和这个远程仓库相关的远程跟踪分支以及配置信息也会一起被删除。
+
+
+
+# 打标签
+
+Git 可以给仓库历史中的某一个提交打上标签，以示重要。 比较有代表性的是人们会使用这个功能来标记发布结点（ `v1.0` 、 `v2.0` 等等）。
+
+
+
+## 列出标签
+
+在 Git 中列出已有的标签非常简单，只需要输入 `git tag` （可带上可选的 `-l` 选项 `--list`）：
+
+```console
+$ git tag
+v1.0
+v2.0
+```
+
+这个命令以字母顺序列出标签，但是它们显示的顺序并不重要。
+
+你也可以按照特定的模式查找标签。 例如，Git 自身的源代码仓库包含标签的数量超过 500 个。 如果只对 1.8.5 系列感兴趣，可以运行：
+
+```console
+$ git tag -l "v1.8.5*"
+v1.8.5
+v1.8.5-rc0
+v1.8.5-rc1
+v1.8.5-rc2
+v1.8.5-rc3
+v1.8.5.1
+v1.8.5.2
+v1.8.5.3
+v1.8.5.4
+v1.8.5.5
+```
+
+Note  按照通配符列出标签需要 `-l` 或 `--list` 选项如果你只想要完整的标签列表，那么运行 `git tag` 就会默认假定你想要一个列表，它会直接给你列出来， 此时的 `-l` 或 `--list` 是可选的。
+
+如果你提供了一个匹配标签名的通配模式，那么 `-l` 或 `--list` 就是强制使用的。
+
+
+
+
+
+## 创建标签
+
+Git 支持两种标签：轻量标签（lightweight）与附注标签（annotated）。
+
+
+
+**轻量标签**：轻量标签很像一个不会改变的分支——它只是某个特定提交的引用1。创建轻量标签的命令如下：
+
+```shell
+git tag {标签名} #{提交ID}
+```
+
+例如，创建一个指向最新提交的轻量标签：
+
+```shell
+git tag v1.0.0
+```
+
+
+
+**附注标签**：附注标签是存储在Git数据库中的一个完整对象，它们是可以被校验的，其中包含打标签者的名字、电子邮件地址、日期时间，此外还有一个标签信息，并且可以使用GNU Privacy Guard（GPG）签名并验证1。创建附注标签的命令如下
+
+```shell
+git tag -a {标签名} -m "{标签信息}" #{提交ID}
+```
+
+例如，创建一个指向最新提交的附注标签：
+
+```shell
+git tag -a v1.0.0 -m "Release version 1.0.0" HEAD
+```
+
+
+
+### 后期标签
+
+你也可以对过去的提交打标签。如果不指定提交ID，则标签会打在最新的一次提交上，也可以通过标签ID来指定该标签打在过去提交的标签上。
+
+
+
+## 共享标签
+
+默认情况下，`git push` 命令并不会传送标签到远程仓库服务器上。在创建完标签后你必须显式地推送标签到共享服务器上。 
+
+```
+ git push <remote> <tagname>
+```
+
+
+
+ `--tags` 选项，这将会把所有不在远程仓库服务器上的标签全部传送到那里。
+
+使用 `git push <remote> --tags` 推送标签并不会区分轻量标签和附注标签， 没有简单的选项能够让你只选择推送一种标签。
+
+```console
+git push origin --tags
+Counting objects: 1, done.
+Writing objects: 100% (1/1), 160 bytes | 0 bytes/s, done.
+Total 1 (delta 0), reused 0 (delta 0)
+To git@github.com:schacon/simplegit.git
+ * [new tag]         v1.4 -> v1.4
+ * [new tag]         v1.4-lw -> v1.4-lw
+```
+
+
+
+## 删除标签
+
+要删除掉你本地仓库上的标签，可以使用命令 `git tag -d <tagname>`。
+
+不会从任何远程仓库中移除这个标签，你必须用 `git push <remote> :refs/tags/<tagname>` 来更新
+
+```console
+git tag -d v1.4-lw
+```
+
+
+
+你必须用 `git push <remote> :refs/tags/<tagname>` 来更新你的远程仓库：
+
+```
+git push <remote> :refs/tags/<tagname>
+```
+
+
+
+第一种变体是 `git push <remote> :refs/tags/<tagname>` ：
+
+```console
+$ git push origin :refs/tags/v1.4-lw
+To /git@github.com:schacon/simplegit.git
+ - [deleted]         v1.4-lw
+```
+
+- `<remote>`是你想要推送到的远程仓库的名称，例如`origin`。
+- `:refs/tags/<tagname>`是你想要删除的远程标签的引用，例如`:refs/tags/v1.4-lw`。
+
+在这个命令中，冒号前面的空值表示你想要将空值（也就是没有任何内容）推送到远程标签名，这样就可以删除远程仓库中的对应标签。
+
+
+
+第二种更直观的删除远程标签的方式是：
+
+```console
+$ git push origin --delete <tagname>
+```
+
+
+
+## 检出标签
+
+如果你想查看某个标签所指向的文件版本，可以使用 `git checkout` 命令， 虽然这会使你的仓库处于“分离头指针（detached HEAD）”的状态——这个状态有些不好的副作用：
+
+```console
+$ git checkout 2.0.0
+Note: checking out '2.0.0'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by performing another checkout.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -b with the checkout command again. Example:
+
+  git checkout -b <new-branch>
+
+HEAD is now at 99ada87... Merge pull request #89 from schacon/appendix-final
+
+$ git checkout 2.0-beta-0.1
+Previous HEAD position was 99ada87... Merge pull request #89 from schacon/appendix-final
+HEAD is now at df3f601... add atlas.json and cover image
+```
+
+在“分离头指针”状态下，如果你做了某些更改然后提交它们，标签不会发生变化， 但你的新提交将不属于任何分支，并且将无法访问，除非通过确切的提交哈希才能访问。
+
+
+
+ 因此，如果你需要进行更改，比如你要修复旧版本中的错误，那么通常需要创建一个新分支：
+
+```console
+$ git checkout -b version2 v2.0.0
+Switched to a new branch 'version2'
+```
+
+如果在这之后又进行了一次提交，`version2` 分支就会因为这个改动向前移动， 此时它就会和 `v2.0.0` 标签稍微有些不同，这时就要当心了。
+
+
+

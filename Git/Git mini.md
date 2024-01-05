@@ -549,3 +549,100 @@ git remote show
 ```console
 git remove rename
 ```
+
+
+
+# 打标签
+
+Git 可以给仓库历史中的某一个提交打上标签。
+
+## 列出标签
+
+ `git tag` （可带上可选的 `-l` 选项 `--list`）：
+
+```console
+git tag
+```
+
+ `-l` 或 `--list` 选项，列出一个列表。
+
+筛选标签
+
+```
+git tag -l "v1.8.5*"
+```
+
+
+
+## 创建标签
+
+
+
+**轻量标签**：轻量标签很像一个不会改变的分支，它只是某个特定提交的引用1。
+
+```shell
+git tag {标签名} #{提交ID}
+```
+
+
+
+**附注标签**：可以被校验，包含打标签者的名字、电子邮件地址、日期时间，此外还有一个标签信息，可以使用GPG签名并验证。
+
+```shell
+git tag -a {标签名} -m "{标签信息}" #{提交ID}
+```
+
+
+
+### 后期标签
+
+你也可以对过去的提交打标签。如果不指定提交ID，则标签会打在最新的一次提交上，也可以通过标签ID来指定该标签打在过去提交的标签上。
+
+
+
+## 共享标签
+
+git push` 命令并不会传送标签到远程仓库服务器上。
+
+```
+ git push <remote> <tagname>
+```
+
+ `--tags` 选项，这将会把所有不在远程仓库服务器上的标签全部传送到那里。推送标签并不会区分轻量标签和附注标签。
+
+
+
+## 删除标签
+
+要删除掉你本地仓库上的标签，可以使用命令 `git tag -d <tagname>`。
+
+```console
+git tag -d v1.4-lw
+```
+
+
+
+ `git push <remote> :refs/tags/<tagname>` 更新你的远程仓库：
+
+```
+git push <remote> :refs/tags/<tagname>
+```
+
+
+
+删除远程标签的方式是：
+
+```console
+$ git push origin --delete <tagname>
+```
+
+
+
+## 检出标签
+
+`git checkout` 命令查看某个标签所指向的文件版本
+
+```console
+git checkout <tagname>
+```
+
