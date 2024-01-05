@@ -485,3 +485,67 @@ git checkout — <file>
 
 
 
+
+
+# 远程仓库
+
+## 查看远程仓库
+
+`git remote` 命令,列出你指定的每一个远程服务器的简写。
+
+选项 `-v`，会显示需要读写远程仓库使用的 Git 保存的简写与其对应的 URL。
+
+```
+git remote
+git remote -v
+```
+
+
+
+
+
+## 添加远程仓库
+
+ `git remote add <shortname> <url>` 添加一个新的远程 Git 仓库，同时指定一个方便使用的简写：
+
+```console
+git remote add 
+```
+
+
+
+
+
+## 从远程仓库中抓取与拉取
+
+`git fetch <remote>`从远程仓库中获得数据，可以执行：
+
+```console
+git fetch
+```
+
+`git pull` 命令来自动抓取后合并该远程分支到当前分支。
+
+```
+git pull
+```
+
+
+
+## 查看某个远程仓库
+
+ `git remote show <remote>` 命令查看某一个远程仓库的更多信息
+
+```console
+git remote show
+```
+
+
+
+## 远程仓库的重命名与移除
+
+ `git remote rename <oldName> <newName>` 来修改一个远程仓库的简写名。
+
+```console
+git remove rename
+```
