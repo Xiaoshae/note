@@ -646,3 +646,27 @@ $ git push origin --delete <tagname>
 git checkout <tagname>
 ```
 
+
+
+# 命令别名
+
+```bash
+git config --global alias.ci commit
+```
+
+使用 `git ci` 代替 `git commit`。
+
+
+
+创建自定义的别名。
+
+```bash
+git config --global alias.unstage 'reset HEAD --'
+```
+
+这会使以下两个命令等价：
+
+```bash
+git unstage fileA
+git reset HEAD -- fileA
+```

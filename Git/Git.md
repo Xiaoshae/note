@@ -1027,3 +1027,46 @@ Switched to a new branch 'version2'
 
 
 
+# 命令别名
+
+在 Git 中，你可以使用别名（alias）来简化命令。以下是一些常见的 Git 别名设置：
+
+```bash
+git config --global alias.co checkout
+git config --global alias.ci commit
+git config --global alias.st status
+```
+
+这意味着，例如，你可以使用 `git ci` 代替 `git commit`。用 `git st` 代替 `git status`
+
+
+
+此外，你还可以创建自定义的别名。例如，为了解决取消暂存文件的问题，你可以添加一个 unstage 别名：
+
+```bash
+git config --global alias.unstage 'reset HEAD --'
+```
+
+这会使以下两个命令等价：
+
+```bash
+git unstage fileA
+git reset HEAD -- fileA
+```
+
+
+
+通常，人们还会添加一个 `last` 命令，以便轻松查看最后一次提交：
+
+```bash
+git config --global alias.last 'log -1 HEAD'
+```
+
+
+
+此外，如果你想要执行外部命令，而不是 Git 子命令，你可以在命令前面加上 `!` 符号。例如，你可以将 `git visual` 定义为 `gitk` 的别名：
+
+```bash
+git config --global alias.visual '!gitk'
+```
+
