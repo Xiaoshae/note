@@ -1070,3 +1070,289 @@ git config --global alias.last 'log -1 HEAD'
 git config --global alias.visual '!gitk'
 ```
 
+
+
+# 分支
+
+Git 的分支模型为它的“必杀技特性”，也正因为这一特性，使得 Git 从众多版本控制系统中脱颖而出。 Git 处理分支的方式可谓是难以置信的轻量，创建新分支这一操作几乎能在瞬间完成。 与许多其它版本控制系统不同，Git 鼓励在工作流程中频繁地使用分支与合并。 
+
+## Git处理数据
+
+为了真正理解 Git 处理分支的方式，我们需要回顾一下 Git 是如何保存数据的。
+
+在进行提交操作时，Git 会保存一个提交对象（commit object）。提交对象会包含一个**指向暂存内容快照的指针**，还包含了**作者的姓名和邮箱、提交时输入的信息**以及**指向它的父对象的指针**。
+
+
+
+假设现在有一个工作目录，里面**有三个**将要被暂存和提交的**文件**。
+
+暂存操作会为每一个文件计算校验和，把当前版本的文件快照保存到 Git 仓库中（blob对象），加入到暂存区域等待提交。
+
+提交操作时，Git 会先计算每一个子目录的校验和， 然后在 Git 仓库中这些校验和保存为树对象。
+
+Git 便会创建一个提交对象， 它除了包含上面提到的那些信息外，还包含指向这个树对象（项目根目录）的指针。 
+
+Git 仓库中有五个对象：三个 **blob** 对象（保存着文件快照）、一个 **树** 对象 （记录着目录结构和 blob 对象索引）以及一个 **提交** 对象（包含着指向前述树对象的指针和所有提交信息）。
+
+![首次提交对象及其树结构。](images/Git.assets/commit-and-tree.png)
+
+
+
+做些修改后再次提交，那么这次产生的提交对象会包含一个指向上次提交对象（父对象）的指针。
+
+![提交对象及其父对象。](images/Git.assets/commits-and-parents.png)
+
+
+
+Git 的分支，其实本质上仅仅是指向提交对象的可变指针。 Git 的默认分支名字是 `master`。 在多次提交操作之后，你其实已经有一个指向最后那个提交对象的 `master` 分支。 `master` 分支会在每次提交时自动向前移动。
+
+
+
+Git 的 `master` 分支并不是一个特殊分支。 它就跟其它分支完全没有区别。 之所以几乎每一个仓库都有 master 分支，是因为 `git init` 命令默认创建它，并且大多数人都懒得去改动它。
+
+
+
+## 分支创建
+
+Git 是怎么创建新分支的呢？ 很简单，它只是为你创建了一个可以移动的新的指针。 比如，创建一个 testing 分支， 你需要使用 `git branch` 命令：
+
+这会在**当前所在的提交对象**上创建一个指针（testing分支）。
+
+```console
+git branch testing
+```
+
+![两个指向相同提交历史的分支。](images/Git.assets/two-branches.png)
+
+
+
+
+
+## HEAD指针
+
+Git 有一个名为 `HEAD` 的特殊指针，指向当前所在的本地分支（译注：将 `HEAD` 想象为当前分支的别名）。 
+
+在本例中，你仍然在 `master` 分支上。 因为 `git branch` 命令仅仅 **创建** 一个新分支，并不会自动切换到新分支中去。
+
+![HEAD 指向当前所在的分支。](images/Git.assets/head-to-master.png)
+
+
+
+## 分支当前所指的对象
+
+ `git log` 命令`--decorate`参数查看各个分支当前所指的对象。
+
+当前 `master` 和 `testing` 分支均指向校验和以 `f30ab` 开头的提交对象。
+
+```console
+$ git log --oneline --decorate
+f30ab (HEAD -> master, testing) add feature #32 - ability to add new formats to the central interface
+34ac2 Fixed bug #1328 - stack overflow under certain conditions
+98ca9 The initial commit of my project
+```
+
+
+
+## 分支切换
+
+ `git checkout` 命令切换到一个已存在的分支
+
+现在切换到新创建的 `testing` 分支去，这样 `HEAD` 就指向 `testing` 分支了：
+
+```console
+$ git checkout testing
+```
+
+![HEAD 指向当前所在的分支。](images/Git.assets/head-to-testing.png)
+
+
+
+## HEAD分支移动
+
+现在不妨再提交一次。
+
+如图所示，你的 `testing` 分支向前移动了，但是 `master` 分支却没有。
+
+![HEAD 分支随着提交操作自动向前移动。](images/Git.assets/advance-testing.png)
+
+
+
+切换回 `master` 分支看看：
+
+使 HEAD 指回 `master` 分支，将工作目录恢复成 `master` 分支所指向的快照内容。
+
+```console
+git checkout master
+```
+
+![检出时 HEAD 随之移动。](images/Git.assets/checkout-master.png)
+
+
+
+妨再稍微做些修改并提交：
+
+这个项目的提交历史已经产生了分叉。
+
+上述两次改动针对的是不同分支：你可以在不同分支间不断地来回切换和工作，并在时机成熟时将它们合并起来。 
+
+![项目分叉历史。](images/Git.assets/advance-master.png)
+
+
+
+## 快进合并
+
+这是分支原本的模样
+
+![`iss53` 分支随着工作的进展向前推进。](images/Git.assets/basic-branching-3.png)
+
+
+
+这时切换回 `master` 分支了，然后建立一个 `hotfix` 分支，有进行了几次提交
+
+![基于 `master` 分支的紧急问题分支（hotfix branch）。](images/Git.assets/basic-branching-4.png)
+
+
+
+将 `hotfix` 分支合并回你的 `master` 分支来部署到线上。这时会使用**快进合并**。于你想要合并的分支 `hotfix` 所指向的提交 `C4` 是你所在的提交 `C2` 的直接后继， 因此Git 会直接将指针向前移动，这种情况下的合并操作没有需要解决的分歧，就会使用快进合并。
+
+![`master` 被快进到 `hotfix`。](images/Git.assets/basic-branching-5.png)
+
+
+
+## 三方合并
+
+现在删除了hotfix分支，并且打算将iss53分支，并入 `master` 分支
+
+![继续在 `iss53` 分支上的工作。](images/Git.assets/basic-branching-6.png)
+
+
+
+开发历史从一个更早的地方开始分叉开来。 `master` 分支所在提交并不是 `iss53` 分支所在提交的直接祖先。
+
+出现这种情况的时候，Git 会使用两个分支的末端所指的快照（`C4` 和 `C5`）以及这两个分支的公共祖先（`C2`），做一个简单的三方合并。
+
+![一次典型合并中所用到的三个快照。](images/Git.assets/basic-merging-1.png)
+
+
+
+
+
+此次三方合并的结果做了一个新的快照并且自动创建一个新的提交指向它。
+
+ 这个被称作一次合并提交，它的特别之处在于他有不止一个父提交。
+
+![一个合并提交。](images/Git.assets/basic-merging-2.png)
+
+
+
+### 合并时遇到冲突
+
+如果两个不同的分支中，对同一个文件的同一个部分进行了不同的修改，Git 就没法干净的合并它们。 
+
+Git 做了合并，但是没有自动地创建一个新的合并提交。 Git 会暂停下来，等待你去解决合并产生的冲突。 
+
+在合并冲突后的任意时刻使用 `git status` 命令来**查看**，**因包含合并冲突**而处于**未合并状态**（unmerged）的文件：
+
+
+
+Git 会在有冲突的文件中加入标准的冲突解决标记，这样你可以打开这些包含冲突的文件然后手动解决冲突。 出现冲突的文件会包含一些特殊区段，看起来像下面这个样子：
+
+```html
+<<<<<<< HEAD:index.html
+<div id="footer">contact : email.support@github.com</div>
+=======
+<div id="footer">
+ please contact us at support@github.com
+</div>
+>>>>>>> iss53:index.html
+```
+
+
+
+ `HEAD` 分支所指示的版本，在这个区段的上半部分（`=======` 的上半部分）。
+
+`iss53` 分支所指示的版本，在 `=======` 的下半部分。 
+
+为了解决冲突，必须选择使用由 `=======` 分割的两部分中的一个，或者你也可以自行合并这些内容。
+
+
+
+
+
+ 例如，你可以通过把这段内容换成下面的样子来解决冲突：
+
+```html
+<div id="footer">
+please contact us at email.support@github.com
+</div>
+```
+
+上述的冲突解决方案，仅保留了其中一个分支的修改，并且 `<<<<<<<` , `=======` , 和 `>>>>>>>` 这些行被完全删除了。
+
+ 在解决了所有文件里的冲突之后，对每个文件使用 `git add` 命令来将其标记为冲突已解决。
+
+ 一旦暂存这些原本有冲突的文件，Git 就会将它们标记为冲突已解决。
+
+
+
+解决完成所有冲突后，可以使用`git commit` 来完成合并提交。
+
+
+
+## 分支管理
+
+`git branch` 命令可以创建与删除分支。 如果不加任何参数运行它，会得到当前所有分支的一个列表：
+
+```console
+git branch
+  iss53
+* master
+  testing
+```
+
+ `*` 字符：它代表现在检出的那一个分支（也就是说，当前 `HEAD` 指针所指向的分支）
+
+
+
+
+
+ `git branch -v` 命令，查看每一个分支的最后一次提交
+
+```console
+$ git branch -v
+  iss53   93b412c fix javascript issue
+* master  7a98805 Merge branch 'iss53'
+  testing 782fd34 add scott to the author list in the readmes
+```
+
+
+
+`--merged` 与 `--no-merged` 过滤这个列表中已经合并或尚未合并到当前分支的分支。
+
+查看哪些分支已经合并到当前分支，可以运行 `git branch --merged`：
+
+```console
+$ git branch --merged
+  iss53
+* master
+```
+
+
+
+`branch -d` 删除掉一个分支
+
+```
+git branch -d testing
+```
+
+
+
+如果它包含了还未合并的工作，尝试使用 `git branch -d` 命令删除它时会失败：
+
+```console
+$ git branch -d testing
+error: The branch 'testing' is not fully merged.
+If you are sure you want to delete it, run 'git branch -D testing'.
+```
+
+如果真的想要删除分支并丢掉那些工作，如同帮助信息里所指出的，可以使用 `-D` 选项强制删除它。
