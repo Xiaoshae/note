@@ -1231,6 +1231,12 @@ git checkout master
 
 出现这种情况的时候，Git 会使用两个分支的末端所指的快照（`C4` 和 `C5`）以及这两个分支的公共祖先（`C2`），做一个简单的三方合并。
 
+将iss53分支合并到当前分支
+
+```
+git merge iss53
+```
+
 ![一次典型合并中所用到的三个快照。](images/Git.assets/basic-merging-1.png)
 
 
@@ -1239,7 +1245,7 @@ git checkout master
 
 此次三方合并的结果做了一个新的快照并且自动创建一个新的提交指向它。
 
- 这个被称作一次合并提交，它的特别之处在于他有不止一个父提交。
+ 这被称作一次合并提交，它的特别之处在于他有不止一个父提交。
 
 ![一个合并提交。](images/Git.assets/basic-merging-2.png)
 
@@ -1314,8 +1320,6 @@ git branch
 
 
 
-
-
  `git branch -v` 命令，查看每一个分支的最后一次提交
 
 ```console
@@ -1356,3 +1360,114 @@ If you are sure you want to delete it, run 'git branch -D testing'.
 ```
 
 如果真的想要删除分支并丢掉那些工作，如同帮助信息里所指出的，可以使用 `-D` 选项强制删除它。
+
+
+
+# 远程分支
+
+## 远程引用
+
+远程引用指的是对远程仓库的引用（指针），包括分支、标签等等。
+
+ `git ls-remote <remote>` 来显式地获得远程引用的完整列表
+
+ `git remote show <remote>` 获得远程分支的更多信息。 
+
+
+
+**远程跟踪分支**就像是你的书签，它帮助你记住远程仓库中的分支在你最后一次更新时的位置。
+
+
+
+这些书签的名字通常是这样的：`<远程仓库的名字>/<分支的名字>`。比如 `origin/master` 就代表了你最后一次更新时，远程仓库 `origin` 中的 `master` 分支的位置。
+
+
+
+## 跟踪分支
+
+1. **克隆仓库时的跟踪分支**：当你克隆一个仓库时，通常会自动创建一个跟踪 `origin/master` 的 `master` 分支。
+2. **创建新的跟踪分支**：你可以使用 `git checkout -b <branch> <remote>/<branch>` 命令创建新的跟踪分支。Git 提供了 `--track` 选项作为快捷方式，例如：`git checkout --track origin/serverfix`。
+3. **自动创建跟踪分支**：如果你尝试检出的分支不存在，并且只有一个远程分支的名字与之匹配，那么 Git 会自动为你创建一个跟踪分支，例如：`git checkout serverfix`。
+4. **使用不同的名字设置本地分支和远程分支**：你可以使用上述命令轻松地增加一个具有不同名字的本地分支，例如：`git checkout -b sf origin/serverfix`。这样，本地分支 `sf` 就会自动从 `origin/serverfix` 拉取。
+5. **设置已有的本地分支跟踪远程分支**：你可以在任何时候使用 `-u` 或 `--set-upstream-to` 选项运行 `git branch` 来显式地设置，例如：`git branch -u origin/serverfix`。
+
+
+
+远程仓库名字 “origin” 与分支名字 “master” 一样，在 Git 中并没有任何特别的含义一样。 同时 “master” 是当你运行 `git init` 时默认的起始分支名字，原因仅仅是它的广泛使用， “origin” 是当你运行 `git clone` 时默认的远程仓库名字。 如果你运行 `git clone -o booyah`，那么你默认的远程分支名字将会是 `booyah/master`
+
+​	
+
+![克隆之后的服务器与本地仓库。](images/Git.assets/remote-branches-1.png)
+
+
+
+如果你在本地的 `master` 分支做了一些工作，在同一段时间内有其他人推送提交到 `git.ourcompany.com` 并且更新了它的 `master` 分支，这就是说你们的提交历史已走向不同的方向。 即便这样，只要你保持不与 `origin` 服务器连接（并拉取数据），你的 `origin/master` 指针就不会移动。
+
+
+
+![本地与远程的工作可以分叉。](images/Git.assets/remote-branches-2.png)
+
+
+
+如果要与给定的远程仓库同步数据，运行 `git fetch <remote>` 命令（在本例中为 `git fetch origin`）。 这个命令查找 `origin` 是哪一个服务器（在本例中，它是 `git.ourcompany.com`）， 从中抓取本地没有的数据，并且更新本地数据库，移动 `origin/master` 指针到更新之后的位置。
+
+
+
+![`git fetch` 更新你的远程仓库引用。](images/Git.assets/remote-branches-3.png)
+
+
+
+## 远程三方合并
+
+首先，你需要远程代码拉取到本地。
+
+在克隆代码库之后，你可以使用 git branch -r 命令查看远程分支的列表。
+
+创建一个新本地分支，成为远程分支的新跟踪分支。
+
+可以使用 `git checkout -b <本地分支名> <远程分支名>` 命令创建一个新的本地分支。
+
+将旧的（master）本地分支，合并到新的本地分支中。
+
+切换到新的本地分支，使用 git merge <旧的本地分支名> 命令将旧的本地分支合并到当前所在的本地分支。
+
+在合并过程中，如果远程分支和本地分支都有相同的更改，可能会发生冲突，需要手动解决冲突。
+
+在解决冲突后，你需要提交合并的更改。可以使用 git commit -m "Merge 远程分支名 into 本地分支名" 命令将更改提交到本地分支。
+
+~~然后使用快进合并，将远程分支与新的本地分支合并~~（~~或者直接将新的本地分支推送到远程仓库中~~），最后推送到远程仓库中。
+
+
+
+## 添加另一个远程仓库
+
+有另一个内部 Git 服务器，位于 `git.team1.ourcompany.com`。已经通过 `git remote add` 命令添加到当前项目。
+
+现在，可以运行 `git fetch teamone` 来抓取远程仓库 `teamone` 有而本地没有的数据。 因为那台服务器上现有的数据是 `origin` 服务器上的一个子集， 所以 Git 并不会抓取数据而是会设置远程跟踪分支 `teamone/master` 指向 `teamone` 的 `master` 分支。
+
+![添加另一个远程仓库。](images/Git.assets/remote-branches-4.png)
+
+
+
+## 推送
+
+当你想要公开分享一个分支时，需要将其推送到有写入权限的远程仓库上。 本地的分支并不会自动与远程仓库同步——你必须显式地推送想要分享的分支。 这样，你就可以把不愿意分享的内容放到私人分支上，而将需要和别人协作的内容推送到公开分支。
+
+如果希望和别人一起在名为 `serverfix` 的分支上工作，你可以像推送第一个分支那样推送它。
+
+下一次其他协作者从服务器上抓取数据时，他们会在本地生成一个远程分支 `origin/serverfix`
+
+```
+git push <remote> <branch>
+```
+
+
+
+## 拉取
+
+当 `git fetch` 命令从服务器上抓取本地没有的数据时，它并不会修改工作目录中的内容。 它只会获取数据然后让你自己合并。 然而，有一个命令叫作 `git pull` 在大多数情况下它的含义是一个 `git fetch` 紧接着一个 `git merge` 命令。 如果有一个像之前章节中演示的设置好的跟踪分支，不管它是显式地设置还是通过 `clone` 或 `checkout` 命令为你创建的，`git pull` 都会查找当前分支所跟踪的服务器与分支， 从服务器上抓取数据然后尝试合并入那个远程分支。
+
+由于 `git pull` 的魔法经常令人困惑所以通常单独显式地使用 `fetch` 与 `merge` 命令会更好一些。
+
+
+
