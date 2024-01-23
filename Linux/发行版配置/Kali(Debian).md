@@ -70,9 +70,17 @@ source /etc/profile
 
 你可以使用三个命令来升级 Kali：
 
-- **`apt upgrade`**
-- **`apt full-upgrade`**
-- **`apt dist-upgrade`**
+```
+apt upgrade
+```
+
+```
+apt full-upgrade
+```
+
+```
+apt dist-upgrade
+```
 
 它们之间有细微的差别：
 
