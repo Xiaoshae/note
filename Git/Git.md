@@ -835,11 +835,60 @@ git fetch <remote>
 
 
 
-从远程仓库拉取本地没有的内容，并尝试自动合并
+
+
+> 以下的所有操作**只会将远程仓库中的内容拉取到本地**，不会进行合并，如果**需要自动合并**，只需要**将命令中的`fetch`更换成`pull`**
+
+将远程仓库（origin）中的所有内容拉取到本地
 
 ```
-git pull <remote>
+git fetch <remote>
 ```
+
+```
+git fetch origin
+```
+
+
+
+将**远程仓库（origin）**中的**远程分支（master）**拉取到本地。
+
+如果没有与远程分支同名的本地分支（master）则会自动创建。
+
+```
+git fetch <remote> <branch>
+```
+
+```
+git fetch origin master
+```
+
+
+
+将**远程仓库（origin）**中的**远程分支（master）**拉取到**指定本地分支（new）**上
+
+如果指定的本地分支不存在，则会自动创建。
+
+```
+git fetch <remote> <remote/branch> <branch>
+```
+
+```
+git fetch origin master:new
+```
+
+！！！注意：
+
+Git 默认**不允许直接获取到当前检出的分支**，以防止在你正在工作时更改你的工作目录。
+
+如果你想要更新 `new#1` 分支，你可以先**检出（切换）到另一个分支**，然后再执行 `fetch` 命令
+
+```
+git checkout master
+git fetch origin master:new
+```
+
+
 
 
 
@@ -879,13 +928,15 @@ git push origin new:master
 
 ## 删除远程仓库中的分支
 
+删除远程仓库（origin）中的远程分支（master）
+
 ```
-git push <remote> --delete <branch>
+git push <remote> --delete <remote/branch>
 ```
 
-
-
-这里是一个测试
+```
+git push origin --delete master
+```
 
 
 
