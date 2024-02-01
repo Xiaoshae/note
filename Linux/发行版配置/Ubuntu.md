@@ -402,3 +402,51 @@ sudo lvextend -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv
 sudo resize2fs /dev/mapper/ubuntu--vg-ubuntu--lv
 ```
 
+
+
+# update-alternatives多版本管理
+
+通过update-alternatives工具来进行，多版本管理
+
+```
+update-alternatives --install [软链接路径] [软件标识名] [可执行文件路径] [优先级]
+```
+
+
+
+添加第一个版本
+
+```
+update-alternatives --install /usr/local/sbin/checksec checksec /root/envir/checksec.sh-2.6.0/checksec 2
+```
+
+
+
+添加第二个版本
+
+```
+update-alternatives --install /usr/local/sbin/checksec checksec /usr/local/bin/checksec 1
+```
+
+
+
+查看checksec版本的配置，*表示当前在使用哪个版本，使用此命令可以指定一个版本。
+
+auto mode 表示自动模式，按照优先级来使用版本
+
+manual mode 表示手动模式，使用指定的版本
+
+![image-20240201201818703](images/Ubuntu/image-20240201201818703.png)
+
+
+
+## 删除一个版本
+
+```
+sudo update-alternatives --remove [版本标识符] [路径]
+```
+
+```
+sudo update-alternatives --remove checksec /root/envir/checksec.sh-2.6.0/checksec
+```
+
