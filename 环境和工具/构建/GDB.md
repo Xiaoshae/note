@@ -37,6 +37,27 @@ make install
 
 
 
+## Ubuntu
+
+```
+#编译环境
+apt-get install build-essential
+
+# 安装32位环境
+sudo apt-get install lib32readline-dev
+
+# 安装 gmp 和 gmp-devel
+sudo apt-get install libgmp3-dev
+
+# 安装 mpfr 和 mpfr-devel
+sudo apt-get install libmpfr-dev
+
+# 安装 texinfo
+sudo apt-get install texinfo
+```
+
+
+
 ## gdb
 
 python环境
@@ -67,4 +88,8 @@ cd build/
 #编译
 make -j16
 ```
+
+
+
+# gef插件
 
