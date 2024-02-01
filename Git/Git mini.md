@@ -267,3 +267,64 @@ git checkout -b my_branch --track origin/master
 ```
 
 
+
+# 远程仓库
+
+
+
+## 1. 查看远程仓库
+
+```
+git remote -v <remote>
+```
+
+输出详细的信息
+
+```
+git remote -vv <remote>
+```
+
+
+
+## 2. 详细查看某个远程仓库
+
+```
+git remote show <remote>
+```
+
+
+
+## 3. 添加一个远程仓库
+
+```
+git remote add <newRemoteName> <remoteURL>
+```
+
+
+
+## 4. 移除或重命名远程仓库
+
+移除一个远程仓库
+
+```
+git remote remove <remote>
+```
+
+重命名远程仓库名称
+
+```
+git remote rename <oldName> <newName>
+```
+
+
+
+## 5. 远程仓库拉取到本地
+
+```
+git fetch <remote >
+```
+
+
+
+## 6. 推送到远程仓库
+

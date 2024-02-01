@@ -686,14 +686,14 @@ Changes to be committed:
 
 # 远程仓库
 
+
+
 ## 查看远程仓库
 
-`git remote` 命令,列出你指定的每一个远程服务器的简写。
+如果想查看你已经配置的远程仓库服务器，可以运行 `git remote` 命令。 它会列出你指定的每一个远程服务器的简写。 如果你已经克隆了自己的仓库，那么至少应该能看到 origin ——这是 Git 给你克隆的仓库服务器的默认名字：
 
- 如果你已经克隆了自己的仓库，那么至少应该能看到 origin ——这是 Git 给你克隆的仓库服务器的默认名字：
-
-```
-git clone https://github.com/schacon/ticgit
+```console
+$ git clone https://github.com/schacon/ticgit
 Cloning into 'ticgit'...
 remote: Reusing existing pack: 1857, done.
 remote: Total 1857 (delta 0), reused 0 (delta 0)
@@ -705,8 +705,6 @@ $ git remote
 origin
 ```
 
-
-
 你也可以指定选项 `-v`，会显示需要读写远程仓库使用的 Git 保存的简写与其对应的 URL。
 
 ```console
@@ -716,47 +714,6 @@ origin	https://github.com/schacon/ticgit (push)
 ```
 
 
-
-
-
-## 添加远程仓库
-
- `git remote add <shortname> <url>` 添加一个新的远程 Git 仓库，同时指定一个方便使用的简写：
-
-```console
-$ git remote
-origin
-$ git remote add pb https://github.com/paulboone/ticgit
-$ git remote -v
-origin	https://github.com/schacon/ticgit (fetch)
-origin	https://github.com/schacon/ticgit (push)
-pb	https://github.com/paulboone/ticgit (fetch)
-pb	https://github.com/paulboone/ticgit (push)
-```
-
-现在你可以在命令行中使用字符串 `pb` 来代替整个 URL。 例如，如果你想拉取 Paul 的仓库中有但你没有的信息，可以运行 `git fetch pb`：
-
-
-
-
-
-## 从远程仓库中抓取与拉取
-
-就如刚才所见，从远程仓库中获得数据，可以执行：
-
-```console
-$ git fetch <remote>
-```
-
-这个命令会访问远程仓库，从中拉取所有你还没有的数据。 执行完成后，你将会拥有那个远程仓库中所有分支的引用，可以随时合并或查看。
-
-如果你使用 `clone` 命令克隆了一个仓库，命令会自动将其添加为远程仓库并默认以 “origin” 为简写。 所以，`git fetch origin` 会抓取克隆（或上一次抓取）后新推送的所有工作。 
-
-必须注意 `git fetch` 命令只会将数据下载到你的本地仓库——它并不会自动合并或修改你当前的工作。 当准备好时你必须手动将其合并入你的工作。
-
-`git pull` 命令来自动抓取后合并该远程分支到当前分支。，通常会从最初克隆的服务器上抓取数据并自动尝试合并到当前所在的分支。
-
-`git clone` 命令默认会自动设置本地 master 分支跟踪克隆的远程仓库的 `master` 分支（或其它名字的默认分支）。 
 
 
 
@@ -812,6 +769,25 @@ $ git remote show origin
 
 
 
+## 添加远程仓库
+
+ `git remote add <shortname> <url>` 添加一个新的远程 Git 仓库，同时指定一个方便使用的简写：
+
+```console
+$ git remote
+origin
+$ git remote add pb https://github.com/paulboone/ticgit
+$ git remote -v
+origin	https://github.com/schacon/ticgit (fetch)
+origin	https://github.com/schacon/ticgit (push)
+pb	https://github.com/paulboone/ticgit (fetch)
+pb	https://github.com/paulboone/ticgit (push)
+```
+
+现在你可以在命令行中使用字符串 `pb` 来代替整个 URL。 例如，如果你想拉取 Paul 的仓库中有但你没有的信息，可以运行 `git fetch pb`：
+
+
+
 ## 远程仓库的重命名与移除
 
 你可以运行 `git remote rename` 来修改一个远程仓库的简写名。 例如，想要将 `pb` 重命名为 `paul`，可以用 `git remote rename` 这样做：
@@ -834,6 +810,78 @@ origin
 ```
 
 一旦你使用这种方式删除了一个远程仓库，那么所有和这个远程仓库相关的远程跟踪分支以及配置信息也会一起被删除。
+
+
+
+
+
+## 从远程仓库中抓取与拉取
+
+就如刚才所见，从远程仓库中获得数据，可以执行：
+
+```console
+git fetch <remote>
+```
+
+这个命令会访问远程仓库，从中拉取所有你还没有的数据。 执行完成后，你将会拥有那个远程仓库中所有分支的引用，可以随时合并或查看。
+
+如果你使用 `clone` 命令克隆了一个仓库，命令会自动将其添加为远程仓库并默认以 “origin” 为简写。 所以，`git fetch origin` 会抓取克隆（或上一次抓取）后新推送的所有工作。 
+
+必须注意 `git fetch` 命令只会将数据下载到你的本地仓库——它并不会自动合并或修改你当前的工作。 当准备好时你必须手动将其合并入你的工作。
+
+`git pull` 命令来自动抓取后合并该远程分支到当前分支。，通常会从最初克隆的服务器上抓取数据并自动尝试合并到当前所在的分支。
+
+`git clone` 命令默认会自动设置本地 master 分支跟踪克隆的远程仓库的 `master` 分支（或其它名字的默认分支）。 
+
+
+
+从远程仓库拉取本地没有的内容，并尝试自动合并
+
+```
+git pull <remote>
+```
+
+
+
+## 推送到远程仓库
+
+将当前分支推送到远程仓库
+
+```
+git push <remote>
+```
+
+
+
+将**指定本地分支（master）**推送到远程仓库（origin）
+
+```
+git push <远程仓库名称> <本地分支>
+```
+
+```
+git push origin master
+```
+
+
+
+将指定本地分支（new）推送到远程仓库（origin）中的指定分支（master）
+
+```
+git push <远程仓库名称> <本地分支名称>:<远程分支名称>
+```
+
+```
+git push origin new:master
+```
+
+
+
+## 删除远程仓库中的分支
+
+```
+git push <remote> --delete <branch>
+```
 
 
 
