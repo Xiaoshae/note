@@ -450,3 +450,33 @@ sudo update-alternatives --remove [版本标识符] [路径]
 sudo update-alternatives --remove checksec /root/envir/checksec.sh-2.6.0/checksec
 ```
 
+
+
+# 解决过时的密钥
+
+
+
+
+
+# AppImage环境
+
+```
+sudo apt install -y fuse libfuse2
+sudo apt install -y gnome-terminal
+sudo apt install -y qtcreator qtbase5-dev qt5-qmake cmake
+
+```
+
+
+
+
+
+# 安装中文编码和字体
+
+```
+sudo apt-get install language-pack-zh-han*
+sudo apt install $(check-language-support)
+sudo apt install ttf-wqy-microhei ttf-wqy-zenhei xfonts-intl-chinese
+
+```
+
