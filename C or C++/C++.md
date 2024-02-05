@@ -1,10 +1,257 @@
+# 基础
+
+
+
+## mian函数
+
+```c++
+int main(void){
+
+	return 0;
+}
+```
+
+1.  C/C++程序从main函数中开始执行
+2. 第一行 int main( )叫函数头(function heading)，花括号({和})中包括的部分叫函数体
+3. 每条完整的指令都称为语句，所有的语句都以分号结束，不能省略分号。
+4. main()中最后一条语句叫做返回语句(returnstatement)，它结束该函数。
+
+
+
+## 注释
+
+注释以`//`打头，到行尾结束。注释可以位于单独的一行上，也可以和代码位于同一行。
+
+符号`/*`和`*/`之间的部分，全部都是注释。
+
+```C++
+// 这里是一条注释
+
+int main(void){
+	return 0; // 后面这一部分也是注释。
+}
+
+/*
+你好
+这一部分全部都是注释
+*/
+```
+
+
+
+## 命名空间
+
+命名空间是一个声明性区域，为其内部的标识符（类型、函数和变量等的名称）提供一个范围。
+
+命名空间范围内的所有标识符彼此可见，而没有任何限制。 **命名空间之外的标识符**可通过**使用每个标识符**的**完全限定名**来访问成员，也可通过**单个标识符的 using 声明**或命名空间中**所有标识符的 using 指令**来访问成员。 
+
+使用namespace定义一个命名空间
+
+```c++
+namespace <标识符>{
+	<C/C++源码>
+	...
+}
+```
+
+
+
+定义两个命名空间分别为`mathTools`和`englishTools`，在两个命名空间中都定义了两个函数，分别为`sum`和`reduce`。
+
+```c++
+int division()
+
+namespace mathTools{
+	int sum(......)
+	
+	int reduce(......)
+}
+
+namespace englishTools{
+	int sum(......)
+	
+	int reduce(......)
+        
+    int multiplication()
+}
+```
+
+
+
+### 完全限定名访问
+
+```c++
+mathTools::sum(); //使用mathTools命名空间中的sum函数
+mathTools::reduce();
+englishTools::sum();//使用englishTools命名空间中的sum函数
+englishTools::reduce();
+```
+
+！！错误示范
+
+```c++
+//不加命名空间名称访问函数
+//命名空间外部没有sum()函数
+sum();
+//正确
+mathTools::sum();
+
+//在mathTools访问multiplication函数
+//multiplication函数不在mathTools中，而是在englishTools中
+mathTools::multiplication();
+//正确
+englishTools::multiplication();
+
+//在mathTools命名空间中访问division函数
+//division函数不在命名空间中，可以直接访问
+mathTools::division();
+//正确
+division();
+```
+
+
+
+## using访问单个标识符
+
+```c++
+using mathTools sum;//仅引入mathTools命名空间中的sum函数
+sum();//此时可以直接使用sum函数
+
+reduce();//错误，reduce还是不能直接访问
+mathTools::reduce(); //reduce函数现在还需要完全限定名称
+
+using mathTools reduce();//再把reduce函数引入
+reduce(); //此时就可以直接访问reduce函数了
+```
+
+
+
+### using 引入命名空间中的所有内容
+
+```C++
+using namespace mathTools; //引入mathTools命名空间中的所有内容
+sum();
+reduce();//正确，此时可以直接访问mathTools中所有内容
+```
+
+！！注意：
+
+- 如果仅使用一个或两个标识符，则考虑 using 声明，以仅将单个标识符引入范围。
+- using 指令可以放置在 .cpp 文件的顶部（在文件范围内），或放置在类或函数定义内。
+- 避免将 using 指令放置在头文件 (*.h) 中，因为任何包含该标头的文件都会将命名空间中的所有内容引入范围，这将导致非常难以调试的名称隐藏和名称冲突问题。
+- 在头文件中，始终使用完全限定名。 如果这些名称太长，可以使用命名空间别名将其缩短。
+
+！！错误：
+
+- 如果本地变量的名称与命名空间变量的名称相同，则隐藏命名空间变量。
+- 使命名空间变量具有与全局变量相同的名称是错误的。
+
+
+
+### 全局命名空间
+
+如果一个内容（如：函数）没有在命名空间中定义，那么这个内容属于全局命名空间。
+
+未在显式命名空间中声明某个标识符，则该标识符属于隐式全局命名空间的一部分。
+
+尽量不要再全局命名空间中定义内容（main函数除外），若要显式限定全局标识符，请使用没有名称的范围解析运算符，有助于使其他人更轻松地了解你的代码。
+
+```c++
+//test.cpp file
+#include <iostream>
+using namespace std;
+
+//sum函数定义在全局命名空间中，隐式在全局命名空间定义内容，不要使用这种方式
+int sum(){
+    ...
+}
+
+int ::division(){//显示的在全局命名空间中定义内容，如果不得已需要在全局命名空间中定义，请使用这种方法。
+    ...
+}
+
+namespace Tools{
+    //reduce函数定义在Tools命名空间中，而非全局命名空间
+    int reduce(){
+        ...
+    }
+}
+
+int main(void){
+	cout << "Welcome to my docs." << endl;
+	return 0;
+}
+```
+
+
+
+### 嵌套命名空间
+
+C++命名空间可以嵌套，子命名空间可以直接访问父命名空间中的成员，而无需任何限定符，父命名空间需要访问子命名空间中的成员，就必须使用限定符。
+
+```c++
+namespace father{
+	int number;
+	
+	int sum(){...}
+	
+	namespace child{
+	
+		int book;
+		
+		int rudece(){
+			return number;//可以直接访问父命名空间中的内容
+		}
+	
+	}
+	
+	int multiplication(){
+		return child::book;//父命名空间访问子命名空间中的内容，必须使用限定符。
+	}
+	
+}
+```
+
+命名空间是可以多次嵌套的，也可以拥有多个子命名空间，没有限制。
+
+```c++
+namespace one{
+	
+	namespace two{
+		
+		namespace three{
+			...
+		}
+	
+	}
+    
+    namespace childNamespace{
+        ...
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+### 内联命名空间
+
+
+
+
+
 # 类
 
 
 
 ## 类和对象概述
 
-什么是类？什么是对象？可以这么理解，类指的是一类特征，比如胖子，他的特征是埃、胖、油腻等。而对象是一个具体的实体，例如：小明，这样一个实实在在的人。
+​	什么是类？什么是对象？可以这么理解，类指的是一类特征，比如胖子，他的特征是埃、胖、油腻等。而对象是一个具体的实体，例如：小明，这样一个实实在在的人。
 
 
 
