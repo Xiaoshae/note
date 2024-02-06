@@ -444,6 +444,35 @@ namespace father {
 
 
 
+## 命名空间别名
+
+命名空间名称必须是唯一的，这意味着通常它们不应太短。 如果名称的长度使代码难以阅读，则可以使用用作实际名称的缩写的命名空间别名。
+
+```c++
+// 声明一个命名空间
+namespace VeryLongNamespaceName {
+    void func() {
+        // ...
+    }
+}
+
+// 为命名空间创建一个别名
+namespace VLN = VeryLongNamespaceName;
+
+int main() {
+	
+	//以下两者等价
+
+	//使用原名称
+	VeryLongNamespaceName::func();
+    // 使用别名来调用函数
+    VLN::func();
+}
+
+```
+
+
+
 # 类
 
 
