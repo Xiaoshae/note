@@ -1534,6 +1534,76 @@ if (tr.goodIn) {                         // 访问位字段
 
 
 
+# 共用体
+
+**共用体的定义**：共用体是一种特殊的数据结构，它可以存储不同的数据类型，但只能同时存储其中的一种类型。
+
+共用体的大小等于其最大成员的大小，因为它需要有足够的空间来存储最大的成员。
+
+例如，你可以创建一个共用体，它可以存储`int`、`long`或`double`，但这三种类型不能同时存储。
+
+```cpp
+union one4all {
+    int int_val;
+    long long_val;
+    double double_val;
+};
+```
+
+
+
+可以使用共用体来存储不同类型的值，但需要注意的是，当你存储一个新的值时，之前的值会被覆盖。
+
+```cpp
+one4all pail;
+pail.int_val = 15;  // 存储一个int
+cout << pail.int_val;
+pail.double_val = 1.38;  // 存储一个double，int_val的值会丢失
+cout << pail.double_val;
+```
+
+
+
+**匿名共用体**：匿名共用体没有名称，它的成员将成为位于相同地址处的变量。
+
+每次只有一个成员是活动的，程序员负责确定当前哪个成员是活动的。
+
+```cpp
+struct widget {
+    char brand[20];
+    int type;
+    union {  // 匿名共用体
+        long id_num;
+        char id_char[20];
+    };
+};
+
+widget Inu;
+Inu.id_num 10;
+Inu.id_char[0] = 'a'; //会覆盖其他共用体（id_num）的值
+
+
+//也可以在函数中使用
+int main(void){
+	
+	//定义匿名共用体
+	union {
+		int test;
+		double aaa;
+	};
+
+	test = 100;
+	cout << test << endl;
+	aaa = 200;//会覆盖其他共用体（test）的值
+	cout << aaa << endl;
+
+}
+```
+
+
+
+
+
 # 字面值
 
 ## 整形
