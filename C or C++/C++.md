@@ -3225,7 +3225,7 @@ void estimate(int lines, double(*pf)(int)) {
 
 
 
-### 使用`typedef` 进行简化
+## 使用`typedef` 进行简化
 
 关键字 `typedef` 能够创建类型别名:
 
@@ -3258,6 +3258,912 @@ pfun (*pd)[3] = &pa; // pd points to an array of 3 function pointers
 使用 `typedef` 可减少输入量，让您编写代码时不容易犯错，并让程序更容易理解。
 
 
+
+## 内联函数inline
+
+内联函数是C++为提高程序运行速度所做的一项改进。
+
+内联函数的编译代码与其他程序代码“内联”起来了。也就是说，编译器将使用相应的函数代码替换函数调用。
+
+对于内联代码,程序无需跳到另一个位置处执行代码,再跳回来。
+
+因此，内联函数的运行速度比常规函数稍快，但代价是需要占用更多内存。
+
+
+
+这是一个C++内联函数的例子，该函数用于计算一个数的平方：
+
+```cpp
+inline double square(double x) {
+    return x * x;
+}
+```
+
+在这个例子中，`square`函数被声明为`inline`，这意味着每次函数被调用时，编译器会用函数体替换函数调用，而不是按照通常的方式跳转到函数，执行函数，然后跳回。
+
+
+
+在C语言中，我们使用预处理器语句#define来提供宏，这是内联代码的原始实现。例如，下面是一个计算平方的宏：
+
+```cpp
+#define SQUARE(X) X*X
+```
+
+
+
+这并不是通过传递参数实现的，而是通过文本替换来实现的。例如：
+
+```cpp
+a = SQUARE(5.0); // 替换后为：a = 5.0*5.0;
+b = SQUARE(4.5 + 7.5); // 替换后为：b = 4.5 + 7.5 * 4.5 + 7.5;
+d = SQUARE(c++); // 替换后为：d = c++ * c++;
+```
+
+
+
+在上述示例中，只有第一个能正常工作。我们可以通过使用括号来进行改进：
+
+```cpp
+#define SQUARE(X) ((X)*(X))
+```
+
+
+
+但仍然存在这样的问题，即宏不能按值传递。即使使用新的定义，`SQUARE(c++)`仍将c递增两次。但是，如果我们使用C++的内联函数，就可以按值传递参数，这使得C++的内联功能远远胜过C语言的宏定义。例如，我们可以定义一个内联函数`square()`来计算c的平方，然后将c递增一次。
+
+这里的目的不是演示如何编写C宏，而是要指出，如果使用C语言的宏执行了类似函数的功能，应考虑将它们转换为C++内联函数。
+
+
+
+# 引用变量
+
+引用是已定义的变量的别名(另一个名称)。
+
+例如,如果将twain作为 clement变量的引用，则可以交替使用twain 和 clement来表示该变量。
+
+引用变量的主要用途是用作函数的形参。通过将引用变量用作参数，函数将使用原始数据，而不是其副本。
+
+这样除指针之外，引用也为函数处理大型结构提供了一种非常方便的途径，同时对于设计类来说，引用也是必不可少的。
+
+
+
+C和C++使用&符号来指示变量的地址。
+
+C++给&符号赋予了另一个含义，将其用来声明引例如，要将rodents作为rats变量的别名，可以这样做：。
+
+```cpp
+int rats;
+int & rodents = rats;  //引用变量只能（也必须）使用初始化指定，如果没有初始化则编译无法通过
+```
+
+可以这样子使用引用变量
+
+```cpp
+#include <iostream>
+
+using std::cout;
+using std::endl;
+
+int main(void) {
+
+	int rats = 10;
+	int& rodents = rats;
+
+	cout << "rats\t= " << rats << endl;
+	cout << "rodents\t= " << rodents << endl;
+
+	rats++;
+	cout << "rats\t= " << rats << endl;
+	cout << "rodents\t= " << rodents << endl;
+
+	rodents++;
+	cout << "rats\t= " << rats << endl;
+	cout << "rodents\t= " << rodents << endl;
+
+	cout << "rats address\t= " << &rats << endl;
+	cout << "rodents address\t= " << &rodents << endl;
+
+}
+```
+
+执行结果：	
+
+```
+rats    = 10
+rodents = 10
+rats    = 11
+rodents = 11
+rats    = 12
+rodents = 12
+rats address    = 00000083225CFCD4
+rodents address = 00000083225CFCD4
+```
+
+修改rats会影响rodents，相反也是一样的结果，且它们两个的地址相同。
+
+
+
+## 函数中的引用变量
+
+以下的程序中使用了按引用进行值传递的方式，来交换两个参数的值：
+
+```cpp
+#include <iostream>
+
+using std::cout;
+using std::endl;
+
+void changeValue(int & a, int & b) {
+	
+    //由于是使用的引用变量，在被调函数中修改值，会影响到调用函数中的值。
+	int temp = a;
+	a = b;
+	b = temp;
+	return;
+
+}
+
+int main(void) {
+
+	int min = 1, max = 10;
+	cout << "min = " << min << endl;
+	cout << "max = " << max << endl;
+	changeValue(min, max);
+	cout << "min = " << min << endl;
+	cout << "max = " << max << endl;
+
+	return 0;
+}
+```
+
+
+
+## 临时变量和const
+
+如果实参与引用参数不匹配，编译器将不会通过编译，除非使用了const引用，编译器将会创建一个临时变量，然后引用这个临时变量。
+
+如果引用参数是const，则编译器将在下面两种情况下生成临时变量：
+
+- 实参的类型正确，但不是左值。（将 a + 10 传递给引用变量，a 和 引用变量 都为 int 类型 ）
+- 实参的类型不正确，但可以转换为正确的类型。（将long类型变量，传递给int类型的引用变量）
+
+
+
+```cpp
+#include <iostream>
+
+using std::cout;
+using std::endl;
+
+void valuePrint(const int& x) {
+
+	cout << "x = " << x << endl;
+
+	return;
+}
+
+int main(void) {
+
+	{
+        // 对于第一种情况
+		int a = 10;
+		valuePrint(a + 20);
+	}
+
+	{
+        // 对于第二种情况，则可能会出现溢出问题
+        // int 类型为 4字节，其有符号范围为 -2147483648到2147483647。
+        // long long int 类型为 8 字节
+        // 虽然类型不匹配会生成临时变量，但是生成的临时变量是int类型，2147483648超出了范围，发生了溢出情况。
+		long long int a = 2147483648;
+		valuePrint(a);
+	}
+
+	return 0;
+}
+```
+
+
+
+对于当前的C++标准，必须是const引用变量才会创建临时变量，而对于一些旧的编译器，则允许非const也创建临时变量。
+
+为什么现在要允许const引用变量，而不允许非const呢？
+
+```cpp
+#include <iostream>
+
+using std::cout;
+using std::endl;
+
+void valueChange(int& a ,int & b) {
+
+	int temp = a;
+	a = b;
+	b = temp;
+
+	return;
+}
+
+int main(void) {
+
+	long long int x = 10, y = 20;
+	cout << "x = " << x << endl;
+	cout << "y = " << y << endl;
+	valueChange(x, y);
+	cout << "x = " << x << endl;
+	cout << "y = " << y << endl;
+
+	return 0;
+}
+```
+
+允许结果：
+
+```
+x = 10
+y = 20
+x = 10
+y = 20
+```
+
+为什么没有引用变量没有交换x和y变量的值呢？
+
+因为long long int 和 int类型不同，所以创建的临时变量，在valueChange函数中a和b引用变量，引用的不是main函数中x和y的值，而是两个临时变量的值。
+
+所以valueChange函数在交换a和b变量的值，实际上交换的是两个临时变量的值，而不是main函数中x和y的值，所以main函数中x和y的值没有被改变。
+
+
+
+当前已经不允许这种非const的方式，必须使用const才能通过编译，const使得无法修改引用变量（两个被创建的临时变量）的值，就不会出现这样的情况。
+
+
+
+**尽量使用const引用变量**：
+
+- 将引用参数声明为常量数据的引用的理由有三个。
+- 使用 const 可以避免无意中修改数据的编程错误。
+- 使用 const使函数能够处理 const和非 const 实参，否则将只能接受非 const数据。
+
+
+
+## 右值引用的基本概念
+在C++中，我们通常将值分为左值和右值。
+
+左值是表达式（不一定是赋值表达式）后依然存在的持久对象，是拥有身份且不可被移动的表达式。
+
+右值是表达式结束后就不再存在的临时对象。
+
+右值引用就是用来引用这些临时对象的。它们使用&&声明，例如：
+
+```
+int && r = 1;
+```
+
+这里的r就是一个右值引用，它引用了右值1。
+
+
+
+## 函数返回常规变量和引用的区别
+
+在返回常规变量时，一般都是将其值复制到一个临时的内存空间中去，该临时的内存空间只能成为右值，且被使用后立马释放。
+
+
+
+```cpp
+int& valueCopy(int& target, int& source) {
+
+	target = source;
+
+	return target;
+	// 只看target是无法确定返回的是常规变量还是引用变量
+    // 如果返回值类型为int，则是将target的值复制到一个临时的内存空间中去
+    // 如果返回值类型为int & ，则是将target（或者说x）变量引用返回，可以通过这个引用修改x的值。
+}
+```
+
+与其他常规函数不同，该函数的返回值类型为`int &`，也就是说函数返回的是一个int类型的引用。
+
+在valueCopy函数中假设传递的参数是main函数中的x和y变量，对应valueCopy函数中的target和source变量，该函数返回的是target变量的引用，相当于返回main函数中x变量的引用，于是可以进行以下操作：
+
+```cpp
+int z = valueCopy(x,y);	// 引用target变量，相当于引用x变量。
+int z = 20;				// 修改z变量的值，x的值也被修改。
+valueCopy(x,y) = 30;	// 该操作也是合法的，因为返回的值x变量的引用，相当于修改x的值
+```
+
+
+
+将设要通过引用使用返回值，但又不允许通过这个引用来改变其值，还不想使用临时变量，则可以声明为const引用。
+
+```cpp
+const int& valueCopy(int& target, int& source) {
+	target = source;
+	return target;
+}
+```
+
+只能使用引用变量的值，而不能修改其中的值：
+
+```cpp
+valueCopy(x,y) = 30; 			//非法
+
+int temp = valueCopy(x,y)		//合法
+
+int & z = valueCopy(x,y);		//非法
+
+const int & z = valueCopy(x,y)	//合法
+z = 30;							//非法
+const int temp = z;				//合法
+```
+
+
+
+不要返回函数中局部变量的引用（因为在函数结束后局部变量会被释放）：
+
+```cpp
+int& valueCopy(int& source) {
+	int target = source;
+	return target;
+}
+```
+
+
+
+但是可以在函数中new内存空间，使用指针指向它，并返回它的引用：
+
+```cpp
+int& valueCopy(int& source) {
+	int *target = new int;
+	*target = source
+	return *target;
+}
+```
+
+
+
+## 类引用
+
+基类引用可以指向派生类对象
+
+
+
+## 默认参数
+
+在C++中，函数参数可以有默认值。这意味着当调用函数时，如果没有提供某个参数的值，那么将使用该参数的默认值。
+
+```cpp
+#include <iostream>
+
+using std::cout;
+using std::endl;
+
+void display(int n = 1) {
+
+	cout << "n = " << n << endl;
+
+	return ;
+}
+int main(void) {
+
+	display();
+	display(10);
+
+	return 0;
+}
+```
+
+对于带参数列表的函数，必须从右向左添加默认值。
+
+要为某个参数设置默认值，则必须为它右边的所有参数提供默认值（正确示范）：
+
+```cpp
+void display(int n = 1) { ... }
+void display(int x = 1 , int y = 2 , int z = 3) { ... }
+void display(int x , int y = 2 , int z = 3){ ... }
+void display(int x , int y , int z = 3) { ... }
+```
+
+假设要为参数y设置默认参数，则必须为y右边的所有参数设置默认值（错误示范）：
+
+```cpp
+void display(int x , int y = 2 , int z){...}
+```
+
+
+
+假设只有函数定义，而没有函数声明，则只需（也只能）在函数定义中给出默认参数，例如上面的完整参数的情况。
+
+
+
+假设既有函数定义，又有函数声明，则必须在函数声明中给出默认参数。
+
+示例1：只在函数定义中给出默认参数，没有在函数声明中给出。
+
+结果：编译无法通过，报错信息为"display函数不接收0个参数"。
+
+```cpp
+void display(int n); //函数声明中没有指定。
+
+int main(void) {
+	display(); //函数中没有提供参数
+	return 0;
+}
+
+void display(int n = 1) { //函数定义中给出默认参数。
+	cout << "n = " << n << endl;
+	return;
+}
+```
+
+
+
+示例2：在函数定义和函数声明中都给出了默认参数。
+
+结果：编译无法通过，报错信息为"重定义默认参数，参数1"。
+
+```cpp
+void display(int n = 1);//函数声明中给出默认参数。
+
+int main(void) {
+	display();//函数中没有提供参数
+	return 0;
+}
+
+void display(int n = 1) {//函数定义中给出默认参数。
+	cout << "n = " << n << endl;
+	return;
+}
+```
+
+
+
+示例3：在函数定义中没有给出默认参数，在不同的函数声明中给出不同的默认参数。
+
+运行结果：
+
+```
+n = 1
+n = 100
+```
+
+```cpp
+int main(void) {
+
+	{
+		void display(int n = 1);//此处函数声明指定n的默认参数为1
+		display();
+	}
+
+	{
+		void display(int n = 100);//此处函数声明指定n的默认参数为100
+		display();
+	}
+
+	return 0;
+}
+
+void display(int n) {//函数定义中没有指定默认参数
+
+	cout << "n = " << n << endl;
+
+	return;
+}
+```
+
+
+
+# 函数重载
+
+函数重载的关键是函数的参数列表——也称为函数特征标(fiunction signature)。
+
+如果两个函数的参数数目和类型相同，同时参数的排列顺序也相同，则它们的特征标相同，而变量名是无关紧要的。
+
+C++允许定义名称相同的函数，条件是它们的特征标不同。如果参数数目和/或参数类型不同，则特征标也不同。
+
+
+
+ 例如，定义一组原型如下的`print()`函数：
+
+```cpp
+void print(float d, int width);
+void print(int i, int width);
+void print(char *str);
+```
+
+使用`print()`函数时，编译器将根据所采取的用法使用有相应特征标的原型：
+
+```cpp
+print("hello");		// #3
+print(1.0,2);		// #1
+print(2,10);		// #2
+```
+
+
+
+## 强制匹配
+
+### 示例1：提升匹配
+
+如果当前类型不于任何一个重载匹配，则会尝试使用标准类型转换进行强制匹配，例如float可以转化为double，所以main函数中的print调用会匹配到`void print(double);`
+
+```cpp
+void print(double x) {
+	cout << x << endl;
+}
+
+void print(int x) {
+	cout << x << endl;
+}
+
+
+int main(void) {
+
+	float x = 10;
+	print(x);
+
+	return 0;
+}
+
+```
+
+
+
+### 示例2：提升匹配重复
+
+如果是下面这种情况，int类型既可以提升为float，也可以提升为double，所以无法进行匹配：
+
+```cpp
+void print(double x) {
+	cout << x << endl;
+}
+
+void print(float x) {
+	cout << x << endl;
+}
+
+
+int main(void) {
+
+	int x = 10;
+	print(x);
+
+	return 0;
+}
+
+```
+
+
+
+### 示例3：不能降级匹配
+
+在强制匹配时，只会使用提示匹配，而不会使用降级匹配，在下面这个例子中，如果将double降低为float进行匹配，会导致精度丢失，所以不会匹配成功：
+
+```cpp
+void print(float x) {
+	cout << x << endl;
+}
+
+void print(int x) {
+	cout << x << endl;
+}
+
+
+int main(void) {
+
+	double x = 10;
+	print(x);
+
+	return 0;
+}
+```
+
+
+
+如果没有不是函数重载，而只是降级，则可以编译通过，但还是会存在精度丢失问题：
+
+```cpp
+void print(float x) {
+	cout << x << endl;
+}
+
+int main(void) {
+
+	double x = 10;
+	print(x);
+
+	return 0;
+}
+```
+
+
+
+
+
+
+
+### 示例4：引用变量特征标
+
+一些看起来彼此不同的特征标是不能共存的。例如，请看下面的两个原型：
+
+```
+double cube(double x);double cube(double &x);
+```
+
+它们的特征标看起来不同，假设有下面这样的代码:
+
+```
+cout << cube(x);
+```
+
+参数x与 `double x`原型和 `double &x`原型都匹配，因此编译器无法确定究竟应使用哪个原型。
+
+为避免这种混乱，编译器在检查函数特征标时，将把**类型引用和类型本身视为同一个特征标**。
+
+
+
+### 示例5：引用匹配
+
+首先，右三个函数原型：
+
+```cpp
+void sink(double &r1);  // 匹配可修改的左值
+void sank(const double &r2);  // 匹配可修改的左值、const左值或右值
+void sunk(double &&r3);  // 匹配右值
+```
+
+- `sink`函数接受一个可修改的左值引用
+- `sank`函数接受一个const左值引用
+- `sunk`函数接受一个右值引用
+
+
+
+重载了这三种参数类型的函数，编译器会选择最匹配的版本。
+
+```cpp
+void stove(double &rl);  // 匹配可修改的左值
+void stove(const double &r2);  // 匹配const左值或右值
+void stove(double &&r3);  // 匹配右值
+```
+
+- 如果有一个可修改的左值`x`，那么调用`stove(x)`会选择`stove(double &rl)`版本；
+- 如果有一个const左值`y`，那么调用`stove(y)`会选择`stove(const double &r2)`版本；
+- 如果有一个右值`x+y`，那么调用`stove(x+y)`会选择`stove(double &&r3)`版本；
+- 如果没有定义`stove(double &&)`，那么`stove(x+y)`将会调用`stove(const double &)`版本。
+
+
+
+### 示例5：函数重载和默认参数
+
+假设函数重载中还有默认参数，则可能涉及到这种问题：
+
+```cpp
+void print(int n, double x = 10.10) { ... }
+void print(int n, char x = 'c') { ... }
+void print(int n) { ... }
+```
+
+这种情况下`void print(int)`是无论如何都无法被匹配，如果没有这一条，`print(1);`也无法匹配到任何函数。
+
+`print(1,10.0);`匹配到`void print(int,double);`因为浮点型默认为double
+
+`print(1,10.0f);`匹配到`void print(int,float);`因为使用后缀指定为float类型
+
+
+
+# 函数模板
+
+函数模板是一种特殊的函数，可以处理不同的数据类型，但是处理方式相同。这种函数的定义方式称为函数模板。
+
+函数模板的定义格式如下：
+
+```cpp
+template <typename T>
+函数返回类型 函数名(参数列表)
+{
+    // 函数体
+}
+```
+
+
+
+其中，`template <typename T>`是模板声明，表示声明一个模板，`T`是类型参数，可以用来代表任何类型。
+
+在标准 C++98 添加关键字 typename 之前，C++使用关键字 class 来创建模板。
+
+下面是一个使用函数模板来交换两个`int`和`double`类型的值的示例：
+
+```cpp
+template <typename T>
+void swap(T& a, T& b) {
+    T temp = a;
+    a = b;
+    b = temp;
+}
+
+int main() {
+    int i1 = 1, i2 = 2;
+    double d1 = 1.1, d2 = 2.2;
+    swap(i1, i2);  // 交换两个int类型的值
+    swap(d1, d2);  // 交换两个double类型的值
+    return 0;
+}
+```
+
+
+
+## 模板重载
+
+模板重载是一种在C++中使用模板的高级技术，它允许我们为不同的类型或参数定义不同的模板函数。
+
+有两个`Swap`函数模板，第一个模板用于交换两个值，而第二个模板用于交换两个数组中的元素。这两个模板的函数特征标是不同的，所以它们可以同时存在。
+
+第一个模板的函数特征标为`(T&, T&)`，它接受两个引用参数，用于交换两个值：
+
+```cpp
+template <typename T>
+void Swap(T &a, T &b) {
+    T temp = a;
+    a = b;
+    b = temp;
+}
+```
+
+
+
+第二个模板的函数特征标为`(T[], T[], int)`，它接受两个数组和一个整数，用于交换两个数组中的元素：
+
+```cpp
+template <typename T>
+void Swap(T *a, T *b, int n) {
+    for (int i = 0; i < n; i++) {
+        T temp = a[i];
+        a[i] = b[i];
+        b[i] = temp;
+    }
+}
+```
+
+
+
+## 模板的局限性
+
+模板也有其局限性：
+
+1. **类型限制**：模板函数假定可以对其类型参数执行某些操作。例如，如果你的模板函数中有一个赋值操作`a = b`，那么这个模板就不能用于数组类型，因为数组不支持赋值操作。
+2. **操作符限制**：模板函数可能会假定其类型参数支持某些操作符。例如，如果模板函数中有一个比较操作`if (a > b)`，那么这个模板就不能用于结构类型，因为结构类型默认不支持`>`操作符。
+3. **通用性与特殊性的冲突**：有时，我们希望模板能够处理一些特殊的情况，但是C++的语法可能不允许。例如，我们可能希望一个模板函数能够处理两个包含位置坐标的结构的相加操作，但是C++默认并不支持结构的加法操作。
+
+为了解决这些问题，C++提供了一些解决方案：
+
+- **运算符重载**：我们可以为特定的结构或类重载某些运算符，使得模板函数可以处理这些类型。例如，我们可以重载`+`运算符，使得模板函数可以处理包含位置坐标的结构的相加操作。
+- **模板特化**：我们可以为特定的类型提供具体化的模板定义，以处理这些类型的特殊情况。例如，我们可以为数组类型提供一个特化的模板，以处理数组的赋值操作。
+
+
+
+## 显示具体化
+
+我们为某个特定类型提供一个特殊的模板实现时，我们称之为显式具体化。
+
+例如，假设我们有一个模板函数`print`，用于打印各种类型的值：
+
+```cpp
+template <typename T>
+void print(const T& value) {
+    std::cout << value << std::endl;
+}
+```
+
+
+
+这个模板函数可以打印任何类型的值，只要这个类型支持`<<`操作符。然而，如果我们想要为`std::vector`类型提供一个特殊的打印方式，我们就可以使用显式具体化：
+
+```cpp
+template <>
+void print(const std::vector<int>& vec) {
+    for (const auto& value : vec) {
+        std::cout << value << ' ';
+    }
+    std::cout << std::endl;
+}
+```
+
+
+
+在这个显式具体化的版本中，我们遍历`std::vector`，并打印出每个元素。注意，显式具体化的模板前面有一个额外的`<>`，这是显式具体化的标志。
+
+当我们调用`print`函数时，如果参数是`std::vector<int>`类型，编译器就会选择显式具体化的版本。如果参数是其他类型，编译器就会选择通用的模板版本。
+
+
+
+## 隐式实例化、显式实例化、显式具体化
+
+1. **隐式实例化**：当我们在代码中使用模板函数或模板类时，编译器会根据我们提供的类型参数，自动生成一个特定的函数或类。例如，如果我们有一个模板函数`Swap<T>(T&, T&)`，当我们调用`Swap<int>(int&, int&)`时，编译器就会生成一个处理`int`类型的`Swap`函数。
+2. **显式实例化**：这是我们明确告诉编译器要生成某个特定类型的模板实例。例如，`template void Swap<int>(int, int);`就是一个显式实例化的声明，它告诉编译器我们希望生成一个处理`int`类型的`Swap`函数。
+
+3. **具体化**：是为特定类型提供特殊的模板实现。例如，`template <> void Swap<int>(int&, int&);` 是一个显式具体化的`Swap`函数，专为`int`类型设计。
+
+
+
+## decltype关键字
+
+1. **基本用法**：`decltype`是一个关键字，用于推导表达式的类型。例如：
+
+    ```cpp
+    int a = 10;
+    decltype(a) b = 20;  // b的类型为int
+    ```
+
+    在这个例子中，`decltype(a)`会得出`a`的类型为`int`，因此`b`的类型也为`int`。
+
+    
+
+2. **函数返回类型**：如果表达式是一个函数调用，`decltype`会得出函数的返回类型。例如：
+
+    ```cpp
+    double func();
+    decltype(func()) x;  // x的类型为double
+    ```
+
+    注意，`decltype`并不会实际调用函数，它只是分析函数的返回类型。
+
+    
+
+3. **左值和右值**：如果表达式是一个左值，且被括号包裹，`decltype`会得出一个引用类型。例如：
+
+    ```cpp
+    int a = 10;
+    decltype((a)) b = a;  // b的类型为int&
+    ```
+
+    在这个例子中，`(a)`是一个左值，因此`decltype((a))`得出的类型为`int&`。
+
+    
+
+4. **模板中的应用 - 后置返回类型**：后置返回类型（Trailing Return Type）。这种语法允许我们在函数声明中延迟指定返回类型。
+
+5. 使用后置返回类型，可以在函数参数列表之后，使用 auto 关键字来指定函数的返回类型，从而使得返回类型可以依赖于函数参数或其他上下文信息。
+
+    后置返回类型的语法格式如下：
+
+    ```cpp
+    auto FuncName(ArgsList) -> ReturnType { }
+    ```
+
+    例如，你可以使用后置返回类型来定义一个模板函数，该函数的返回类型依赖于模板参数2：
+
+    ```cpp
+    template<typename ArgType1, typename ArgType2>
+    auto Func1(ArgType1& a, ArgType2& b) -> decltype(a + b) {
+        return (a + b);
+    }
+    ```
+
+    在这个例子中，decltype(a + b) 是一个表达式，它的类型就是 a + b 的类型。因此，Func1 的返回类型就是 a + b 的类型2。
+
+
+
+# 左值和右值
+
+在C语言和C++中，我们通常将值分为左值和右值。以下是关于左值和右值的详细解释：
+
+## 左值（Lvalue）
+左值（Lvalue）是指向内存区域的对象，左值可以出现赋值表达式的左边或右边。左值是可寻址的变量，有持久性。例如，如果arr是一个数组，那么arr[1]和*(arr+1)都将被视为相同内存位置的“名称”。
+
+```
+int x = 5; // x 是 左值
+int arr[10]; // arr 是 左值
+```
+
+
+
+## 右值（Rvalue）
+右值（Rvalue）则是指没有名字或地址的临时值或字面常量，例如数字，字符串或表达式。右值一般是不可寻址的常量，或在表达式求值过程中创建的无名临时对象，短暂性的。
+
+```
+int x = 1 + 2; // 1 + 2 是右值
+```
+
+在C++11中，右值的概念被进一步细分为纯右值（Prvalue）和将亡值（Xvalue）。纯右值是指非引用返回的临时对象或运算表达式，如1+2；将亡值是指生命周期即将结束的对象，通常是函数返回的引用。
 
 
 
