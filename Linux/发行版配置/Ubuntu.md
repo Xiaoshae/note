@@ -133,7 +133,7 @@ passwd root
 AllowRoot=true
 ```
 
-![编辑 GDM 配置文件以允许 root 登录](images/Ubuntu/01-how-to-allow-gui-root-login-on-ubuntu-22-04-jammy-jellyfish-linux.png)
+![编辑 GDM 配置文件以允许 root 登录](images/Ubuntu.assets/01-how-to-allow-gui-root-login-on-ubuntu-22-04-jammy-jellyfish-linux.png)
 
 
 
@@ -141,7 +141,7 @@ AllowRoot=true
 
 `/etc/pam.d/gdm-password`文件，注释一行`auth   required        pam_succeed_if.so user != root quiet_success`
 
-![拒绝 root 访问图形用户界面的注释行](images/Ubuntu/02-how-to-allow-gui-root-login-on-ubuntu-22-04-jammy-jellyfish-linux.png)
+![拒绝 root 访问图形用户界面的注释行](images/Ubuntu.assets/02-how-to-allow-gui-root-login-on-ubuntu-22-04-jammy-jellyfish-linux.png)
 
 
 
@@ -228,7 +228,7 @@ exec -a "$0" "$HERE/chrome" "$@" --user-data-dir --no-sandbox
 
 # Which service should be restarted ?
 
-![在此处输入图像描述](images/Ubuntu/lAFlE.png)
+![在此处输入图像描述](images/Ubuntu.assets/lAFlE.png)
 
 编辑 /etc/needrestart/needrestart.conf 文件
 
@@ -295,7 +295,7 @@ netplan apply
 vim /etc/NetworkManager/NetworkManager.conf 
 ```
 
-![img](images/Ubuntu/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAd2VpeGluXzUyMzQyMTUz,size_20,color_FFFFFF,t_70,g_se,x_16.png)
+![img](images/Ubuntu.assets/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAd2VpeGluXzUyMzQyMTUz,size_20,color_FFFFFF,t_70,g_se,x_16.png)
 
 
 
@@ -311,7 +311,7 @@ network:
   renderer: NetworkManager
 ```
 
-![image-20240201104826927](images/Ubuntu/image-20240201104826927.png)
+![image-20240201104826927](images/Ubuntu.assets/image-20240201104826927.png)
 
 
 
@@ -436,7 +436,7 @@ auto mode 表示自动模式，按照优先级来使用版本
 
 manual mode 表示手动模式，使用指定的版本
 
-![image-20240201201818703](images/Ubuntu/image-20240201201818703.png)
+![image-20240201201818703](images/Ubuntu.assets/image-20240201201818703.png)
 
 
 
