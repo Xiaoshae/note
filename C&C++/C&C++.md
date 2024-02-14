@@ -201,40 +201,6 @@ array<int,10> tc;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # 类
 
 
@@ -291,6 +257,8 @@ public:
 ### 类成员函数
 
 除了上面直接在class声明中定义成员函数，也可以只在class中进行声明，在其他地方定义，使用作用域解析运算符(**::**)来标识函数所属的类。
+
+
 
 ```C++
 class Book{
@@ -352,9 +320,7 @@ inline double Book::GetPrice(void){
 
 内联函数的特殊规则要求，在每个使用它们的文件中都对其进行定义。最简便的方法是：将内联定义放在定义类的头文件中(有些开发系统包含智能链接程序，允许将内联定义放在一个独立的实现文件)。然后在每个使用该内联函数的源程序中包含整个头文件。
 
-根据改写规则(rewrite rule)，在类声明中定义方法，等同于用原型替换方法定义，然后在类声明的后面将定义改写为内联函数。（**这里暂时还不理解**）。
-
-
+根据改写规则(rewrite rule)，在类声明中定义方法，等同于用原型替换方法定义，然后在类声明的后面将定义改写为内联函数。
 
 ## 存储空间
 
@@ -362,7 +328,315 @@ inline double Book::GetPrice(void){
 
 
 
+## 构造函数
+
+构造函数用于在创建对象时进行初始化，在创建对象后则无法调用构造函数。
+
+构造函数的名称与类名称相同，且没有返回值。
+
+
+
+### 默认的构造函数
+
+在没有创建任何构造函数时，则存在一个默认的构造函数，其形式如下：
+
+```cpp
+class Book {
+
+public:
+	 
+	string name;
+	double value;
+	int number;
+
+	Book(void){ };
+
+};
+```
+
+
+
+### 定义构造函数
+
+定义一个构造函数，该函数接受三个变量，用于给类中的变量进行初始化：
+
+```cpp
+class Book {
+
+public:
+	 
+	string name;
+	double value;
+	int number;
+	
+	Book(string newName, double newValue, int newNumber) {
+
+		this->name = newName;
+		this->value = newValue;
+		this->number = newNumber;
+
+	}
+
+};
+```
+
+
+
+### 默认构造函数
+
+默认构造函数，当一个构造函数不需要提供参数时，那么它就是一个构造函数：
+
+例如：该下面两个都是默认构造函数，虽然第一个构造函数有三个参数，但他们是可选的。
+
+```cpp
+Book(string newName = "", double newValue = 0.0 int newNumber = 0) {
+
+		this->name = newName;
+		this->value = newValue;
+		this->number = newNumber;
+
+}
+
+Book(void) {
+
+	this->name = "";
+	this->value = 0.0;
+	this->number = 0;
+
+}
+```
+
+
+
+### 调用构造函数
+
+调用构造函数：在创建一个对象时没有提供任何的参数，则会调用默认构造函数，如果有多个构造函数（如有上面两个构造函数）则会报错。
+
+```cpp
+Book english; //调用默认构造函数
+
+//显示的使用默认构造函数
+Book english = Book();
+Book english();
+Book english {};
+
+//以下几种提供参数的方法都可以，调用非默认构造函数：
+Book english = Book("english",10.0,5);
+Book english("english",10.0,5);
+Book english {"english",10.0,5};
+```
+
+
+
+### 异常情况
+
+创建了任意一个构造函数，编译器就不会提供默认构造函数了。如果只手动创建了带参数的构造函数，而没有创建默认构造函数，则可能会出现以下情况：
+
+```cpp
+class Book {
+
+public:
+	 
+	string name;
+	double value;
+	int number;
+	
+	Book(string newName, double newValue, int newNumber) {
+
+		this->name = newName;
+		this->value = newValue;
+		this->number = newNumber;
+
+	}
+
+};
+
+//以下几种提供参数的方法都可以：
+Book english = Book("english",10.0,5);//调用Book(string newName, double newValue, int newNumber)构造函数
+Book english("english",10.0,5);
+Book english {"english",10.0,5};
+
+//以下几种情况，都没有提供任何参数，会调用默认构造函数
+Book english;//在定义对象时，没有提供任何参数，也没有手动定义任何默认构造函数，编译器找不到默认构造函数，会报错
+Book english = Book();
+Book english();
+Book english {};
+```
+
+
+
 ## 析构函数
 
+析构函数用于在对象声明周期到期时自动调用，一般用于释放new分配的内存空间，析构函数一般为空。
 
+
+
+析构函数的名称为`~`加`类名`，例如：类名为`Book`，则析构函数的名称为`~Book`。
+
+析构函数没有返回类型，也不能有参数，这意味着析构函数只有一个，不能进行函数重载。
+
+如果没有手动定义析构函数，则编译器会提供默认的析构函数（不进行任何操作）。
+
+
+
+### 默认的析构函数
+
+```cpp
+class Book {
+
+public:
+	 
+	string name;
+	double value;
+	int number;
+	
+	~Book(void){ }
+};
+```
+
+
+
+### 定义析构函数
+
+只需要定义一个名称为`~`加`类名`的函数就可以了。
+
+```cpp
+class Book {
+
+public:
+	 
+	string * name;
+	double value;
+	int number;
+	
+	Book(void){
+		//构造函数中使用new分配了内存
+		this->name = new string;
+		this->value = 0.0;
+		this->number = 0;
+		
+	}
+	
+	~Book(void){
+		//析构函数中使用delete释放new分配的内存
+		delete this->name;
+	}
+};
+```
+
+
+
+## 初始化对象
+
+以下几种初始化的方法有什么不同呢？
+
+```
+Book english;
+Book english = Book("english",10.0,0);
+Book english();
+Book english("english",10.0,0);
+Book english {};
+```
+
+
+
+首先判断这两个：
+
+`Book english("english",10.0,0);`：创建一个对象，隐示的传递参数调用构造函数
+
+`Book english();`：这是一个函数声明，声明一个没有参数，**返回值类型为`Book`类型的函数**。
+
+
+
+`Book english = Book();`：创建临时Book对象，这个临时Book类型使用**默认构造函数进行构造**，构造完成后赋值给english对象。
+
+`Book english = Book("english",10.0,0);`：创建临时Book对象，**使用提供的参数进行构造**，构造完成后赋值给english对象。
+
+注意：english对象不会调用构造函数，而是创建临时对象，等临时对象构造完成，将临时对象中的内容赋值到english对象中。
+
+编译器可能立刻删除临时对象，但也可能会等一段时间，在这种情况下，临时对象的析构函数要过一会才会被调用。
+
+
+
+如果采用以下方式，则会出现调用两次析构函数的情况：
+
+```
+Book english;
+english = Book("english",10.0,0);
+```
+
+第一条语句，定义english对象时，使用默认构造函数进行构造。
+
+第二条语句，这实际上时一条赋值语句，定义临时Book类型变量，对临时变量进行构造会调用一次构造函数，构造完成后将临时变量中的内容赋值给english变量。
+
+
+
+这两种情况没有什么区别，但是请注意（列表初始化不允许降低精度）：
+
+```
+Book english("english",10.0,0);
+Book english {"english",10.0,0};
+```
+
+
+
+## const成员函数
+
+如果在定义一个对象时，使用了const限定符，那么不能直接使用类成员函数，因为类成员函数无法确保对象不被修改。
+
+```cpp
+ConstStock land = Stock("Kludgehorn Properties");
+land.show(); //编译器会拒绝这一行
+```
+
+
+
+C++的解决方法是将 const 关键字放在函数的括号后面，告知编译器该函数保证函数不会修改调用对象。
+
+`show()`声明应像这样:
+
+```cpp
+void show() const;
+```
+
+函数定义的开头应像这样:
+
+```cpp
+void stock::show() const{
+	...
+}
+```
+
+
+
+## this指针
+
+this 指针指向用来调用成员函数的对象(this被作为隐藏参数传递给方法)。
+
+在函数的括号后面使用 const 限定符将 this 限定为 const,这样将不能使用 this 来修改对象的值。
+
+ this 是对象的地址，`*this`(将解除引用运算符`*`用于指针，将得到指针指向的值)是对象本身。
+
+```cpp
+class Book {
+
+public:
+	 
+	string * name;
+	double value;
+	int number;
+	
+	string Get_name(void) const{
+		
+		// *this对象本身
+		// this 指向对象的指针
+		// *this.name 对象中的name变量
+		// this->name 指针需要通过->来访问，和结构体一样
+		// this->value = 10; 在const函数中被禁止，在非const函数中允许
+		
+        return this->name;
+        
+	}
+};
+```
 
