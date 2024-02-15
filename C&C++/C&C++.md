@@ -530,7 +530,7 @@ public:
 
 以下几种初始化的方法有什么不同呢？
 
-```
+```cpp
 Book english;
 Book english = Book("english",10.0,0);
 Book english();
@@ -560,7 +560,7 @@ Book english {};
 
 如果采用以下方式，则会出现调用两次析构函数的情况：
 
-```
+```cpp
 Book english;
 english = Book("english",10.0,0);
 ```
@@ -573,10 +573,21 @@ english = Book("english",10.0,0);
 
 这两种情况没有什么区别，但是请注意（列表初始化不允许降低精度）：
 
-```
+```cpp
 Book english("english",10.0,0);
 Book english {"english",10.0,0};
 ```
+
+
+
+注意：假设已经有了一个对象，将其直接赋值给另一个对象，虽然该对象不会调用构造函数，但是不要忘了该对象生命周期结束时，还是会调用析构函数。
+
+```cpp
+Book english {"english",10.0,0};
+Book chinese = english;
+```
+
+在上面这里例子中，只有english对象会调用构造函数，但是english和chinese都会调用析构函数。
 
 
 
@@ -639,4 +650,497 @@ public:
 	}
 };
 ```
+
+
+
+## 对象数组
+
+声明对象数组的方法与声明标准类型数组相同：
+
+```cpp
+Book mystuff[2];
+```
+
+创建了2个mystuff对象，分别为mystuff[0]、mystuff[1]
+
+每一个对象都会调用构造函数，由于没有提供参数，会调用默认构造函数，该语句会导致2次构造函数的调用。
+
+
+
+### 初始化对象数组
+
+```cpp
+Book mystuff[2] = {
+	Book("english",10.0,5),
+	Book("chinese",20.0,6)
+}
+
+Book mystuff[2] = {
+    {"english",10.0,5},
+    {"chinese",20.0,7}
+}
+```
+
+
+
+# 类作用域
+
+在类中定义的名称(如类数据成员名和类成员函数名)的作用域都为整个类，作用域为整个类的名称只在该类中是已知的，在类外是不可知的。
+
+
+
+不能从外部直接访问类的成员和公有成员函数，必须通过对象：
+
+```cpp
+Book english;
+cout << english.name << endl;
+english.display();
+```
+
+
+
+在定义成员函数时，必须使用作用域解析运算符：
+
+```cpp
+void Book::update(double price){
+	...
+}
+```
+
+
+
+在类声明或成员函数定义中，可以直接使用成员的名称，无需任何修饰。例如，在类的成员函数`sel()`中可以直接调用另一个成员函数`set_tot()`。
+
+**成员运算符的使用**：在其他情况下，访问类的成员需要使用特定的运算符：
+
+- **直接成员运算符(.)**：当对象是实体（非指针）时，使用`.`来访问其成员。
+- **间接成员运算符(->)**：当对象是指针时，使用`->`来访问其成员。
+- **作用域解析运算符(::)**：用于访问类的静态成员，或者在类外部访问类的成员。
+
+
+
+## 静态类成员
+
+在类中，不能直接定义一个常量并给它赋值，因为类的定义只是一个模板，它并没有创建任何实际的对象，所以没有地方存储这个常量的值。例如，下面的代码是错误的：
+
+```cpp
+class Book {
+
+public:
+	 
+	 const int length = 10;	// 这是不允许的
+
+};
+```
+
+
+
+静态类成员与其他静态变量存储在一起，而不是存储在对象中，所以可以静态类成员是可以有初始值的，例如：
+
+```cpp
+class Book {
+
+public:
+	 
+	 static const int length = 10;	// 这是允许的， 因为前面加了static变成了静态类常量
+
+};
+```
+
+
+
+## 类中使用枚举
+
+枚举在类中的作用域是整个类，所以我们可以用枚举来为整个类提供一个常量。例如：
+
+```cpp
+class Bakery {
+private:
+    enum { Months = 12 };
+    double costs[Months];
+};
+```
+
+`Months` 是一个符号名称，它在整个类的作用域内都可以使用，并且编译器会自动用 `12` 来替换它。
+
+这种方式并不会在类中创建一个数据成员，也就是说，所有的对象都不包含这个枚举（指这个枚举不会占用对象的存储空间）。
+
+
+
+## 枚举类
+
+C++11引入了一种新的枚举类型，称为限定作用域的枚举类型（scoped enumeration），也被称为枚举类（enum class）。这种新的枚举类型解决了传统枚举类型的一些问题，并提供了更好的类型安全性和可读性。
+
+以下是限定作用域的枚举类型的定义方式：
+
+```cpp
+enum class Color {Red, Green, Blue};
+```
+
+
+
+- 作用域：限定作用域的枚举类型的枚举值被限定在特定的作用域内，需要通过作用域解析操作符::来访问。例如，Color::Red。
+- 类型安全：限定作用域的枚举类型是类型安全的，不能隐式地转换为其它类型，这有助于避免意外的错误。
+- 命名冲突：在不同的作用域中可以使用相同的枚举值而不会发生命名冲突。
+
+
+
+这是一个使用限定作用域的枚举类型的例子：
+
+```cpp
+enum class Color {Red, Green, Blue};
+Color myColor = Color::Red;
+```
+
+Color::Red是一个枚举值，它在Color的作用域内。你不能直接使用Red，必须使用Color::Red。
+
+
+
+不能将Color::Red隐式地转换为一个整数，整形运算和关系运算符都不能有枚举类：
+
+```cpp
+int x = Color::Red; // 不被允许的
+if( Color::Red > 10) { ... }  //不被允许的
+```
+
+
+
+如果需要将其转换为一个整数，你必须使用强制类型转换：
+
+```cpp
+int x = int(Color::Red);
+int y = int(Color::Red) + x + 10;
+```
+
+
+
+# 类高级操作
+
+## 运算符重载
+
+`operator运算符()`，使用`operator` + `运算符` + `()`即可重载一个指定的运算符。例如`operator+()`就是重载了`+`运算符。
+
+例如，假设有一个 `Salesperson` 类，并为它定义了`operatot+()`成员函数，以重载`+`运算符，以便能够将两个 Saleperson对象的销售额相加。
+
+则如果 district2、sid 和 sara都是 Salesperson 类对象，便可以编写这样的等式：
+
+```cpp
+district2 =sid + sara;
+```
+
+编译器发现，操作数是 Salesperson 类对象，因此使用相应的运算符函数替换上述运算符
+
+```cpp
+district2 =sid.operator+(sara);
+```
+
+
+
+```cpp
+Time Time::operator+(const Time &t) const {
+    Time sum;
+    sum.minutes = minutes + t.minutes;
+    sum.hours = hours + t.hours + sum.minutes / 60;
+    sum.minutes %= 60;  // 修复：分钟数应在0到59之间
+    return sum;
+}
+```
+
+参数是可以是引用，但返回类型却不是引用。将参数声明为引用的目的是为了提高效率。如果按值传递Salesperson对象，代码的功能将相同，但传递引用，速度将更快，使用的内存将更少。
+
+返回值不能是引用。因为函数将创建一个新的 Time对象，来表示另外两个 Time 对象的和。返回对象(如代码所做的那样)将创建对象的副本，而调用函数可以使用它。然而，如果返回类型为Time &，则引用的将是 sum 对象。但由于 sum 对象是局部变量，在函数结束时将被删除，因此引用将指向一个不存在的对象。使用返回类型 Time 意味着程序将在删除 sum 之前构造它的拷贝，调用函数将得到该拷贝。
+
+`t4 = t1 + t2 + t3;`是有效的，它会被转换为：
+
+```cpp
+t4 = t1.operator+(t2 + t3);
+t4 = t1.operator+(t2.operator+(t3));
+```
+
+
+
+## 重载限制
+
+1. **重载后的运算符必须至少有一个操作数是用户定义的类型**：这将防止用户为标准类型重载运算符。因此，不能将减法运算符(-)重载为计算两个double值的和，而不是它们的差。虽然这种限制将对创造性有所影响，但可以确保程序正常运行。
+2. **使用运算符时不能违反运算符原来的句法规则**：例如，不能将求模运算符(%)重载成使用一个操作数。同样，不能修改运算符的优先级。因此，如果将加号运算符重载成将两个类相加，则新的运算符与原来的加号具有相同的优先级。
+3. **不能创建新运算符**：例如，不能定义`operator**()`函数来表示求幂。不能重载下面的运算符：
+    - `sizeof`：sizeof运算符
+    - `.`：成员运算符
+    - `*`：成员指针运算符
+    - `::`：作用域解析运算符
+    - `?::`：条件运算符
+    - `typeid`：一个RTTI运算符
+    - `const_cast`：强制类型转换运算符
+    - `dynamic_cast`：强制类型转换运算符
+    - `reinterpret_cast`：强制类型转换运算符
+    - `static_cast`：强制类型转换运算符
+4. **表11.1中的大多数运算符都可以通过成员或非成员函数进行重载**，但下面的运算符只能通过成员函数进行重载：
+    - 赋值运算符
+    - 函数调用运算符
+    - 下标运算符
+    - 通过指针访问类成员的运算符
+
+
+
+## 友元函数
+
+如果将一个成员变量或者函数设置为私有，则只能在其他成员函数中访问，而无法通过其他函数访问，例如：
+
+```cpp
+class Time {
+private:
+	int length;
+	void show_length(void) {
+		cout << this->length << endl;
+	}
+
+public:
+	int hour;
+	int minutes;
+
+	void show_time(void) {
+		cout << this->hour << endl;
+		cout << this->minutes << endl;
+	}
+};
+
+int main(void) {
+	Time test;
+
+	test.hour = 10;
+	test.minutes = 50;
+	
+	test.show_time();
+
+	test.length = 10;
+	test.show_length();
+}
+```
+
+hour、minutes以及show_time()都是公有部分可以在其他函数中访问，而length和show_length()是私有部分，无法再非成员函数中访问。
+
+
+
+如果想要在非成员函数中访问私有变量，则需要将这个函数声明为友元函数，例如：
+
+```cpp
+class Time {
+private:
+
+	int length;
+
+	void show_length(void) {
+
+		cout << this->length << endl;
+
+	}
+
+public:
+
+	int hour;
+	int minutes;
+
+	void show_time(void) {
+		
+		cout << this->hour << endl;
+		cout << this->minutes << endl;
+
+	}
+	
+    //声明友元函数，在函数原型前面加上friend关键字
+	friend void show_all(Time& show_time);
+
+};
+
+//定义友元函数 此处不能有friend关键字
+void show_all(Time& display) {
+
+	display.hour = 10;
+	display.minutes = 30;
+	display.show_time();
+
+	display.length = 25;
+	display.show_length();
+
+	return;
+}
+
+int main(void) {
+
+	Time test;
+	show_all(test);
+
+}
+```
+
+首先在类外部定义了一个函数，，由于该函数非类中成员函数，所以无需使用`::`类限定符。
+
+```cpp
+void show_all(Time& display){}			// 友元函数的定义
+void Time::show_all(Time& display){}	// 类成员函数的定义
+```
+
+在类外部定义的函数不能有friend关键字，然后需要在类中进行声明，在函数原型前面加上friend关键字。
+
+如果该函数需要访问多个类的私有成员，则必须在每一个类中使用friend声明为友元函数。
+
+将友元函数声明在公有部分还是私有部分，对友元函数的访问权限没有影响，通常会将友元函数声明在公有部分，这样可以清楚地表明这个函数是类的一个接口。
+
+
+
+如果想要将友元函数定义在类中，指向在定义前面加上`friend`关键字就可以了：
+
+```cpp
+class Time{
+
+public:
+	
+	void show_time(void){	// 定义在类中的成员函数
+		/* ... */
+	}
+	
+	friend show_all(void){	// 定义在类中的友元函数
+		/* ... */
+	}
+
+}
+```
+
+
+
+## 非成员函数的运算符重载
+
+非成员函数的运算符重载通常用于实现那些至少有一个操作数不是用户定义类型的运算符。
+
+假设现在有以下定义：
+
+```cpp
+Time Time::operator+(int minutes) const {
+    Time sum;
+    sum.minutes = minutes + t.minutes;
+    sum.hours = hours + t.hours + sum.minutes / 60;
+    sum.minutes %= 60;  // 修复：分钟数应在0到59之间
+    return sum;
+}
+```
+
+此时，并不是将两个Time类型相加，而是将一个Time类型和一个int类型相加。
+
+如果通过以下方法使用该运算符重载，则可以正常识别：
+
+```cpp
+Time temp,day;
+temp  = day + 10;
+```
+
+它会被转换为：
+
+```cpp
+temp = day.operator+(10)；
+```
+
+但如果使用这种方式，则无法正常识别：
+
+```cpp
+Time temp,day;
+temp  = 10 +day;
+```
+
+
+
+所以可以使用非成员函数的运算符重载（由于不是成员函数，则在定义时可以不需要Time::）：
+
+```cpp
+Time operator+(int minutes,Time & time_min) const {
+    Time sum;
+   	/* ... */
+    return sum;
+}
+```
+
+如果在非成员函数的运算符重载中访问了类的私有部分，则必须将该函数设定为友元函数，如果没有访问公有部分，则可以不设置为友元函数。
+
+将该函数作为友元也是一个好主意。最重要的是，它将该作为正式类接口的组成部分。其次，如果以后发现需要函数直接访问私有数据，则只要修改函数定义即可，而不必修改类原型。
+
+
+
+ ## 重载 << 运算符
+
+假设 trip 是一个 Time 对象。为显示 Time 的值，前面使用的是 Show()。然而，如果可以像下面这样探作将更好：
+
+```cpp
+cout <<trip;
+```
+
+<< 是可以重载的运算符之一，所以可以通过运算符重载来实现上面的功能。
+
+
+
+如果使用一个 Time 成员函数来重载 << ，Time 对象将是第一个操作数，就像使用成员函数重载*运算符那样。
+
+这意味着必须这样使用：
+
+```cpp
+trip << cout;
+```
+
+这样会令人迷惑。
+
+
+
+通过使用友元函数，可以像下面这样重载运算符：
+
+```cpp
+ostream& operator<<(ostream &os, const Time &t) {
+    os << t.hours << " hours, " << t.minutes << " minutes";
+    return os;
+}
+```
+
+在上面的运算符重载函数中，只需要设置为Time类的友元函数，因为它使用了Time类中的两个私有成员变量（hours和minutes，假设它们是），而不需要设置为ostream的友元函数，因为在运算符重载函数中没有使用ostream类的私有变量，而是使用了整个对象。
+
+为什么要将返回值类型设置为`ostream&`呢？
+
+在理解 `cout` 操作之前，我们先看下面的语句：
+
+```cpp
+int x = 5;
+int y = 8;
+cout << x << y;
+```
+
+`iostream` 要求`<<` 运算符要求左边是一个 `ostream` 对象，因为 `cout` 是 `ostream` 对象，所以表达式 `cout << x` 满足这种要求。
+
+因为表达式 `cout << x` 位于 `<< y` 的左侧，所该表达式（`cout << x`）执行完毕后必须是一个 `ostream` 类型的对象，因此，`ostream` 类将 `operator<<()` 函数实现为返回一个指向 `ostream` 对象的引用。
+
+
+
+这样可以使用下面的语句：
+
+```cpp
+cout << "Trip time:" << trip << "(Tuesday)\n" ;
+```
+
+最后它们被转换为：
+
+```cpp
+((cout.operator<<("Trip time:")).operator<<(trip)).operator<<("(Tuesday)\n");
+```
+
+
+
+## 成员函数和友元函数如何选择
+
+以下是两者的主要区别：
+
+- 当重载为**成员函数**时，会隐含一个this指针；
+- 当重载为**友元函数**时，不存在隐含的this指针，需要在参数列表中显示地添加操作数。
+
+建议：
+
+- 单目运算符中`=、()、[]、->`只能作为成员函数
+- 单目运算符中运算符`+=、-=、/=、*=、&=、!=、~=、%=、<<=、>>=`建议重载为成员函数。
+- 其他运算符，建议重载为友元函数。
+
+
 
