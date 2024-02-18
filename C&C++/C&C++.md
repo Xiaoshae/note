@@ -1144,3 +1144,231 @@ cout << "Trip time:" << trip << "(Tuesday)\n" ;
 
 
 
+## 转换函数（to类）
+
+只接受一个参数的构造函数可以作为转换函数。
+
+例如，如果有一个类Stonewt，并且它有一个接受double类型参数的构造函数：
+
+```cpp
+Stonewt(double lbs);
+```
+
+用于将 double 类型的值转换为 Stonewt 类型：
+
+```cpp
+Stonewt myCat;
+myCat = 19.6;
+```
+
+C++新增了关键字 explicit,用于关闭这种自动特性：
+
+```cpp
+explicit Stonewt(double lbs);
+```
+
+现在只能通过强制类型转换将double类型的值转换为Stonewt类型的对象：
+
+```cpp
+// 创建一个 Stonewt 对象
+Stonewt myCat;
+
+// 下面的代码将会报错，因为我们已经禁止了隐式转换
+// myCat = 19.6;
+// Stonewt myCat = 19.6;
+
+// 显式强制类型转换，这是允许的
+myCat = Stonewt(19.6);
+
+// 旧式的显式类型转换，这也是允许的
+myCat = (Stonewt)19.6;
+```
+
+
+
+如果在声明中使用了关键字explicit，则Stonewt(double)将只用于显式强制类型转换，否则还可以用于下面的隐式转换：
+
+- 将 Stonewt对象初始化为 double 值时。
+- 将 double 值赋给 Stonewt 对象时。
+- 将 double 值传递给接受 Stonewt参数的函数时。
+- 返回值被声明为 Stonewt的函数试图返回 double 值时。在上述任意一种情况下，使用可转换为double类型的内置类型时。
+
+
+
+仅当转换不存在二义性时，才会进行这种二步转换。
+
+如果这个类还定义了构造函数 Stonewt(long)，则编译器将拒绝这些语句，可能指出：int可被转换为long或 double，因此调用存在二义性。
+
+
+
+以下情况也可以出现二义性：
+
+```cpp
+Time(int hour = 0, int minutes = 0);
+
+Time(int hour_new);
+```
+
+
+
+如果给任意一个加上explicit关键字，就没有二义性了：
+
+```cpp
+explicit Time(int hour = 0, int minutes = 0);
+
+Time(int hour_new);
+```
+
+
+
+
+
+## 转换函数
+
+将用户自定义的类型，要转换为typeName 类型，需要使用这种形式的转换函数:
+
+```cpp
+operator typeName();
+```
+
+请注意以下几点：
+
+- 转换函数必须是类方法（成员函数）；
+- 转换函数不能指定返回类型；
+- 转换函数不能有参数。
+
+例如，转换为 double 类型的函数的原型如下:
+
+```cpp
+operator double();
+```
+
+
+
+二义性
+
+假设定义了从Stonewt到double或int的类型转换：
+
+```cpp
+operator double(void);
+operator int(void);
+```
+
+
+
+将Stonewt赋值long，int 和 double 值都可以被赋给 long 变量，存在二义性，编译器会报错：
+
+```cpp
+Stonewt temp;
+long number = temp; // 非法的
+long number = int(temp);		//合法
+long number = long(temp);		//合法
+```
+
+
+
+假设现在没有为Stonewt重载<<运算符，需要转换为基类才能使用ostream进行输出：
+
+cout既可以输出int，又可以输出double，也会出现二义性。
+
+```cpp
+Stonewt temp;
+cout << temp << endl;				// 非法的
+cout << int(temp) << endl;			//合法
+cout << double(temp) << endl;		//合法
+```
+
+
+
+在下面的一个例子中，Stonewt会被转换为int，然后用于数组下标的索引：
+
+```cpp
+Stonewt temp;
+int array[5];
+cout << array[temp] << endl;
+```
+
+
+
+在 C++98 中，关键字 explicit 不能用于转换函数，但 C++11 消除了这种限制。有了声明后，需要强制转换时将调用这些运算符：
+
+```cpp
+Stonewt temp;
+int number = temp;			// 非法
+int number = int(temp);		// 合法
+```
+
+
+
+## 转换函数和友元函数
+
+假设定义了Stonewt的加法重载函数，double转换到Stonewt以及Stonewt转换到double的函数。
+
+```cpp
+//以下两个加法重载只能存在一个
+Stonewt operator+(const Stonewt & st) const {}
+friend Stonewt operator+(const Stonewt & st1,const Stonewt & st2) const {}
+
+// double 转换到 Stonewt
+Stonewt(double floating);
+
+// Stonewt 转换到 double
+operator double(void) const;
+```
+
+
+
+如果使用了类成员运算符重载（非友元函数的运算符重载） 和 仅double转换到Stonewt的转换，以下是允许的：
+
+```cpp
+Stonewt tempSt1,SumSt;
+double tempD;
+SumSt = tempSt1 + tempD;
+```
+
+
+
+它会被转换为（虽然需要提供Stonewt类型的参数，但是有double到Stonewt的自动类型转换）：
+
+```cpp
+SumSt = tempSt1.operator+(tempD);
+```
+
+
+
+但如果将tempSt1和tempD的位置互换，则不行：
+
+```cpp
+SumSt = tempD + tempSt1;			// 非法
+SumSt = Stonewt(tempD) + tempSt1;	// 合法
+```
+
+因为编译器不会将tempSt1（double）类型转换为Stonewt，在调用tempSt1的成员运算符重载函数，当然可以使用强制类型转换，显示的将double转换为Stonewt则可以。
+
+但如果使用友元函数，则支持上面的操作，因为友元函数是先判断是否存在可以调用的函数，判断时发现tempD(double)可以自动转换为Stonewt。
+
+
+
+当**double 转换到 Stonewt** 和 **Stonewt 转换到 double**同时存在，则会出现下面的问题：
+
+```cpp
+Stonewt tempSt1,SumSt;
+double tempD;
+SumSt = tempSt1 + tempD;
+```
+
+在第三条语法中，具有二义性，即：
+
+将tempSt1转换为double与tempD进行编译器内置的double + double的操作。
+
+将tempD转换为Stonewt，进行用户重载的Stonewt + Stonewt的操作。
+
+以上两种都是可以的，但两者同时存在，所以编译器不会允许编译通过。
+
+
+
+一种解决方法是，将**Stonewt 转换到 double**声明为explicit 关键字，然后在使用的时候进行强制类型转换。
+
+
+
+如果只有在赋值的时候，才会使用到将**Stonewt 转换到 double**，则可以重载`赋值(=)`运算符。
