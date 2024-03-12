@@ -1375,10 +1375,191 @@ SumSt = tempSt1 + tempD;
 
 
 
+## 赋值构造和重载赋值运算符函数
+
+不同之处：
+
+- 赋值构造函数的用于，构造一个新的对象，然后将一个已存在的对象，赋值给这个新构造的对象。
+- 重载赋值运算符用户，将一个已存在的对象，赋值给另一个已存在的对象。
 
 
-## 赋值构造函数
+
+相同之处：
+
+- 两个函数都必须是成员函数，而不能是友元函数
 
 
 
-## 重载赋值运算符
+### 赋值构造函数
+
+赋值构造函数用于将一个对象复制到新创建的对象中。
+
+按递参数传递，而不是常规的赋值过程中。类的复制构造函数原型通常如下
+
+```
+Class_name(const Class_name & [标识符]);
+```
+
+
+
+新建一个对象并将其初始化为同类现有对象时，复制构造函数都将被调用。
+
+这在很多情况下都可能发生，最常见的情况是将新对象显式地初始化为现有的对象。
+
+例如，假设 motto是一个 StringBad 对象，则下面4种声明都将调用复制构造函数：
+
+- StringBad ditto(motto);
+- StringBad metoo = motto;
+- StringBad also = StringBad(motto);
+- String Bad * pStringBad = new StringBad(motto);
+
+
+
+### 重载赋值运算符
+
+将一个已存在的对象，赋值给另一个已存在的对象。
+
+```
+class_name & operator=(const class_name& [标识符])
+```
+
+
+
+
+
+
+
+# 类继承
+
+可使用名为“继承”的机制从现有类派生新类。 用于派生的类称为特定派生类的“基类”。 使用以下语法声明派生类：
+
+```c++
+class Derived : [virtual] [access-specifier] Base
+{
+   // member list
+};
+class Derived : [virtual] [access-specifier] Base1,
+   [virtual] [access-specifier] Base2, . . .
+{
+   // member list
+};
+```
+
+在类的标记（名称）后面，显示了一个后跟基本规范列表的冒号。
+
+冒号后面是访问修饰符，它是关键字 **`public`**、**`protected`** 或 **`private`** 之一，默认为**`private`**。用于控制派生类对于基类的权限。
+
+可指定多个基类，并用逗号分隔。 如果指定了单个基类，则继承模型为**单一继承**。 如果指定了多个基类，则继承模型称为**多重继承**。
+
+
+
+派生类不能直接访问基类的私有成员，而必须使用基类的公有方法来访问私有的基类成员。
+
+
+
+
+
+## 派生类构造函数
+
+派生类不仅要对新的成员进行初始化，还需要对基类成员进行初始化。初始化派生类的成员必须手动进行，而初始化基类成员，可以调用基类的构造函数（或赋值构造函数）：
+
+```cpp
+class user {
+
+public:
+
+	user(const string& newName = "", const unsigned int& newAge = 0) {
+
+		user& object = *this;
+
+		object.Name = newName;
+		object.Age = newAge;
+
+	}
+	user(const char* newName, const unsigned int& newAge = 0) : user((string)(newName), newAge) { ; }
+
+
+	user(const user& source);
+
+
+
+
+private:
+
+	string Name;
+	int Age;
+
+public:
+
+};
+
+//1. 将基类 user 派生一个 group 类型
+class group : public user{
+
+public:
+	
+	group(const string& newGroupName = "", const string& newName = "", const unsigned int& newAge = 0)
+		: group(newGroupName, user(newName, newAge)) { ; }
+
+
+	group(const char* newGroupName, const string& newName = "", const unsigned int& newAge = 0)
+		: group((string)(newGroupName), user(newName,newAge)) { ; }
+	
+	//2. 派生类 group 构造函数，支持一个 user 基类的引用变量，调用 user 基类的赋值构造函数进行初始化
+	group(const string& newGroupName, const user& newUser) : user(newUser){
+
+		group& object = *this;
+
+		object.groupName = newGroupName;
+
+	}
+
+private:
+	
+	string groupName;
+	
+
+public:
+
+};
+```
+
+
+
+## 基类和派生类的关系
+
+基类的引用和指向基类的指针，可以去引用或指向一个派生类对象，例如：
+
+```C++
+group tmpGroup;
+
+user * tmpbase = & tmpGroup;
+user & base = tmpGroup;
+```
+
+但这只是单项的，派生类的指针或引用，不能指向或引用一个基类对象。
+
+
+
+由此可见，可以将一个派生类对象赋值给一个基类的对象，例如：
+
+将派生类group赋值给基类user;
+
+在基类user没有定义赋值构造函数的时候，默认存在一个user(const user & [标识符]);的赋值构造函数。
+
+const user& 是可以引用一个 group 对象的。
+
+
+
+is-a(is-a-kind-of)：描述某种事物是另一种事物的一种类型或种类
+
+has-a：某种事物拥有或包含另一种事物
+
+is-like-a：如果A “is-like-a” B，那么可以理解为A像B，但并不完全是B。
+
+is-implemented-as-a：如果A “is-implemented-as-a” B，那么可以理解为A是通过B来实现的
+
+user-a：如果类A “uses-a” 类B，那么可以理解为类A使用了类B。
+
+
+
