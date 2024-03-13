@@ -1715,9 +1715,95 @@ cout << p_base.getName() << endl; // Derived::getName() , 根据引用的对象�
 
 
 
+## 虚函数重定义
+
+如果一个虚函数在基类和派生类中的函数特征（即函数参数列表）不同，那么可以说在派生类中对这个虚函数进行了重定义。
+
+如果在派生类中对基类的虚函数进行了重定义，那么编译器会自动隐藏基类中的虚函数，此时只能调用派生类中的虚函数，无法调用基类中的虚函数。
 
 
 
+假设创建了如下所示的代码：
+
+```cpp
+class Dwelling {
+public:
+    virtual void showperks(int a) const;
+};
+
+class Hovel : public Dwelling {
+public:
+    virtual void showperks() const;
+};
+
+```
 
 
 
+```cpp
+Hovel test;
+test.showperks(1);	// 错误
+test.showperks();	// 正确
+```
+
+
+
+如果重新定义继承的方法，应确保与原来的原型完全相同。
+
+如果返回类型是基类引用或指针，则可以修改为指向派生类的引用或指针（这种例外是新出现的），称为返回类型协变（covariance of return type）。
+
+注意下面代码中 build 虚函数的返回值：
+
+```cpp
+class Dwelling
+{
+public :
+    
+    virtual Dwelling &build(int n);
+};
+
+class Hovel: public Dwelling
+{
+public :
+    
+    virtual Hovel &build(int n); 
+};
+
+```
+
+
+
+如果基类声明被重载了，则应在派生类中重新定义所有的基类版本。
+
+如果只重新定义一个版本，则另外两个版本将被隐藏，派生类对象将无法使用它们。
+
+```cpp
+class Dwelling
+{
+public :
+    // three overloaded showperks()
+    virtual void showperks(int a) const;
+    virtual void showperks(double x) const;
+    virtual void showperks() const;
+};
+
+class Hovel: public Dwelling
+{
+public :
+    // three redefined showperks()
+    virtual void showperks(int a) const;
+    virtual void showperks(double x) const;
+    virtual void showperks() const;
+};
+```
+
+
+
+注意，如果不需要修改，则新定义可只调用基类版本：
+
+```cpp
+void Hovel::showperks() const
+{
+    Dwelling::showperks();
+}
+```
