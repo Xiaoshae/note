@@ -1563,3 +1563,161 @@ user-a：如果类A “uses-a” 类B，那么可以理解为类A使用了类B�
 
 
 
+## 虚函数
+
+假设现在存在一个base基类，然后通过base基类派生出一个Derived派生类，然后这两个内中都存在一个同名的方法（函数）。
+
+如果是是通过对象来进行访问，那么base对象调用base类中的方法，Derived对象调用Derived类中的方法。
+
+```C++
+#include <iostream>
+#include <string>
+
+using std::cout;
+using std::endl;
+using std::string;
+
+
+class Base {
+
+public:
+	Base(const string& newBaseName = "");
+
+	Base(const char* newBaseName) : Base((string)(newBaseName));
+
+private:
+	string BaseName;
+
+public:
+	void setName(const string& newBaseName);
+	string getName(void) const;
+	
+};
+
+
+class Derived : public Base {
+
+public:
+	Derived(const string& newDerivedName = "",const string & newBaseName = "") 
+		: Base(newBaseName);
+		
+	Derived(const char* newDerivedName, const string newBaseName = "") 
+		: Derived((string)(newDerivedName), newBaseName);
+
+private:
+	string DerivedName;
+
+public:
+	void setName(const string& newDerivedName);
+	string getName(void) const;
+
+};
+
+```
+
+```c++
+Base a = "BaseName";
+cout << a.getName() << endl; // Base::getName()
+Derived b = "DerivedName";
+cout << b.getName() << endl; // Derived::getName()
+```
+
+
+
+如果一个函数只在派生类中存在，那么你不能通过基类的引用或指针来调用它。
+
+```C++
+#include <iostream>
+#include <string>
+
+using std::cout;
+using std::endl;
+using std::string;
+
+
+class Base {
+
+public:
+	// 假设基类中没有 getName函数
+	// string getName(void) const;
+	
+};
+
+
+class Derived : public Base {、
+
+public:
+    // getName函数仅在派生类中存在
+	string getName(void) const;
+
+};
+
+```
+
+```C++
+Base a = "BaseName";
+Derived b = "DerivedName";
+
+Derived & P_Derived = b;
+cout << p_base.getName() << endl; // Base::getName() 
+
+Base & p_Base = a;
+cout << p_base.getName() << endl; // 非法语句，Base中没有getName函数，无法调用Derived类中的getName函数
+```
+
+
+
+如果一个基类的函数被声明为`virtual`，那么在所有从这个基类派生出来的类中，（与）这个函数（同名）都会自动成为虚函数。
+
+对以上代码的修改，只需要将Base类中部分修改为：
+
+```cpp
+class Base {
+...
+
+public:
+	virtual void setName(const string& newBaseName);
+	virtual string getName(void) const;
+
+...
+}
+```
+
+
+
+如果一个函数在基类和派生类中存在，但**未被**声明为虚函数，则通过指针或引用的类型来确定调用哪一个函数。
+
+```c++
+Base a = "BaseName";
+Derived b = "DerivedName";
+
+Base & p_Base = a;
+cout << p_base.getName() << endl; // Base::getName()
+
+Base & P_Derived = b;
+cout << p_base.getName() << endl; // Base::getName() , 即使它指向的是一个Derived对象
+```
+
+
+
+如果一个函数在基类和派生类中存在，但**且被**声明为虚函数，则调用引用或指针所指向的对象类型的函数版本
+
+```cpp
+Base a = "BaseName";
+Derived b = "DerivedName";
+
+Base & p_Base = a;
+cout << p_base.getName() << endl; // Base::getName()
+
+Base & P_Derived = b;
+cout << p_base.getName() << endl; // Derived::getName() , 根据引用的对象来调用函数，而不是引用的类型
+```
+
+
+
+
+
+
+
+
+
