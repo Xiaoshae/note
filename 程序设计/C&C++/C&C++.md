@@ -1877,3 +1877,103 @@ public:
 };
 ```
 
+
+
+## 继承和动态内存分配
+
+当基类和派生类都采用动态内存分配时，派生类的析构函数、复制构造函数、赋值运算符都必须使用相应的基类方法来处理基类元素。
+
+对于析构函数，这是自动完成的。
+
+```cpp
+baseDMA::~baseDMA() // takes care of baseDMA stuff
+{
+    delete []label;
+}
+
+hasDMA::~hasDMA() // takes care of hasDMA stuff
+{
+    delete []style;
+}
+
+```
+
+对于构造函数，这是通过在初始化成员列表中，调用基类的复制构造函数来完成的；如果不这样做，将自动调用基类的默认构造函数。
+
+```cpp
+baseDMA::baseDMA(const baseDMA &rs)
+{
+    label = new char[std::strlen(rs.label) + 1];
+    std::strcpy(label, rs.label);
+    rating = rs.rating;
+}
+
+hasDMA::hasDMA(const hasDMA &hs) : baseDMA(hs)
+{
+    style = new char[std::strlen(hs.style) + 1];
+    std::strcpy(style, hs.style);
+}
+
+```
+
+对于赋值运算符，这是通过使用作用域解析运算符显式地调用基类的赋值运算符来完成的。
+
+```cpp
+baseDMA & baseDMA::operator=(const baseDMA & rs)
+{
+    if (this == &rs)
+        return *this;
+    delete []label;
+    label = new char[std::strlen(rs.label) + 1];
+    std::strcpy(label, rs.label);
+    rating = rs.rating;
+    return *this;
+}
+
+hasDMA & hasDMA::operator=(const hasDMA &hs)
+{
+    if(this == &hs)
+        return *this;
+    baseDMA::operator=(hs); // copy base portion
+    delete []style; // prepare for new style
+    style = new char[std::strlen(hs.style) + 1];
+    std::strcpy(style, hs.style);
+    return *this;
+}
+
+```
+
+
+
+## 派生类访问基类友元函数
+
+派生类的友元函数可以直接访问派生类的私有成员，所以可以直接进行cout输出，但是无法直接访问基类的私有成员，只能通过访问基类的友元函数。
+
+派生类如何使用基类的友元，因为友元不是成员函数，所以不能使用作用域解析运算符来指出要使用哪个函数，可以使用强制类型转换。
+
+```cpp
+//基类的友元函数
+std::ostream &operator<<(std::ostream &os, const baseDMA & rs)
+{
+    os << "Label: " << rs.label << std::endl;
+    os << "Rating: " << rs.rating << std::endl;
+    return os;
+}
+
+```
+
+```cpp
+//派生类的友元函数
+std::ostream & operator<<(std::ostream & os, const hasDMA &rs)
+{
+    os << (const baseDMA &)hs;
+    // 上面的代码将会被转换为：
+    // operator(os,(const baseDMA&)hs);
+	// 也可以直接使用 这种方法 暂未验证
+    
+    os << "Style: " << hs.style << std::endl;
+    return os;
+}
+
+```
+
