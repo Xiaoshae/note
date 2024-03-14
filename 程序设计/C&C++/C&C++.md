@@ -14,7 +14,7 @@
 
 2. 你可以使用数组表示法来访问存储在`string`对象中的字符。
 
-    char c = str[0];`。
+    `char c = str[0];`。
 
 3. `string`对象可以声明为简单变量，而不是数组。
 
@@ -1807,3 +1807,73 @@ void Hovel::showperks() const
     Dwelling::showperks();
 }
 ```
+
+
+
+
+
+## 访问控制protected
+
+protected于private类似，private只能被当前类的成员函数所访问，而protected类型可以被当前类以及派生类的成员所访问。
+
+对于类的外部，protected具有相同的特性。
+
+对于类数据成员，最好采用私有访问控制，不要使用保护访问控制，同时通过基类方法使派生类能够访问基类数据。
+
+对于类成员函数，保护访问控制很有用，它让派生类能够访问公众不能使用的内部函数。
+
+
+
+## 纯虚函数
+
+在C++中，**抽象基类**和**纯虚函数**是面向对象编程的重要概念。
+
+**抽象基类**（Abstract Base Class，ABC）是一种只能用作基类的类，不能实例化。这种类的主要目的是为派生类提供一个公共的接口。抽象基类至少包含一个纯虚函数。
+
+```cpp
+class AbstractClass {
+public:
+    // 纯虚函数
+    virtual void pureVirtualFunction() = 0;
+};
+```
+
+
+
+**纯虚函数**（Pure Virtual Function）是在基类中声明的虚函数，它在基类中没有定义，但要求任何派生类必须定义。纯虚函数是通过在声明中赋值0来指定的。
+
+```cpp
+virtual void pureVirtualFunction() = 0;
+```
+
+可以选择在基类中为纯虚函数提供定义：
+
+```cpp
+class AbstractClass {
+public:
+    // 纯虚函数
+    virtual void pureVirtualFunction() = 0;
+};
+
+void AbstractClass::pureVirtualFunction(){
+
+	// ... 代码定义 ... 
+
+}
+    
+```
+
+
+
+如果一个类包含一个或多个纯虚函数，那么这个类就是抽象基类。派生类必须实现所有的纯虚函数，否则它也将成为抽象基类。
+
+```cpp
+class DerivedClass : public AbstractClass {
+public:
+    // 必须实现的纯虚函数
+    void pureVirtualFunction() override {
+        // 具体实现
+    }
+};
+```
+
