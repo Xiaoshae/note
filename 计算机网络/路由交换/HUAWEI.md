@@ -2,8 +2,6 @@
 
 
 
-
-
 ## 视图
 
 - 用户视图
@@ -20,7 +18,7 @@
 
     在系统视图下，用户可以配置系统参数以及通过该视图进入其他的功能配置视图。
 
-    进入视图：在用户视图下，输入命令[**system-view**](https://support.huawei.com/hedex/api/pages/EDOC1100318314/AZM08011/03/resources/cmdqueryname=system-view)后回车，进入系统视图。
+    进入视图：在用户视图下，输入命令system-view后回车，进入系统视图。
 
     ```
     <HUAWEI> system-view
