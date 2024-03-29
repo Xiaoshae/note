@@ -387,3 +387,546 @@ Trio<char, char *, char *> t3; // 使用 Trio<T1, T1*, T1*> 特化
 
 
 
+## 7. 成员模板
+
+```cpp
+#include <iostream>
+using std::cout;
+using std::endl;
+
+template <typename T>
+class beta {
+private:
+    
+    template <typename V> // nested template class member class hold
+    class hold {
+    private:
+        V val;
+    public:
+        hold(V v = 0): val(v) {}
+        void show() const { cout << val << endl; }
+        V Value() const { return val; }
+    };
+    
+    hold<T> q; // template object
+    hold<int> n; // template object
+    
+public:
+    beta(T t, int i): q(t), n(i) {}
+    
+    template<typename U> // template method
+    U blab(U u, T t) { return (n.Value() + q.Value()) * u / t; }
+
+};
+
+int main(void){
+    
+    beta<double> guy(3.5, 3);
+
+    cout << guy.blab(10, 2.3) << endl;		// cout1
+    
+    cout << guy.blab(10.0, 2.3) << endl;	// cout2
+    
+    return 0;
+}
+```
+
+`hold`模板是在`beta`类的私有部分声明的，因此只能在`beta`类中访问它。
+
+`beta`类使用`hold`模板声明了两个数据成员：`hold<T> q`和`hold<int> n`。
+
+
+
+在`main()`函数中，下述声明使得`T`表示的是`double`，因此`q`的类型为`hold<double>`：
+
+```cpp
+beta<double> guy(3.5, 3);
+```
+
+
+
+`blab()`方法的`U`类型由该方法被调用时的参数值显式确定，`T`类型由对象的实例化类型确定。
+
+这个例子中，`guy`的声明将`T`的类型设置为`double`。
+
+
+
+cout1 中调用的第一个参数将`U`的类型设置为`int`（参数10对应的类型）：
+
+```cpp
+cout << guy.blab(10, 2.3) << endl;		// cout1
+```
+
+虽然混合类型引起的自动类型转换，导致`blab()`中的计算以`double`类型进行，但返回值的类型为`U`（即`int`），因此它被截断为28。
+
+
+
+cout1 中调用的第一个参数将`U`的类型设置为`double`（参数10.0对应的类型）：
+
+```cpp
+cout << guy.blab(10.0, 2.3) << endl;	// cout2
+```
+
+这使得返回类型为`double`，因此输出为28.2608。
+
+
+
+可以在`beta`模板中声明`hold`类和`blab`方法，并在`beta`模板的外面定义它们：
+
+```cpp
+// member definition
+template <typename T>
+template <typename U>
+U beta<T>::blab(U u, T t) { return (n.Value() + q.Value()) * u / t; }
+```
+
+上述定义将`T`、`V`和`U`用作模板参数。因为模板是嵌套的，因此必须使用下面的语法：
+
+```cpp
+template <typename T>
+template <typename V>
+```
+
+而不能使用下面的语法：
+
+```cpp
+template<typename T, typename V>
+```
+
+定义还必须指出`hold`和`blab`是`beta<T>`类的成员，这是通过使用作用域解析运算符来完成的。
+
+
+
+## 8. 将模板用作参数
+
+```cpp
+#include <iostream>
+
+using std::cout;
+using std::endl;
+
+template<class T>
+class value {
+	
+	T number;
+
+public:
+
+	value(int number = 0) : number(number) {
+		;
+	}
+
+	void show(void) {
+		cout << number << endl;
+		return;
+	}
+	
+	T& valueGet(void) {
+		return number;
+	}
+};
+
+template<template<class T> class Thing>
+class Crab {
+
+private:
+
+	Thing<int> v1;
+	Thing<double> v2;
+
+public:
+
+	Crab(int v1 = 0, int v2 = 0) : v1(v1),v2(v2) {
+		;
+	}
+
+	void set(int v1, int v2) {
+	
+		Crab<Thing>& object = *this;
+		
+		object.v1.valueGet() = v1;
+		object.v2.valueGet() = v2;
+
+		return;
+	}
+	
+	void show(void) {
+			
+		Crab<Thing>& object = *this;
+		
+		object.v1.show();
+		object.v2.show();
+
+		return;
+	}
+};
+
+
+
+int main(void) {
+
+	Crab<value> x(1, 3.0);
+
+	x.show();
+
+	x.set(5, 10.0);
+
+	x.show();
+
+	return 0;
+}
+```
+
+模板可以包含类型参数(如typenameT)和非类型参数(如int n)。
+
+模板还可以包含本身就是模板的参数，这种参数是模板新增的特性，用于实现 STL。
+
+```cpp
+template <template <typename T>class Thing>
+class Crab
+```
+
+
+
+模板参数是 `template <typename T> class Thing`，其中 `template <typename T> class` 是类型，`Thing` 是参数。这意味着什么呢？假设有下面的声明：
+
+```cpp
+Crab<King> legs;
+```
+
+
+
+为使上述声明被接受，模板参数 `King` 必须是一个模板类，其声明与模板参数 `Thing` 的声明匹配：
+
+```cpp
+template <typename T>
+class King {
+    // ...
+};
+```
+
+
+
+`Crab`的声明声明了两个对象：`Thing<int> vl;` 和 `Thing<double> v2;`。
+
+前面的 `Crab<value> x(1, 3.0)` 声明将用 `value<int>` 替换 `Thing<int>`，用 `value<double>` 替换 `Thing<double>`。
+
+`Thing<int>`将被实例化为` value<int>`，而 `Thing<double>`将被实例化为 `value<double>`。
+
+模板参数 Thing 将被替换为声明 Crab 对象时被用作模板参数的模板类型。
+
+
+
+Crab 类的声明对 Thing 代表的模板类做了另外2个假设，即这个类包含一个show( )方法，包含一个 valueGet()方法，且这些方法有特定的接口。Crab类可以使用任何与Thing类型声明匹配,并包含方法 show()和 valueGet()的模板类。
+
+
+
+可以混合使用模板参数和常规参数，例如，`Crab`类的声明可以像下面这样打头:
+
+```cpp
+template <template <typename T> class Thing, typename U, typename V>
+class Crab {
+    // ...
+    private :
+    Thing<U> s1;
+    Thing<V> s2;
+};
+```
+
+
+
+现在，成员`s1`和`s2`可存储的数据类型为泛型，而不是用硬编码指定的类型。这要求将程序中 `nebula`的声明修改成下面这样:
+
+```cpp
+Crab<value, int, double> nebula; // T=value，U=int，V=double
+```
+
+模板参数 `T`表示一种模板类型，而类型参数`U`和`V`表示非模板类型。
+
+
+
+## 9.模板类和友元
+
+模板类声明也可以有友元。模板的友元分3类:
+
+- 非模板友元
+- 约束(bound)模板友元，即友元的类型取决于类被实例化时的类型
+- 非约束(unbound)模板友元，即友元的所有具体化都是类的每一个具体化的友元。
+
+
+
+### 9.1 模板类的非模板友元函数
+
+在模板类中将一个常规函数声明为友元:
+
+```cpp
+template <class T>
+class HasFriend {
+public :
+    friend void counts(void); // friend to all HasFriend instantiations
+};
+```
+
+上述声明使 `counts()` 函数成为模板所有实例化的友元。例如，它将是类 `HasFriend<int>` 和 `HasFriend<string>` 的友元。`counts()` 函数不是通过对象调用的(它是友元，不是成员函数)，也没有对象参数。
+
+它如何访问 `HasFriend` 对象，它可以访问全局对象；可以使用全局指针访问非全局对象；可以创建自己的对象；可以访问独立于对象的模板类的静态数据成员。
+
+
+
+不能通过以下方法为友元函数提供模板类参数：
+
+```cpp
+friend void report(HasFriend &);
+```
+
+
+
+原因是不存在 `HasFriend` 这样的对象。
+
+只有特定的具体化，如 `HasFriend<short>`。
+
+要提供模板类参数，必须指明具体化。例如，可以这样做:
+
+```cpp
+template <class T>
+class HasFriend {
+    friend void report(HasFriend<T>&); // bound template friend
+};
+```
+
+
+
+为理解上述代码的功能，想想声明一个特定类型的对象时，将生成的具体化:`HasFriend<int> hf;` 
+
+编译器将用 `int` 替代模板参数 `T`，因此友元声明的格式如下:
+
+```cpp
+class HasFriend<int> {
+    friend void report(HasFriend<int>&); // bound template friend
+};
+```
+
+
+
+带 `HasFriend<int>` 参数的 `report()` 将成为 `HasFriend<int>` 类的友元。
+
+带 `HasFriend<double>` 参数的 `report()` 将是  `HasFriend<double>` 类的友元。
+
+这些都是`report()` 的一个重载版本，`report()` 本身并不是模板函数，而只是使用一个模板作参数。
+
+这意味着必须为要使用的友元定义显式具体化：
+
+```cpp
+void report(HasFriend<short>&) {...};
+void report(HasFriend<int>&) {...};
+```
+
+
+
+### 9.2 模板类的约束模板友元函数
+
+
+
+在类定义的前面声明每个模板函数。
+
+```cpp
+template <typename T> void counts();
+template <typename T> void report(T &);
+```
+
+
+
+在函数中再次将模板声明为友元。这些语句根据类模板参数的类型声明具体化：
+
+```cpp
+template <typename TT>
+class HasFriendT {
+    // ...
+    friend void counts<TT>();
+    friend void report<>(HasFriendT<TT> &);
+};
+```
+
+
+
+声明中的 `<>` 指出这是模板具体化。
+
+对于 `report()`，`<>` 可以为空，因为可以从函数参数推断出如下模板类型参数: `HasFriendT<TT>`。
+
+然而，也可以使用：
+
+```cpp
+report<HasFriendT<TT> >(HasFriendT<TT>&)
+```
+
+
+
+假设声明了这样一个对象:
+
+```cpp
+HasFriendT<int> squack;
+```
+
+
+
+编译器将用 `int` 替换 `TT`，并生成下面的类定义:
+
+```cpp
+class HasFriendT<int> {
+    friend void counts<int>();
+    friend void report<>(HasFriendT<int>&);
+};
+```
+
+基于 `TT` 的具体化将变为 `int`，基于 `HasFriend<TT>` 的具体化将变为 `HasFriend<int>`。
+
+模板具体化 `counts<int>()` 和 `report<HasFriendT<int> >()` 被声明为 `HasFriendT<int>` 类的友元。
+
+
+
+`count()` 函数调用没有可被编译器用来推断出所需具体化的函数参数，所以这些调用使用 `count<int>()` 和 `count<double>()` 指明具体化。
+
+`report()` 调用，编译器可以从参数类型推断出要使用的具体化。使用 `<>` 格式也能获得同样的效果：
+
+```cpp
+HasFriendT<int> oj1;
+HasFriendT<double> oj2;
+
+counts<int>();
+counts<double>();
+
+report(oj1);		// oj1的类型为HasFriendT<int>
+report<int>(oj1);	// 所以调用report<int>()
+
+report(oj1);		// oj2的类型为HasFriendT<double>
+report<double>(oj1);// 所以调用report<double>()
+```
+
+
+
+### 9.3 模板类的非约束模板友元函数
+
+程序清单14.24 `manyfrnd.cpp`
+
+```cpp
+//manyfrnd.cpp-unbound template friend to a template class
+#include <iostream>
+using std::cout;
+using std::endl;
+
+template <typename T>
+class ManyFriend {
+private :
+    T item;
+public:
+    ManyFriend(const T& i): item(i) {}
+    template <typename C,typename D> friend void show2(C &,D &);
+};
+
+template <typename C,typename D>
+void show2(C &c,D & d) {
+    cout << c.item << "," << d.item << endl;
+}
+
+int main() {
+    ManyFriend<int> hfi1(10);
+    ManyFriend<int> hfi2(20);
+    ManyFriend<double> hfdb(10.5);
+    cout << "hfi1,hfi2:";
+    show2(hfi1,hfi2);
+    cout << "hfdb,hfi2:";
+    show2(hfdb,hfi2);
+    return 0;
+}
+```
+
+
+
+约束模板友元函数中`int` 类具体化获得 `int` 函数具体化，依此类推。
+
+通过在类内部声明模板，可以创建非约束友元函数，即每个函数具体化都是每个类具体化的友元。
+
+
+
+对于非约束友元，友元模板类型参数与模板类类型参数是不同的：
+
+```cpp
+template <typename T>
+class ManyFriend {
+    // ...
+    template <typename C,typename D> friend void show2(C &, D &);
+};
+```
+
+
+
+程序清单 14.24 是一个使用非约束友元的例子。其中，函数调用 `show2(hf1，hf2)` 与下面的具体化匹配:
+
+因为它是所有 `ManyFriend` 具体化的友元，所以能够访问所有具体化的 `item` 成员，但它只访问了 `ManyFriend<int>` 对象。
+
+```cpp
+void show2<ManyFriend<int>&,ManyFriend<int>&>
+(ManyFriend<int>&c,ManyFriend<int>&d);
+```
+
+
+
+`show2(hfd,hf2)` 与下面具体化匹配：
+
+它也是所有 `ManyFriend` 具体化的友元，并访问了 `ManyFriend<int>` 对象的 `item` 成员和 `ManyFriend<double>` 对象的 `item` 成员。
+
+```cpp
+void show2<ManyFriend<double>&，ManyFriend<int>&>
+(ManyFriend<double>&c，ManyFriend<int>&d);
+```
+
+
+
+## 10. 模板别名
+
+如果能为类型指定别名，将很方便，在模板设计中尤其如此。可使用typedef为模板具体化指定别名:
+
+```cpp
+// 定义三个typedef别名
+typedef std::array<double,12> arrd;
+typedef std::array<int,12> arri;
+typedef std::array<std::string,12> arrst;
+arrd gallons; // gallons是类型std::array<double,12>
+arri days; // days是类型std::array<int,12>
+arrst months; // months是类型std::array<std::string,12>
+```
+
+
+
+但如果您经常编写类似于上述typedef的代码，您可能怀疑要么自己忘记了可简化这项任务的 C++功能，要么 C++没有提供这样的功能。C++11新增了一项功能–使用模板提供一系列别名，如下所示:
+
+```cpp
+template<typename T>
+using arrtype = std::array<T,12>; // 模板用于创建多个别名
+```
+
+
+
+这将 `arrtype` 定义为一个模板别名，可使用它来指定类型，如下所示:
+
+```cpp
+// gallons是类型std::array<double,12>
+arrtype<double> gallons;
+// days是类型std::array<int,12>
+arrtype<int> days;
+// months是类型std::array<std::string,12>
+arrtype<std::string> months;
+```
+
+
+
+总之，`arrtype<T>`表示类型 `std::array<T,12>`。C++11 允许将语法 `using =` 用于非模板。用于非模板时，这种语法与常规typedef等价:
+
+```cpp
+typedef const char *pcl; // typedef语法
+using pc2 = const char *; // using = 语法
+// typedef语法
+typedef const int *(*pal)[10];
+using pa2 = const int*(*)[10]; // using = 语法
+```
+
