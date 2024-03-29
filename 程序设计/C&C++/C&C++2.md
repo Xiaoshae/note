@@ -364,7 +364,9 @@ Feeb<char *> fb2; // 使用 Feeb<T*> 特化，T 是 char
 
 
 
-如果没有进行部分具体化，则第二个声明将使用通用模板，将 `T` 转换为 `char *` 类型。如果进行了部分具体化，则第二个声明将使用具体化模板，将 `T` 转换为 `char`。部分具体化特性使得能够设置各种限制。例如，可以这样做：
+如果没有进行部分具体化，则第二个声明将使用通用模板，将 `T` 转换为 `char *` 类型。如果进行了部分具体化，则第二个声明将使用具体化模板，将 `T` 转换为 `char`。
+
+部分具体化特性使得能够设置各种限制。例如，可以这样做：
 
 ```cpp
 // 通用模板
@@ -929,4 +931,225 @@ using pc2 = const char *; // using = 语法
 typedef const int *(*pal)[10];
 using pa2 = const int*(*)[10]; // using = 语法
 ```
+
+
+
+# 友元
+
+## 1. 友元类
+
+如果想让一个类中的所有成员函数，访问另一个类中的私有部分，则需要将这个类声明为另一个类的友元类。
+
+```cpp
+class B;
+
+class A {
+
+	friend class B;
+
+private:
+
+	int x;
+
+};
+
+class B {
+
+public:
+
+	int Sum2(A & temp) {
+		return temp.x * temp.x;
+	}
+
+	int Sum3(A& temp) {
+		return temp.x * temp.x * temp.x;
+	}
+
+};
+```
+
+将类型B声明为类型A的友元函数，类型B的每一个成员函数都可以访问类型A的私有成员。
+
+
+
+## 2. 友元成员函数
+
+如果只想要一个类的部分成员函数声明，访问另一个类的私有部分，则只需要将一个类的部分成员声明为友元函数。
+
+在A类中将B类中的Sum2成员函数访问私有部分数据，B类中的其他成员函数无法访问。
+
+```cpp
+class A;
+
+class B {
+public:
+	int Sum2(A& temp);
+};
+
+
+class A {
+	friend int B::Sum2(A&temp);
+private:
+	int x;
+};
+
+int B::Sum2(A& temp) {
+	return temp.x * temp.x;
+}
+```
+
+
+
+![image-20240329164943559](images/C&C++2.assets/image-20240329164943559.png)
+
+
+
+## 3. 共同的友元
+
+函数需要访问两个类的私有数据。
+
+它可以是一个类的成员，同时是另一个类的友元。
+
+但将函数作为两个类的友元更合理。
+
+
+
+例如，假定有一个Probe 类和一个 Analyzer 类，前者表示某种可编程的测量设备，后
+
+```cpp
+// 前置声明
+class Analyzer;
+
+class Probe {
+public:
+    // 将 Analyzer 的 sync 函数声明为 Probe 的友元函数
+    friend void sync(Analyzer &a, const Probe &p);
+    // 将 Probe 的 sync 函数声明为 Analyzer 的友元函数
+    friend void sync(Probe &p, const Analyzer &a);
+};
+
+class Analyzer {
+public:
+    // 将 Analyzer 的 sync 函数声明为 Probe 的友元函数
+    friend void sync(Analyzer &a, const Probe &p);
+    // 将 Probe 的 sync 函数声明为 Analyzer 的友元函数
+    friend void sync(Probe &p, const Analyzer &a);
+};
+
+// 定义友元函数
+inline void sync(Analyzer &a, const Probe &p) {
+    // 同步 a 和 p
+}
+
+inline void sync(Probe &p, const Analyzer &a) {
+    // 同步 p 和 a
+}
+
+```
+
+
+
+## 4. 其他友元关系
+
+新的方案将受益于相互的友情，一些Remote 方法能够像前面那样影响 Tv 对象，而一些 Tv 方法也能影响 Remote对象。
+
+这可以通过让类彼此成为对方的友元来实现，即除了Remote是Tv的友元外，TV 还是 Remote 的友元。
+
+需要记住的一点是，对于使用 Remote 对象的 Tv方法，其原型可在 Remote 类声明之前声明，但必须在 Remote 类声明之后定义：
+
+```cpp
+// 前置声明
+class Remote;
+
+class Tv {
+public:
+    friend class Remote;  // 将 Remote 声明为 Tv 的友元类
+    void buzz(Remote &r);
+};
+
+class Remote {
+public:
+    friend class Tv;  // 将 Tv 声明为 Remote 的友元类
+    void volup(Tv &t){
+    	t.volup();
+	}
+};
+
+// 在 Remote 类定义之后，定义 Tv::buzz() 函数
+inline void Tv::buzz(Remote & r) {
+    // ...
+}
+
+```
+
+`Tv`类和`Remote`类互相将对方声明为友元类，这样，每个类的成员函数就可以访问另一个类的私有和保护成员。
+
+
+
+## 5. 友元与前置声明
+
+### 5.1 友元类
+
+如果将另一个类声明为这个类的友元类，则必须在这个类之前声明另一个类，此时可以使用前置声明。
+
+```cpp
+class B;
+
+class A {
+
+	friend class B;
+
+};
+
+class B {
+	...
+};
+```
+
+
+
+## 5.2 友元成员函数
+
+对于声明友元成员函数的要求则比较苛刻
+
+
+
+如果你想将一个类的成员函数声明为另一个类的友元函数，那么你需要遵循以下步骤：
+
+1. 在这个类中，对这个友元成员函数进行声明（如果需要）。
+2. 只声明这个成员函数，而不定义它。
+3. 在另一个类将这个成员函数声明为友元函数之后，再在定义这个成员函数。
+
+```cpp
+class A;
+
+class B {
+public:
+	int Sum2(A& temp);				// 1.对这个友元成员函数进行声明，只声明这个成员函数，而不定义它
+};
+
+class A {
+	friend int B::Sum2(A&temp);		// 2.在另一个类将这个成员函数声明为友元函数
+private:
+	int x;
+};
+
+int B::Sum2(A& temp) {				// 3.在另一个类将这个成员函数声明为友元函数之后，再在定义这个成员函数。
+	return temp.x * temp.x;
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
