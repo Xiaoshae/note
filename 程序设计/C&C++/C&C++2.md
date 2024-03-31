@@ -1857,3 +1857,190 @@ if (typeid(Magnificent) == typeid(*pg)) {
 ```
 
 如果`pg`指向的对象的类型不是`Magnificent`，那么`typeid(Magnificent) == typeid(*pg)`的结果为`false`，就不会打印出任何东西。
+
+
+
+# 类型转换运算符
+
+在 C++的创始人 Bjarne Stroustrup 看来，C 语言中的类型转换运算符太过松散。
+
+对于这种松散情况，Stroustrup采取的措施是，更严格地限制允许的类型转换，并添加了4个类型转换运算符，使转换过程更规范：
+
+- `dynamic_cast`
+- `const_cast`
+- `static_cast`
+- `reinterpret_cast`
+
+
+
+## 1. dynamic_cast
+
+通常，该运算符的语法如下：
+
+该运算符的用途是，使得能够在类层次结构中进行向上转换（由于is-a关系，这样的类型转换是安全的），而不允许其他转换。
+
+```cpp
+dynamic_cast<type-name>(expression)
+```
+
+
+
+假设`High`和`Low`是两个类，而`ph`和`pl`的类型分别为`High*`和`Low*`。
+
+当`Low`是`High`的可访问基类（直接或间接）时，下面的语句才将一个`Low*`指针赋给`pl`：
+
+```cpp
+pl = dynamic_cast<Low*>(ph);
+```
+
+否则，该语句将空指针赋给`pl`。
+
+
+
+## 2. const_cast
+
+`const_cast`运算符用于改变值为`const`或`volatile`，其语法与`dynamic_cast`运算符相同：
+
+```cpp
+const_cast<type-name>(expression)
+```
+
+
+
+`const`：用于声明常量，表示的值就不能被修改。
+
+`volatile`：用于告诉编译器，变量的值可能会在程序运行期间被外部因素改变，
+
+---
+
+有时候可能需要这样一个值，它在大多数时候是常量，而有时又是可以修改的。
+
+可以将指向这个值的指针声明为`const`，并在需要修改它的时候，使用`const_cast`。
+
+
+
+```cpp
+int x = 10;
+const int * cp = &x;
+
+int * p = const_cast<int *>cp;
+*p = 20;
+```
+
+---
+
+`const_cast`不是万能的。它可以修改指向一个值的指针，但修改`const`值的结果是不确定的。
+
+```cpp
+// constcast.cpp -- using const cast<>
+#include <iostream>
+using std::cout;
+using std::endl;
+
+void change(const int* pt, int n);
+
+int main() {
+    int pop1 = 38383;
+    const int pop2 = 2000;
+    cout << "pop1, pop2: " << pop1 << ", " << pop2 << endl;
+    change(&pop1, -103);
+    change(&pop2, -103);
+    cout << "pop1, pop2: " << pop1 << ", " << pop2 << endl;
+    return 0;
+}
+
+void change(const int* pt, int n) {
+    int* pc;
+    pc = const_cast<int*>(pt);
+    *pc += n;
+}
+```
+
+运行结果：
+
+```
+pop1, pop2: 38383, 2000
+pop1, pop2: 38280, 2000
+```
+
+调用`change()`时，修改了`pop1`，但没有修改`pop2`。
+
+在`change()`中，指针被声明为`const int*`，因此不能用来修改指向的`int`。
+
+指针`pc`删除了`const`特征，因此可用来修改指向的值，但仅当指向的值不是`const`时才可行。
+
+因此，`pc`可用于修改`pop1`，但不能用于修改`pop2`。
+
+
+
+## 3. static_cast
+
+`static_cast`运算符的语法与其他类型转换运算符相同：
+
+```cpp
+static_cast<type-name>(expression)
+```
+
+仅当`type_name`可以被隐式转换为`expression`所属的类型，或`expression`可以被隐式转换为`type_name`所属的类型时，上述转换才是合法的。
+
+
+
+假设`High`是`Low`的基类，则从`High`到`Low`的转换、从`Low`到`High`的转换都是合法的。
+
+而`Pond`是一个无关的类，而从`Low`到`Pond`的转换是不允许的：
+
+```cpp
+High bar;
+Low blow;
+...
+High* pb = static_cast<High*>(&blow);  // 允许
+Low* pl = static_cast<Low*>(&bar);     // 允许
+Pond* pmer = static_cast<Pond*>(&blow);  // 不允许
+```
+
+第一种转换是合法的，因为向上转换可以隐式地进行。
+
+第二种转换是从基类指针到派生类指针，在不进行显式类型转换的情况下，将无法进行。但由于无需进行类型转换，便可以进行另一个方向的类型转换，因此使用`static_cast`来进行向下转换是合法的。
+
+
+
+同理，由于无需进行类型转换，枚举值就可以被转换为整型，所以可以用`static_cast`将整型转换为枚举值。
+
+同样，可以使用`static_cast`将`double`转换为`int`、将`float`转换为`long`以及其他各种数值转换。
+
+
+
+## 4. reinterpret_cast
+
+`reinterpret_cast`运算符用于执行天生危险的类型转换。该运算符的语法与另外3个相同：
+
+它不允许删除`const`，但会执行其他令人生厌的操作。有时程序员必须做一些依赖于实现的、令人生厌的操作，使用`reinterpret_cast`运算符可以简化对这种行为的跟踪工作。
+
+```cpp
+reinterpret_cast<type-name>(expression)
+```
+
+
+
+下面是一个使用示例：
+
+```cpp
+struct dat {
+    short a;
+    short b;
+};
+long value = 0x224B118;
+dat *pd = reinterpret_cast<dat*>(&value);  // display first 2 bytes of value
+cout << hex << pd->a;
+```
+
+通常，这样的转换适用于依赖于实现的底层编程技术，是不可移植的。
+
+例如，不同系统在存储多字节整型时，可能以不同的顺序存储其中的字节。
+
+
+
+`reinterpret_cast`运算符并不支持所有的类型转换。
+
+例如，可以将指针类型转换为足以存储指针表示的整型，但不能将指针转换为更小的整型或浮点型。另一个限制是，不能将函数指针转换为数据指针，反之亦然。
+
