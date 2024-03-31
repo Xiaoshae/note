@@ -205,65 +205,6 @@ array<int,10> tc;
 
 
 
-## 析构函数
-
-析构函数用于在对象声明周期到期时自动调用，一般用于释放new分配的内存空间，析构函数一般为空。
-
-
-
-析构函数的名称为`~`加`类名`，例如：类名为`Book`，则析构函数的名称为`~Book`。
-
-析构函数没有返回类型，也不能有参数，这意味着析构函数只有一个，不能进行函数重载。
-
-如果没有手动定义析构函数，则编译器会提供默认的析构函数（不进行任何操作）。
-
-
-
-### 默认的析构函数
-
-```cpp
-class Book {
-
-public:
-	 
-	string name;
-	double value;
-	int number;
-	
-	~Book(void){ }
-};
-```
-
-
-
-### 定义析构函数
-
-只需要定义一个名称为`~`加`类名`的函数就可以了。
-
-```cpp
-class Book {
-
-public:
-	 
-	string * name;
-	double value;
-	int number;
-	
-	Book(void){
-		//构造函数中使用new分配了内存
-		this->name = new string;
-		this->value = 0.0;
-		this->number = 0;
-		
-	}
-	
-	~Book(void){
-		//析构函数中使用delete释放new分配的内存
-		delete this->name;
-	}
-};
-```
-
 
 
 ## 初始化对象
