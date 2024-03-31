@@ -272,68 +272,6 @@ Book chinese = english;
 
 
 
-## const成员函数
-
-如果在定义一个对象时，使用了const限定符，那么不能直接使用类成员函数，因为类成员函数无法确保对象不被修改。
-
-```cpp
-ConstStock land = Stock("Kludgehorn Properties");
-land.show(); //编译器会拒绝这一行
-```
-
-
-
-C++的解决方法是将 const 关键字放在函数的括号后面，告知编译器该函数保证函数不会修改调用对象。
-
-`show()`声明应像这样:
-
-```cpp
-void show() const;
-```
-
-函数定义的开头应像这样:
-
-```cpp
-void stock::show() const{
-	...
-}
-```
-
-
-
-## this指针
-
-this 指针指向用来调用成员函数的对象(this被作为隐藏参数传递给方法)。
-
-在函数的括号后面使用 const 限定符将 this 限定为 const,这样将不能使用 this 来修改对象的值。
-
- this 是对象的地址，`*this`(将解除引用运算符`*`用于指针，将得到指针指向的值)是对象本身。
-
-```cpp
-class Book {
-
-public:
-	 
-	string * name;
-	double value;
-	int number;
-	
-	string Get_name(void) const{
-		
-		// *this对象本身
-		// this 指向对象的指针
-		// *this.name 对象中的name变量
-		// this->name 指针需要通过->来访问，和结构体一样
-		// this->value = 10; 在const函数中被禁止，在非const函数中允许
-		
-        return this->name;
-        
-	}
-};
-```
-
-
-
 ## 对象数组
 
 声明对象数组的方法与声明标准类型数组相同：
