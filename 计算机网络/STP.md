@@ -313,21 +313,23 @@ SW2-SW3及SW2-SW4的链路作为备用链路。
 
 
 
-创建临时端口组，将所有端口都加入
+在sw1创建端口组，将连接sw2，sw3，sw4的端口加入
 
-![image-20240403204253907](images/STP.assets/image-20240403204253907.png)
-
-
-
-将所有端口设置为trunk模式
-
-![image-20240403204335417](images/STP.assets/image-20240403204335417.png)
+![image-20240404092744802](images/STP.assets/image-20240404092744802.png)
 
 
 
-设置所有端口的trunk模式允许所有vlan通过
+将三个端口设置为trunk
 
-![image-20240403204421895](images/STP.assets/image-20240403204421895.png)
+![image-20240404092807388](images/STP.assets/image-20240404092807388.png)
+
+
+
+允许vlan10通过
+
+![image-20240404092830271](images/STP.assets/image-20240404092830271.png)
+
+
 
 
 
@@ -353,21 +355,23 @@ SW2-SW3及SW2-SW4的链路作为备用链路。
 
 
 
-创建临时端口组，将所有端口都加入
+在sw2创建端口组，将连接sw1，sw3，sw4的端口加入
 
-![image-20240403204455226](images/STP.assets/image-20240403204455226.png)
-
-
-
-将所有端口设置为trunk模式
-
-![image-20240403204525971](images/STP.assets/image-20240403204525971.png)
+![image-20240404093104167](images/STP.assets/image-20240404093104167.png)
 
 
 
-将所有端口的trunk模式设置为允许所有vlan通过
+设置这三个端口为trunk
 
-![image-20240403204602435](images/STP.assets/image-20240403204602435.png)
+![image-20240404093130719](images/STP.assets/image-20240404093130719.png)
+
+
+
+设置允许vlan10通过
+
+![image-20240404093153607](images/STP.assets/image-20240404093153607.png)
+
+
 
 
 
@@ -375,7 +379,9 @@ SW2-SW3及SW2-SW4的链路作为备用链路。
 
 设置模式为stp
 
-![image-20240403205137796](images/STP.assets/image-20240403205137796.png)
+
+
+
 
 
 
@@ -391,21 +397,23 @@ SW2-SW3及SW2-SW4的链路作为备用链路。
 
 
 
-除了端口10，其他端口加入端口组
-
-![image-20240403205609702](images/STP.assets/image-20240403205609702.png)
 
 
+在sw3，创建端口组，将连接sw1，sw3的端口加入
 
-设置所有端口为trunk
-
-![image-20240403205638034](images/STP.assets/image-20240403205638034.png)
+![image-20240404093520426](images/STP.assets/image-20240404093520426.png)
 
 
 
-设置trunk允许所有vlan通过
+设置为trunk口
 
-![image-20240403205710172](images/STP.assets/image-20240403205710172.png)
+![image-20240404093546624](images/STP.assets/image-20240404093546624.png)
+
+
+
+允许vlan10通过
+
+![image-20240404093611764](images/STP.assets/image-20240404093611764.png)
 
 
 
@@ -429,19 +437,44 @@ SW2-SW3及SW2-SW4的链路作为备用链路。
 
 
 
-将端口10以外的端口，加入临时端口组
+在sw4创建端口组，将连接sw1，sw2的端口加入
 
-![image-20240403205326236](images/STP.assets/image-20240403205326236.png)
-
-
-
-设置为trunk模式
-
-![image-20240403205354037](images/STP.assets/image-20240403205354037.png)
+![image-20240404093809634](images/STP.assets/image-20240404093809634.png)
 
 
 
-设置trunk允许所有vlan通过
+将端口设置为trunk
 
-![image-20240403205424250](images/STP.assets/image-20240403205424250.png)
+![image-20240404093827847](images/STP.assets/image-20240404093827847.png)
 
+
+
+允许vlan10通过
+
+![image-20240404093849815](images/STP.assets/image-20240404093849815.png)
+
+
+
+## 验证
+
+设置pc1的IP地址和子网掩码
+
+![image-20240404094011857](images/STP.assets/image-20240404094011857.png)
+
+
+
+设置pc2的IP地址和子网掩码
+
+![image-20240404094039357](images/STP.assets/image-20240404094039357.png)
+
+
+
+在pc1 ping pc2
+
+![image-20240404094124024](images/STP.assets/image-20240404094124024.png)
+
+
+
+在 pc2 ping pc1
+
+![image-20240404094151533](images/STP.assets/image-20240404094151533.png)
