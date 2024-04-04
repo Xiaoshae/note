@@ -87,6 +87,8 @@ STP收敛：端口状态从禁用到转发的一个过程，就称之为”STP�
 
 
 
+定时器：
+
 转发延迟时间 (Forward Delay)：默认15s。
 
 BPDU发送间隔（Hello Time）：默认2s。
