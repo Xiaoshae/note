@@ -2,7 +2,7 @@
 
 rstp是在stp的基础上进行改进，兼容stp，在stp的基础上添加了三个快速收敛机制，在特定场景下可以大幅度减少收敛时间。
 
-
+ 
 
 ## 介绍
 
@@ -55,7 +55,7 @@ Max Age：默认20，在RSTP中Max Age的作用与STP中的不一样。
 
 端口进入Learing（学习）状态，开始收发BPDU，选举出：根桥、根端口、指定端口、Alternet端口、Backup端口。
 
-等待一个Forward Delay时间（默认15s），进入Learing（学习）状态。
+等待一个Forward Delay时间（默认15s），进入Forwarding（转发）状态。
 
 
 
