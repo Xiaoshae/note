@@ -22,19 +22,40 @@ apt dist-upgrade
 
 
 
+# 设置时区
 
+```
+sudo timedatectl set-timezone Asia/Shanghai
+```
 
 
 
 # 设置系统语言方法
 
 ```
-dpkg-reconfigure locales
+sudo apt-get update
 
-在出现的列表中，使用空格键选中zh_CN.UTF-8 UTF-8123。
-选中后，按下回车键。
-在下一个界面中，选择zh_CN.UTF-8作为默认语言。
-最后，重启系统以使更改生效
+sudo apt-get install language-pack-zh-hans
+
+sudo update-locale LANG=zh_CN.UTF-8
+```
+
+**注意：需要注销用户重新登录，或者重新启动**
+
+
+
+使用xshell等远程连接方式，可以正常显示中文，但是在VMware中会显示菱形乱码，猜测是没有对应的字体给显示。
+
+
+
+# hub 2-2
+
+![image-20240510195114769](images/Ubuntu.assets/image-20240510195114769.png)
+
+缺少蓝牙驱动，安装蓝牙后就好了：
+
+```
+apt install -y bluetooth
 ```
 
 
@@ -177,7 +198,7 @@ SSH会进行反向DNS查找以解析连接主机，这可能导致延迟。
 
 
 
-### 3.GSSAPI认证
+### 3.GSSAPI认证	
 
 GSSAPI认证需要对服务器端的IP地址进行反解析，如果服务器的IP地址没有配置PTR记录，那么就会在这里卡住。
 
@@ -203,7 +224,7 @@ dpkg -i ***.deb
 
 
 
-# Chrome安装后无法启动
+# Chrome 	安装后无法启动
 
 ## 1. 查看浏览器位置
 

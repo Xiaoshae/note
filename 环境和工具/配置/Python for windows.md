@@ -40,3 +40,27 @@ python39._pth
 Lib\site-packages
 ```
 
+
+
+# 虚拟环境
+
+```
+pip2 install virtualenv
+
+python2 -m virtualenv venv2
+
+source venv/bin/activate
+```
+
+
+
+python3自带开发环境
+
+```
+apt install python3.10-venv
+
+python3 -m venv venv
+
+source venv/bin/activate
+```
+
