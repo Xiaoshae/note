@@ -501,3 +501,15 @@ sudo apt install ttf-wqy-microhei ttf-wqy-zenhei xfonts-intl-chinese
 
 ```
 
+
+
+# ubuntu 22.04 安装 ntfs exFat
+
+```
+sudo apt install ntfs-3g
+```
+
+```
+sudo apt install exfat-fuse exfatprogs
+```
+
