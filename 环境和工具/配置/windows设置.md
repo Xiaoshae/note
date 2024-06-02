@@ -50,3 +50,35 @@ dism /Online /Set-ReservedStorageState /State:Disabled
 dism /Online /Set-ReservedStorageState /State:Enabled
 ```
 
+
+
+# 隐藏“此电脑”窗口中的“桌面”选项
+
+Windows10 中打开此电脑后，顶级菜单不是“此电脑”而是“桌面”，修改回来。
+
+![img](./images/windows%E8%AE%BE%E7%BD%AE.assets/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20240602200116.png)
+
+
+
+在 Windows 10 中，如果您想要隐藏“此电脑”窗口中的“桌面”选项，请按照以下步骤操作：
+
+1. 打开任意一个文件资源管理器窗口（快捷键：Win+E）。
+2. 在顶部的菜单栏中找到并点击“查看”选项。
+3. 在下拉菜单中选择“选项”，这将打开一个新的对话框。
+
+![image-20240602200557837](./images/windows%E8%AE%BE%E7%BD%AE.assets/image-20240602200557837.png)
+
+4. 在新打开的“文件夹选项”或“文件资源管理器选项”对话框中，切换到“查看”标签页。
+
+5. 在高级设置部分向下滚动，直到您看到“导航窗格”下的选项。
+6. 找到名为“显示‘库’和每个驱动器的根目录”的复选框，并取消勾选它。
+
+7. 点击底部的“应用”按钮，然后点击“确定”。
+
+![image-20240602200718417](./images/windows%E8%AE%BE%E7%BD%AE.assets/image-20240602200718417.png)
+
+
+
+最后的效果：
+![image-20240602200748683](./images/windows%E8%AE%BE%E7%BD%AE.assets/image-20240602200748683.png)
+
