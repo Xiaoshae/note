@@ -142,6 +142,6 @@ user_config_dir=/etc/vsftpd/user
 #注：不是其中时报错，也不是systemctl status vsftpd查看到的错误，而是centos下使用ftp登陆后显示的错误
 
 allow_writeable_chroot=YES 
-#最新版的vsftpd为了安全必须用户主目录（也就是/home/vsftpd/ftp1）没有写权限，才能登录，或者使用allow_writeable_chroot=YES
+#最新版的vsftpd为了安全，如果你将用户限定在只能访问家目录，那么必须设置用户主目录（也就是/home/vsftpd/ftp1）没有写权限，才能登录，或者使用allow_writeable_chroot=YES
 ```
 
