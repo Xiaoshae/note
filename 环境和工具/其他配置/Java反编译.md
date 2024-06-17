@@ -4,6 +4,14 @@
 jar cvf0m DocToolkit.jar .\DocToolkit\META-INF\MANIFEST.MF -C .\DocToolkit\ .
 ```
 
+linux
+
+```
+jar cvf0m DocToolkit.jar ./DocToolkit/META-INF/MANIFEST.MF -C DocToolkit .
+```
+
+
+
 
 
 将class转换为java
@@ -16,8 +24,18 @@ java -jar .\fernflower.jar E:\temp\DocToolkit\BOOT-INF\classes\com\example\docto
 
 将修改后的java转回class
 
+windows java 11
+
 ```
 javac -d E:\temp\DocToolkit\BOOT-INF\classes -cp "E:\temp\DocToolkit\BOOT-INF\lib\*;E:\temp\DocToolkit\BOOT-INF\classes" E:\temp\DocToolkit\BOOT-INF\classes\com\example\doctoolkit\shiro\ShiroConfig.java
+```
+
+linux java 8
+
+```
+javac -d /opt/DocToolkit/BOOT-INF/classes/ \
+  -cp ":/opt/DocToolkit/BOOT-INF/classes/:/opt/DocToolkit/BOOT-INF/classes/com/example/doctoolkit/shiro/:$(find /opt/DocToolkit/BOOT-INF/lib/ -name "*.jar" | paste -sd ":" -)" \
+  /opt/DocToolkit/BOOT-INF/classes/com/example/doctoolkit/shiro/ShiroConfig.java
 ```
 
 
