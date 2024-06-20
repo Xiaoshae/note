@@ -69,6 +69,57 @@ sudo apt-get install lib32readline-dev
 
 
 
+## Autotools工具
+
+```
+sudo apt-get install autoconf automake libtool m4 autoconf-archive
+```
+
+
+
+```
+autoreconf -i
+```
+
+
+
+```
+root@Xiaoshae:/opt# sudo apt install build-essential lib32readline-dev autoconf automake libtool m4 autoconf-archive
+正在读取软件包列表... 完成
+正在分析软件包的依赖关系树... 完成
+正在读取状态信息... 完成
+将会同时安装下列软件：
+  autotools-dev bzip2 cpp cpp-11 dpkg-dev fakeroot g++ g++-11 gcc gcc-11 gcc-11-base gcc-11-multilib gcc-multilib
+  lib32asan6 lib32atomic1 lib32gcc-11-dev lib32gcc-s1 lib32gomp1 lib32itm1 lib32ncurses-dev lib32ncurses6
+  lib32ncursesw6 lib32quadmath0 lib32readline8 lib32stdc++6 lib32tinfo6 lib32ubsan1 libalgorithm-diff-perl
+  libalgorithm-diff-xs-perl libalgorithm-merge-perl libasan6 libatomic1 libc-dev-bin libc-devtools libc6-dev
+  libc6-dev-i386 libc6-dev-x32 libc6-i386 libc6-x32 libcc1-0 libcrypt-dev libdpkg-perl libfakeroot
+  libfile-fcntllock-perl libgcc-11-dev libgd3 libisl23 libitm1 liblsan0 libltdl-dev libmpc3 libncurses-dev libnsl-dev
+  libquadmath0 libstdc++-11-dev libtirpc-dev libtsan0 libubsan1 libx32asan6 libx32atomic1 libx32gcc-11-dev
+  libx32gcc-s1 libx32gomp1 libx32itm1 libx32quadmath0 libx32stdc++6 libx32ubsan1 linux-libc-dev lto-disabled-list make
+  manpages-dev rpcsvc-proto
+建议安装：
+  gnu-standards autoconf-doc gettext bzip2-doc cpp-doc gcc-11-locales debian-keyring g++-multilib g++-11-multilib
+  gcc-11-doc flex bison gdb gcc-doc ncurses-doc glibc-doc bzr libgd-tools libtool-doc libstdc++-11-doc gfortran
+  | fortran95-compiler gcj-jdk m4-doc make-doc
+下列【新】软件包将被安装：
+  autoconf autoconf-archive automake autotools-dev build-essential bzip2 cpp cpp-11 dpkg-dev fakeroot g++ g++-11 gcc
+  gcc-11 gcc-11-base gcc-11-multilib gcc-multilib lib32asan6 lib32atomic1 lib32gcc-11-dev lib32gcc-s1 lib32gomp1
+  lib32itm1 lib32ncurses-dev lib32ncurses6 lib32ncursesw6 lib32quadmath0 lib32readline-dev lib32readline8 lib32stdc++6
+  lib32tinfo6 lib32ubsan1 libalgorithm-diff-perl libalgorithm-diff-xs-perl libalgorithm-merge-perl libasan6 libatomic1
+  libc-dev-bin libc-devtools libc6-dev libc6-dev-i386 libc6-dev-x32 libc6-i386 libc6-x32 libcc1-0 libcrypt-dev
+  libdpkg-perl libfakeroot libfile-fcntllock-perl libgcc-11-dev libgd3 libisl23 libitm1 liblsan0 libltdl-dev libmpc3
+  libncurses-dev libnsl-dev libquadmath0 libstdc++-11-dev libtirpc-dev libtool libtsan0 libubsan1 libx32asan6
+  libx32atomic1 libx32gcc-11-dev libx32gcc-s1 libx32gomp1 libx32itm1 libx32quadmath0 libx32stdc++6 libx32ubsan1
+  linux-libc-dev lto-disabled-list m4 make manpages-dev rpcsvc-proto
+升级了 0 个软件包，新安装了 79 个软件包，要卸载 0 个软件包，有 0 个软件包未被升级。
+需要下载 87.2 MB 的归档。
+解压缩后会消耗 303 MB 的额外空间。
+您希望继续执行吗？ [Y/n]
+```
+
+
+
 ## 编译安装
 
 ```
