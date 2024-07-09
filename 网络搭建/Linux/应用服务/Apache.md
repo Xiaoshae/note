@@ -276,3 +276,51 @@ Apache + PHP的运行环境我们就已经搭建起来了，那么问题来了�
 在Apache的配置文件最底下一行我们也可以看到IncludeOptional conf.d/*.conf，这句配置就是加载/conf.d下面的所有.conf文件，换句话说，以后我们如果不想直接修改Apache的配置文件httpd.conf的话，我们就可以单独写一个.conf文件放到这个目录下。
 
 PHP的安装目录在/etc/php.d，配置文件是/etc/php.ini
+
+
+
+
+
+## 配置个人用户的主页
+
+设置`/etc/httpd/conf.d/userdir.conf`中的UserDir enable。第二个为个人主页空间的默认文件为 public_html。直接取消注释就可以了。
+
+![image-20240705074951044](./images/Apache.assets/image-20240705074951044.png)
+
+```
+UserDir enable
+UserDir public_html
+```
+
+
+
+创建两个新用户
+
+```
+useradd join
+useradd kali
+```
+
+
+
+创建默认主页文件，设置文件内容，并设置权限。
+
+```
+[root@linux1 public_html]# echo "join user index" > index.html
+[root@linux1 public_html]# echo "kali user index" > index.html 
+
+# 为了避免权限问题，直接设置最高权限
+[root@linux1 home]# chmod 777 * -R 
+
+[root@linux1 home]# tree
+.
+├── join
+│   └── public_html
+│       └── index.html
+└── kali
+    └── public_html
+        └── index.html
+```
+
+
+
