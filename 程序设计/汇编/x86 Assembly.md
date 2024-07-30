@@ -264,7 +264,7 @@ ng: 表示 not greater
 
 **section** 指令用于定义一个段（section），它是程序的一部分，具有特定的属性和用途。常见的段有 `.text`、`.data` 和 `.bss`。	
 
-#### 用途：
+**用途**：
 
 - **代码段**：`.text` 段包含可执行代码。
 - **数据段**：`.data` 段包含初始化的数据。
@@ -327,4 +327,283 @@ str     DB 'hello',0    ; 声明 6 个字节，从地址 str 开始，初始化�
 
 
 ## .bss
+
+
+
+
+
+# 内存寻址 (Addressing Memory)
+
+有多个指令可以用于内存寻址
+
+`MOV` 将在内存和寄存器之 间移动数据，接受两个参数：第一个参数是目的地，第二个是源。
+
+
+
+合法寻址的例子：
+
+```
+mov eax, [ebx]        ; 将位于 EBX 所指向的内存地址中的 4 个字节的数据移动到 EAX 中
+mov [var], ebx        ; 将 EBX 中的内容移动到由一个 32 位常量 var 指定的内存地址处
+mov eax, [esi-4]      ; 将位于 ESI 地址减去 4 的内存位置中的 4 个字节的数据移动到 EAX 中
+mov [esi+eax], cl     ; 将 CL 中的内容移动到 ESI 加上 EAX 值所指向的内存地址的一个字节处
+mov edx, [esi+4*ebx]  ; 将位于 ESI 加上 EBX 的值乘以 4 所指向的内存地址中的 4 个字节的数据移动到 EDX 中
+```
+
+
+
+**非法寻址**的例子：
+
+```
+mov eax, [ebx-ecx]      ; 只能对寄存器的值相加，不能相减
+mov [eax+esi+edi], ebx  ; 最多只能有 2 个寄存器参与地址计算
+```
+
+
+
+修饰**指针**类型：
+
+- `BYTE PTR` -   1  Byte
+- `WORD PTR` -   2  Bytes
+- `DWORD PTR` - 4  Bytes
+
+```
+mov BYTE PTR [ebx], 2   ; 将数字 2 移动到 EBX 所指向的单个字节中。
+mov WORD PTR [ebx], 2   ; 将数字 2 的 16 位整数表示形式移动到从 EBX 所指向的地址开始的两个字节中。
+mov DWORD PTR [ebx], 2  ; 将数字 2 的 32 位整数表示形式移动到从 EBX 所指向的地址开始的四个字节中。
+```
+
+
+
+## 堆栈
+
+在 x86 架构中，堆栈是一个遵循“后进先出”(LIFO) 原则的内存区域。堆栈通常用于保存函数调用时的返回地址、局部变量以及传递给函数的参数等。
+
+
+
+`ESP`（Extended Stack Pointer）寄存器是用于管理程序堆栈的寄存器。
+
+- `ESP` 寄存器总是指向堆栈的顶部，也就是最近压入堆栈的值所在的地址。
+- 堆栈通常是从高地址向低地址增长的（向下生长）
+- 每次压入堆栈时，`ESP` 的值都会减少；而每次从堆栈中弹出值时，`ESP` 的值都会增加。
+
+
+
+在 x86 汇编语言中，`PUSH POP` 指令默认操作的是 32 位的数据，即一个完整的双字（DWORD）。
+
+- **PUSH** 指令：当使用 `PUSH` 指令时，`ESP` 的值减少 4（对于 32 位架构），然后将值写入堆栈。
+
+  ```
+  push eax
+  ```
+
+- **POP** 指令：当使用 `POP` 指令时，从堆栈中弹出一个值，并将 `ESP` 的值增加 4。
+
+  ```
+  pop ebx
+  ```
+
+- **ADD/SUB** 指令：可以直接修改 `ESP` 的值。
+
+  ```
+  add esp,4
+  sub esp,4
+  ```
+
+  
+
+下面是一个使用 `ESP` 寄存器的简单示例：
+
+```
+section .data
+value dd 0x12345678  ; 定义一个 32 位的常量
+
+section .text
+global _start
+
+_start:
+    mov eax, value    ; 将 value 的地址加载到 EAX
+    push eax          ; 将 EAX 中的值（value 的地址）压入堆栈
+    push dword 1234   ; 将 1234 压入堆栈
+
+    ; 此时 ESP 指向堆栈中的下一个空闲位置
+    ; 堆栈中的内容依次为 1234 和 value 的地址
+
+    pop ebx           ; 从堆栈中弹出一个值到 EBX，此时应该是 1234
+    pop ecx           ; 从堆栈中弹出一个值到 ECX，此时应该是 value 的地址
+
+    ; ESP 指向堆栈顶部，堆栈为空
+
+    ; 结束程序
+    mov eax, 1        ; sys_exit 系统调用编号
+    xor ebx, ebx      ; 退出状态码为 0
+    int 0x80          ; 调用内核
+```
+
+
+
+# 调用约定
+
+ **调用约定是一个协议，规定了如何调用以及如何从过程返回**。
+
+给定一组 calling convention rules，程序员无需查看子函数的定义就可以确定如何将参数传给它，高级语言编译器只要遵循这些 rules，就可以使得汇编函数和高级语言函数互相调用。
+
+Calling conventions 有多种。我们这里介绍使用最广泛的一种：**C 语言调用约定**（C Language Calling Convention）。遵循这个约定，可以使汇编代码安全地被 C/C++ 调用 ，也可以从汇编代码调用 C 函数库。
+
+
+
+C 调用约定:
+
+- 强烈依赖**硬件栈**的支持 (hardwared-supported stack)
+- 基于 `push`, `pop`, `call`, `ret` 指令
+- 子过程**参数通过栈传递**: 寄存器保存在栈上，子过程用到的局部变量也放在栈上
+
+
+
+调用惯例分为两部分。第一部分用于 **调用方**（**caller**），第二部分用于**被调 用方**（**callee**）。
+
+
+
+## 调用方规则 (Caller Rules)
+
+在一个子过程调用之前，调用方应该：
+
+1. **保存应由调用方保存的寄存器**（**caller-saved** registers): `EAX`, `ECX`, `EDX`
+
+   这几个寄存器可能会被被调用方（callee）修改，所以先保存它们，以便调用结束后恢复栈的状态。
+
+2. **将需要传给子过程的参数入栈**（push onto stack)
+
+   参数按**逆序** push 入栈（最后一个参数先入栈）。由于栈是向下生长的，第一个参数会被存储在最低地址（**这个特性使得变长参数列表成为可能**）。
+
+3. **使用 `call` 指令，调用子过程(函数）**
+
+   `call` 先将返回地址 push 到栈上，然后开始执行子过程代码。子过程代码需要遵守的 callee rules。
+
+子过程返回后（`call` 执行结束之后），被调用方会将返回值放到 `EAX` 寄存器，调用方可以从中读取。
+
+```
+;保存 eax ecx edx
+push eax
+push ecx
+push edx
+
+;参数入栈
+push [var] ; 首先推送最后一个参数
+push 216 ; 推送第二个参数
+push eax ; 最后推送第一个参数
+
+; 调用函数（假设使用 C 命名）
+call _myFunc
+```
+
+
+
+子过程返回后，为恢复机器状态，调用方需要做：
+
+1. **从栈上删除传递的参数**
+
+   栈恢复到准备发起调用之前的状态。
+
+2. **恢复由调用方保存的寄存器**（`EAX`, `ECX`, `EDX`）—— 从栈上 pop 出来
+
+   调用方可以认为，除这三个之外，其他寄存器的值没有被修改过。
+
+```
+;删除传递的参数
+add esp,12
+
+;恢复寄存器
+pop edx
+pop ecx
+pop eax
+```
+
+
+
+## 被调用方规则 (Callee Rules)
+
+1. **将寄存器 `EBP` 的值入栈（保存ebp的值），然后 赋值`ESP` 给`EBP`（保存esp的值）**
+
+   ```
+   push ebp
+   mov  ebp, esp
+   ```
+
+2. **在栈上为局部变量分配空间**
+
+   栈自顶向下生长，故随着变量的分配，栈顶指针不断减小。
+
+3. **保存应有被调用方保存（`callee-saved`）的寄存器** —— 将他们压入栈。包括 `EBX`, `EDI`, `ESI`
+
+```
+;保存ebp 和 esp的值
+push ebp
+mov  ebp, esp
+
+;在栈上分配局部变量空间
+sub esp,12
+
+;保存 ebx edi esi 寄存器
+push ebx
+push edi
+push esi
+```
+
+
+
+
+
+以上工作完成，就可以执行子过程的代码了。当子过程返回后，必须做以下工作：
+
+1. **将返回值保存在 `EAX`**
+2. **恢复应由被调用方保存的寄存器**(`EDI`, `ESI`) —— 从栈上 pop 出来
+3. **释放局部变量**
+4. **恢复调用方 base pointer `EBP` —— 从栈上 pop 出来**
+5. **最后，执行 `ret`，返回给调用方 (caller)**
+
+```
+;返回值保存到 eax
+mov eax,[返回值]
+
+;恢复 ebx edi esi寄存器
+push esi
+push edi
+push ebx
+
+;释放局部变量 恢复ebp
+mov esp,ebp
+pop ebp
+
+;返回给调用方
+ret
+```
+
+
+
+## 汇编调用C函数
+
+```
+global main
+
+extern printf
+
+section .data
+    msg db "Testing %i...", 0x0a, 0x00
+
+section .text
+main:
+    push ebp
+    mov ebp, esp
+    
+    push 123
+    push msg
+    call printf
+    
+    mov eax, 0
+    
+    mov esp, ebp
+    pop ebp
+    ret
+```
 
