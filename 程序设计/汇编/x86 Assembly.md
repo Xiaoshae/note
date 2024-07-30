@@ -607,3 +607,58 @@ main:
     ret
 ```
 
+```
+nasm -f elf32 ex10.asm -o  ex10.o
+gcc -m32 ex10.o -o ex10
+```
+
+
+
+## C调用汇编函数
+
+add42.asm
+
+```
+global  add42
+
+section .text
+
+add42:
+    push ebp
+    mov  ebp, esp
+
+    mov  eax, [ebp+8]
+    add  eax, 42
+
+    mov  esp, ebp
+    pop  ebp
+    ret
+```
+
+
+
+main.c
+
+```
+#include <stdio.h>
+
+int add42(int x);
+
+int main(void) {
+
+    int x = 20;
+    x = add42(20);
+    printf("x = %d\n",x);
+
+}
+```
+
+
+
+terminal
+
+```
+nasm -f elf32 add42.asm -o add42.o
+gcc -m32 main.c add42.o -o add42
+```
+
