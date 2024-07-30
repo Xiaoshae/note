@@ -8,15 +8,95 @@ x86 处理器有 8 个 32 bit 寄存器
 
 ![img](./images/x86 Assembly.assets/x86-registers.png)
 
-寄存器名字是早期计算机历史上 流传下来的。例如，EAX 表示 Accumulator，因为它用作算术运算的累加器，ECX 表示 Counter，用来存储循环变量（计数）。
 
-大部分寄存器的名字已经失去了原来的意义，但有两个是例外：栈指针寄存器（Stack Pointer）ESP 和基址寄存器（ Base Pointer）EBP。
 
-对于 `EAX`, `EBX`, `ECX`, `EDX` 四个寄存器，可以再将 32bit 划分成多个子寄存器， 每个子寄存器有专门的名字。
+## ABCD 通用寄存器
+
+`EAX`、`EBX`、`ECX`和`EDX`是通用寄存器（General-Purpose Registers）
+
+- **eax** (Accumulator Register): 这个寄存器经常被用作累加器，还经常用来存放函数的返回值。
+- **ebx** (Base Register): 一些约定中，它是“非保留”的，意味着调用者可以修改它而不必担心破坏调用链。
+- **ecx** (Count Register): 主要用于循环指令（如`loop`）中的计数器。
+- **edx** (Data Register): 通常用于存放第二个操作数，它也可以用于其他类型的数据操作。
+
+
+
+`EAX`, `EBX`, `ECX`, `EDX` 四个寄存器，可以再将 32bit 划分成多个子寄存器， 每个子寄存器有专门的名字。
 
 例如 `EAX` 的高 16bit 叫 `AX`（去掉 E, E 大概表示 **Extended**）,低 8bit 叫 `AL` (**Low**）, 8-16bit 叫 `AH` （**High**）。
 
 在汇编语言中，这些寄存器的名字是**大小写无关**的，既可以用 `EAX`，也可以写 `eax`。
+
+
+
+**注：寄存器名字是早期计算机历史上流传下来的。例如，EAX 表示 Accumulator，因为它用作算术运算的累加器，ECX 表示 Counter，用来存储循环变量（计数）。但是大部分寄存器的名字已经失去了原来的意义。**
+
+
+
+
+
+## ESI EDI 变址寄存器
+
+通常用于字符串操作和数据块的复制等任务中。这些寄存器的主要用途如下：
+
+- **esi** (Extended Source Index): 通常用于指向源数据的起始地址。
+- **edi** (Extended Destination Index): 通常用于指向目标数据的起始地址。
+
+
+
+```
+global _start
+
+section .data
+    src db 'Hello, World!',0x0a, 0
+    dest times 15 db 0
+
+section .text
+
+_start:
+    ; 初始化寄存器
+    mov esi, src      ; 设置源字符串的地址
+    mov edi, dest     ; 设置目标字符串的地址
+    mov ecx, 14       ; 字符串长度（不包括结束符）
+    
+    rep movsb         ; 复制字符串
+    
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, dest
+    mov edx, 14
+    int 0x80
+    
+    mov eax, 1
+    mov ebx, 0
+    int 0x80
+```
+
+
+
+`rep movsb` 是一条x86汇编语言指令，用于重复执行字符串操作。
+
+**指令解释**：
+
+- **rep**: 表示重复执行接下来的字符串操作指令，直到计数器（通常是`ecx`寄存器，在32位模式下；或`rcx`寄存器，在64位模式下）减至0为止。
+- **movsb**: 是一个单字节移动指令，它从源地址（由`esi`寄存器指向）读取一个字节，并将其写入目标地址（由`edi`寄存器指向）。同时，它会自动更新`esi`和`edi`寄存器的值，使其指向下一个字节。
+
+
+
+`rep movsb` 指令本身不会直接控制复制的方向（前向或后向），但它会根据方向标志（Direction Flag, DF）的状态来确定如何更新源和目标指针。
+
+默认情况下，DF 清零（0）时，`movsb` 指令向前移动（递增）源和目标指针；当 DF 设置为 1 时，它向后移动（递减）这些指针。
+
+- `cld`（Clear Direction Flag）指令将 DF 清零，使复制向前进行。
+- `std`（Set Direction Flag）指令将 DF 设置为 1，使复制向后进行。
+
+
+
+## ESP EBP
+
+`esp` 寄存器是堆栈指针（Stack Pointer），它总是指向当前堆栈顶部的位置。
+
+`ebp` 寄存器是基址指针（Base Pointer），它指向当前函数调用帧的底部。
 
 
 
@@ -250,7 +330,7 @@ ng: 表示 not greater
 
 
 
-# 指令
+# NASM
 
 ## global
 
