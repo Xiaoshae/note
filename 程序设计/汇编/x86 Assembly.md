@@ -4,6 +4,8 @@
 
 
 
+# Registers
+
 x86 处理器有 8 个 32 bit 寄存器
 
 ![img](./images/x86 Assembly.assets/x86-registers.png)
