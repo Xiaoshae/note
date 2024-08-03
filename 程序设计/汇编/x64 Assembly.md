@@ -361,6 +361,27 @@ x64 处理器还提供了几组浮点寄存器：
 
 
 
+## 其他
+
+![image-20240801143340414](./images/x64%20Assembly.assets/image-20240801143340414.png)
+
+
+
+# 段
+
+## .data
+
+`.DATA` 声明静态数据区。
+
+数据类型修饰原语：
+
+- `DB`: Byte		        1 Bytes
+- `DW`: Word      	        2 Bytes
+- `DD`: Double Word	4 Bytes
+- `DQ`: Quad Word	   8 Bytes
+
+
+
 # 调用约定
 
 与 x86 不同的是，C/C++ 编译器在 x64 上仅支持一种调用约定。该调用约定利用了 x64 上可用的大量寄存器：
