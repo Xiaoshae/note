@@ -42,6 +42,14 @@ Lib\site-packages
 
 
 
+验证
+
+```
+python.exe -m pip list
+```
+
+
+
 # 虚拟环境
 
 ```

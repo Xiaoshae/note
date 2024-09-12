@@ -43,6 +43,12 @@ npm install -D --save autoprefixer
 npm install -D --save postcss-cli
 ```
 
+从 postcss-cli 8 版本开始，您还必须单独安装 postcss：
+
+```bash
+npm install -D postcss
+```
+
 
 
 启动
