@@ -30,6 +30,27 @@ Vim配置文件分为**系统配置文件**和**用户配置文件**两种：
 
 
 
+**Visutal Studio Code**
+
+1. 安装Vim插件，在Visual Studio Code的扩展管理器中搜索Vim并安装。
+
+![image-20240916104602200](./images/vim.assets/image-20240916104602200.png)
+
+2. 按住`Ctrl+Shift+P`输入`vim.user`，打开用户设置JSON
+
+![image-20240916104644039](./images/vim.assets/image-20240916104644039.png)
+
+3. 开启vimrc配置文件，并指定配置文件的路径
+
+   ```json
+   {
+       "vim.vimrc.enable": true,
+       "vim.vimrc.path": "C:\\Users\\Xiaoshae\\_vimrc"
+   }
+   ```
+
+
+
 # 映射Esc键
 
 
