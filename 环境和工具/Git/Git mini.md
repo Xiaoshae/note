@@ -82,6 +82,7 @@ git commit --amend
 
 ```
 git commit -m "<提交信息>"
+git commit --amend -m "<提交信息>"
 ```
 
 
