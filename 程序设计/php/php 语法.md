@@ -1153,3 +1153,306 @@ echo $b;    // 打印 1
 ?>
 ```
 
+
+
+## 变量
+
+PHP 中的变量用一个美元符号后面跟变量名来表示。变量名是区分大小写的。
+
+一个有效的变量名由字母或者下划线开头，后面跟上任意数量的字母，数字，或者下划线。
+
+ 按照正常的正则表达式，它将被表述为：'`^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$`'。
+
+> **注意**： `$this` 是一个特殊的变量，它不能被赋值。 
+
+
+
+引用赋值，新的变量简单的引用了原始变量，改动新的变量将影响到原始变量。
+
+使用引用赋值，简单地将一个 & 符号加到将要赋值的变量前（源变量）。例如，下列代码片断将输出“My name is Bob”两次：
+
+```php
+<?php
+$foo = 'Bob';              // 将 'Bob' 赋给 $foo
+$bar = &$foo;              // 通过 $bar 引用 $foo
+$bar = "My name is $bar";  // 修改 $bar 变量
+echo $bar;
+echo $foo;                 // $foo 的值也被修改
+?>
+```
+
+只有有名字的变量才可以引用赋值。
+
+```php
+<?php
+$foo = 25;
+$bar = &$foo;      // 合法的赋值
+$bar = &(24 * 7);  // 非法; 引用没有名字的表达式
+
+function test()
+{
+   return 25;
+}
+
+$bar = &test();    // 非法
+?>
+```
+
+
+
+在 PHP 中可以不初始化变量，未初始化的变量具有其类型的默认值：
+
+- **布尔**类型的变量默认值是 **false**；
+- **整形**和**浮点**型变量默认值是**零**；
+- **字符串**型变量（例如用于 echo 中）默认值是**空字符串**；
+- **数组**变量的默认值是**空数组**。
+
+
+
+**示例 #1 未初始化变量的默认值**
+
+```php
+<?php
+// 未设置和未引用（不使用上下文）的变量；输出 NULL
+var_dump($unset_var);
+
+// Boolean 用法；输出 'false' (See ternary operators for more on this syntax)
+echo $unset_bool ? "true\n" : "false\n";
+
+// String 用法；输出 'string(3) "abc"'
+$unset_str .= 'abc';
+var_dump($unset_str);
+
+// Integer 用法；输出 'int(25)'
+$unset_int += 25; // 0 + 25 => 25
+var_dump($unset_int);
+
+// Float 用法；输出 'float(1.25)'
+$unset_float += 1.25;
+var_dump($unset_float);
+
+// Array 用法；输出 array(1) {  [3]=>  string(3) "def" }
+$unset_arr[3] = "def"; // array() + array(3 => "def") => array(3 => "def")
+var_dump($unset_arr);
+
+// Object 用法：创建新 stdClass 对象 (see http://www.php.net/manual/en/reserved.classes.php)
+// Outputs: object(stdClass)#1 (1) {  ["foo"]=>  string(3) "bar" }
+$unset_obj->foo = 'bar';
+var_dump($unset_obj);
+?>
+```
+
+
+
+### 预定义变量
+
+PHP 提供了大量的预定义变量。由于许多变量依赖于运行的服务器的版本和设置，及其它因素，所以并没有详细的说明文档。
+
+一些预定义变量在 PHP 以命令行形式运行时并不生效。
+
+
+
+PHP 提供了一套附加的预定数组，这些数组变量包含了来自 web 服务器（如果可用），运行环境，和用户输入的数据。
+
+这些数组非常特别，它们在全局范围内自动生效，例如，在任何范围内自动生效。
+
+因此通常被称为自动全局变量（autoglobals）或者超全局变量（superglobals）。（PHP 中没有用户自定义超全局变量的机制。）
+
+> **注意**：超级全局变量不能被用作函数或类方法中的可变变量。
+
+
+
+PHP 中的许多预定义变量都是“超全局的”，这意味着它们在一个脚本的全部作用域中都可用。在函数或方法中无需执行 **global $variable;** 就可以访问它们。
+
+这些超全局变量是：
+
+- *`$GLOBALS`*
+- *`$_SERVER`*
+- *`$_GET`*
+- *`$_POST`*
+- *`$_FILES`*
+- *`$_COOKIE`*
+- *`$_SESSION`*
+- *`$_REQUEST`*
+- *`$_ENV`*
+
+
+
+### 变量范围
+
+变量的范围即它定义的上下文背景（也就是它的生效范围）。大部分的 PHP 变量只有一个单独的范围。这个单独的范围跨度同样包含了 **include** 和 **require** 引入的文件。例如：
+
+```php
+<?php
+$a = 1;
+include 'b.inc';
+?>
+```
+
+这里变量 $a 将会在包含文件 b.inc 中生效。
+
+
+
+PHP 的全局变量和 C 语言有一点点不同，PHP 中全局变量在函数中使用时必须声明为 global，在 C 语言中，全局变量在函数中自动生效，除非被局部变量覆盖。
+
+这个脚本会生成未定义变量 **`E_WARNING`**（PHP 8.0.0 之前是 **`E_NOTICE`**）诊断提示。
+
+```php
+<?php
+$a = 1; /* 全局范围 */
+
+function Test()
+{
+    echo $a; /* 引用局部范围变量 */
+}
+
+Test();
+?>
+```
+
+
+
+#### global 关键字
+
+**示例 #1 使用 global**
+
+```php
+<?php
+$a = 1;
+$b = 2;
+
+function Sum()
+{
+    global $a, $b;
+
+    $b = $a + $b;
+}
+
+Sum();
+echo $b;
+?>
+```
+
+以上脚本的输出将是“3”。在函数中声明了全局变量 $a 和 $b 之后，对任一变量的所有引用都会指向其全局版本。对于一个函数能够声明的全局变量的最大个数，PHP 没有限制。
+
+ 
+
+**示例 #2 使用 $GLOBALS 替代 global**
+
+在全局范围内访问变量的第二个办法，是用特殊的 PHP 自定义 $GLOBALS 数组。
+
+```php
+<?php
+$a = 1;
+$b = 2;
+
+function Sum()
+{
+    $GLOBALS['b'] = $GLOBALS['a'] + $GLOBALS['b'];
+}
+
+Sum();
+echo $b;
+?>
+```
+
+
+
+$GLOBALS 是一个关联数组，每一个变量为一个元素，键名对应变量名，值对应变量的内容。$GLOBALS 之所以在全局范围内存在，是因为 $GLOBALS 是一个超全局变量。以下范例显示了超全局变量的用处：
+
+**示例 #3 演示超全局变量和作用域的例子**
+
+```php
+<?php
+function test_superglobal()
+{
+    echo $_POST['name'];
+}
+?>
+```
+
+
+
+#### 使用静态变量
+
+变量范围的另一个重要特性是静态变量（static variable）。静态变量仅在局部函数域中存在，但当程序执行离开此作用域时，其值并不丢失。
+
+**示例 #4 演示需要静态变量的例子**
+
+```php
+<?php
+function Test()
+{
+    $a = 0;
+    echo $a;
+    $a++;
+}
+?>
+```
+
+本函数没什么用处，因为每次调用时都会将 $a 的值设为 `0` 并输出 `0`。将变量加一的 $a++ 没有作用，因为一旦退出本函数则变量 $a 就不存在了。
+
+
+
+**示例 #5 使用静态变量的例子**
+
+现在，变量 $a 仅在第一次调用 test() 函数时被初始化，之后每次调用 test() 函数都会输出 $a 的值并加一。
+
+```php
+<?php
+function test()
+{
+    static $a = 0;
+    echo $a;
+    $a++;
+}
+?>
+```
+
+
+
+
+
+**示例 #6 静态变量与递归函数**
+
+静态变量也提供了一种处理递归函数的方法。递归函数是一种调用自己的函数。写递归函数时要小心，因为可能会无穷递归下去。
+
+必须确保有充分的方法来中止递归。以下这个简单的函数递归计数到 10，使用静态变量 $count 来判断何时停止：
+
+```php
+<?php
+function test()
+{
+    static $count = 0;
+
+    $count++;
+    echo $count;
+    if ($count < 10) {
+        test();
+    }
+    $count--;
+}
+?>
+```
+
+
+
+**示例 #7 声明静态变量**
+
+常量表达式的结果可以赋值给静态变量，但是动态表达式（比如函数调用）会导致解析错误。
+
+```php
+<?php
+function foo(){
+    static $int = 0;          // 正确
+    static $int = 1+2;        // 正确
+    static $int = sqrt(121);  // 错误（因为它是函数）
+
+    $int++;
+    echo $int;
+}
+?>
+```
+
+
+
