@@ -9,7 +9,7 @@
 
 rpcapd 是一个为 Windows 版本的 Wireshark 协议分析器提供远程流量捕获的守护进程。它随同 WinPcap 网络捕获库一起发布在 Windows 上，但在 Linux 中版本低于 1.9.0 的 libpcap 中缺失。
 
-在 libpcap v1.9.0 及更高版本中，使用 `--enable-remote` 标志（ `./configure --enable-remote && make` ）编译时会生成 rpcapd 可执行文件。应使用该文件而不是此分支。
+在 libpcap v1.9.0 及更高版本中，使用 `--enable-remote` 标志（ `./configure --enable-remote && make` ）编译时会生成 rpcapd 可执行文件。应使用**该文件（libpcap >= v1.9.0）**而不是**此分支（rpcapd-linux）**。
 
 
 
