@@ -358,23 +358,17 @@ NS 记录告诉互联网可从哪里找到域的 IP 地址，一个**域**通常
 
 所有 DNS 区域都需要一个 SOA 记录，以符合 IETF 标准。SOA 记录对区域传输也很重要。
 
-| Name        | TYPE | MNAME     | RNAME        | 序列 | 刷新  | RETRY | EXPIRE  | TTL   |
-| ----------- | ---- | --------- | ------------ | ---- | ----- | ----- | ------- | ----- |
-| example.com | SOA  | ns.py.com | admin.ex.com | 111  | 86400 | 7200  | 4000000 | 11200 |
+| Name     | TYPE | MNAME        | RNAME          | serial | refresh | retry | expire | minimum |
+| -------- | ---- | ------------ | -------------- | ------ | ------- | ----- | ------ | ------- |
+| exp.com. | SOA  | ns1.exp.com. | admin.exp.com. | 0      | 86400   | 3600  | 604800 | 10800   |
 
-**RNAME**：管理员的电子邮件地址，在 SOA 记录中，admin.ex.com 等效于 admin@ex.com。
-
-**区域序列号**：SOA 记录的版本号，序列号发生更改时，这会提醒辅助名称服务器更新。
-
-**MNAME**：负责该域的主要名字服务器。
-
-**REFRESH**：辅助服务器在向主要服务器询问 SOA 记录以查看其是否已更新之前应等待的时间长度（秒）。
-
-**RETRY**：服务器再次向无响应的主要名称服务器请求更新前应等待的时间长度。
-
-**EXPIRE**：如果辅助服务器在该时间段内没有得到主要服务器的响应，则应该停止响应对该区域的查询。
-
-
+- **MNAME**：指定负责此DNS区域的主要名称服务器的域名。
+- **RNAME**：指定负责此DNS区域的管理员的邮件地址，“@”符号会被替换为 "." ，admin.ex.com 等效于 admin@ex.com。
+- **serial**：标识DNS区域文件的版本或修订次数。
+- **refresh**：辅助名称服务器检查主服务器是否有更新的频率。
+- **retry**：如果辅助服务器未能成功从主服务器获取更新，它将在多长时间后再次尝试。
+- **expire**：如果在指定的时间段内辅助服务器仍未能从主服务器获得更新，它将认为主服务器已失效。
+- **minimum**：如果某条记录没有自己的TTL值，那么这条记录将会使用SOA记录中定义的 `minimum` 值
 
 #### SRV
 
@@ -585,7 +579,7 @@ masters
 
 #### zone 区域文件
 
-基本格式：
+**基本格式：**
 
 ```
 <host name> <TTL> <class> <record type> <record data>
@@ -599,118 +593,416 @@ masters
 
 
 
+示例 1 ： SOA
+
+```
+example.com.	3600	IN      SOA     ns1.example.com. admin.mail.example.com. (
+                                        0      		; serial
+                                        86400  		; refresh
+                                        3600        ; retry
+                                        604800      ; expire
+                                        10800 )		; minimum
+
+example.com.	3600	IN SOA	ns1.example.com. admin.mail.example.com. (
+								0		; serial
+								1D		; refresh
+								1H		; retry
+								1W		; expire
+								3H )	; minimum
+
+```
+
+
+
+示例 2 ： NS
+
+```
+example.com.           3600      IN      NS      ns1.example.com.
+example.com.           3600      IN      NS      ns2.example.com.
+```
+
+
+
+示例 3 ： A
+
+```
+www.example.com.       3600      IN      A       192.0.2.1
+```
+
+
+
 ### 部署实验
 
-1. DNS 递归解析服务器（1台）
-2. DNS 根服务器（1台）
+1. DNS 递归 解析服务器（1台）
+2. DNS 根 服务器（1台）
 3. DNS TLD 服务器（1台 .com）
 
-3. DNS 权威服务器（2台 xiaoshae.com 和 crocodile.com）
+3. DNS 权威 服务器（1台 xiaoshae.com）
+
+**注：此为实验环境，暂不考虑DNSSEC等安全部署，为了实验顺利，全部关闭。**
 
 
 
+配置文件：**/etc/named.conf**
+
+DNS服务监听所有ipv4和ipv6地址的udp 53端口。
+
+DNS服务**允许所有查询**。
+
+DNS服务**递归服务器**开启递归解析，其他服务器关闭递归解析。
+
+DNS服务**关闭dnssec验证**。
+
+![image-20240924090345350](./images/DNS.assets/image-20240924090345350.png)
+
+在 **/etc/named.conf** 中注释 **include "/etc/named.rfc1912.zones";**
+
+![image-20240924091624360](./images/DNS.assets/image-20240924091624360.png)
 
 
 
+#### 1. 递归服务器
 
-## DNS服务器及CADNS器的部署
+**基础配置**
 
-### DNS服务器
+IP 地址：**10.12.0.201**
 
-#### １、安装DNS服务所需的软件包
+**递归解析：开启**
 
-软件包：**bind**
 
-```
-dnf -y install bind*    #安装DNS服务所需的软件包，自动解决依赖关系
-```
 
-#### ２、配置前检测
+**递归解析服务器**需要从**根服务器**开始查询，所以必须**配置**递归解析服务器的**根服务器列表**。
 
-```
-#selinux是否关闭或者正确配置
-#firewalld(防火墙)是否开放端口/关闭
-#bind是否正确安装    开启bind服务，将bind服务加入开机自启动
-systemctl start named #启动bind服务 systemctl enable named   #添加到开机自启动
-```
+BIND9 安装后在配置文件 **/etc/named.conf** 中存在一个根区域配置。
 
-#### 3、配置主配置文件
+`"."` 表示这是根区域配置，**type** 设置为 **hint** 表示这个区域配置类型为**根提示**（root hints）。
 
-```
-#主配置文件位置   /etc/named.conf
-[root@xiaoshae etc]# ls -la | grep "named" 
-drwxr-x---   2 root named       6 11月  8 08:17 named
--rw-r-----   1 root named    1705 8月  24 2020 named.conf
--rw-r-----   1 root named    1029 8月  24 2020 named.rfc1912.zones
--rw-r--r--   1 root named    1070 8月  24 2020 named.root.key
--rw-r-----   1 root named     100 11月  8 08:27 rndc.key
-options {
-        listen-on port 53 { any; };    //开启监听端口53，接受任意IP连接
-        listen-on-v6 port 53 { ::1; };    //支持IP V6
-        directory       "/var/named";    //所有的正向反向区域文件都在这个目录下创建
-        dump-file       "/var/named/data/cache_dump.db";
-        statistics-file "/var/named/data/named_stats.txt";
-        memstatistics-file "/var/named/data/named_mem_stats.txt";
-        allow-query     { 0.0.0.0/0; };    //允许任意IP查询
-#如无特殊需求，可以将三个花括号里面都改成  any;
-```
+**file** 为 **named.ca** 表明 zone 配置文件位置在 **/var/named/named.ca**
 
-![image-20211109101441455](images/DNS.assets/image-20211109101441455.png)
+![image-20240924091849442](./images/DNS.assets/image-20240924091849442.png)
+
+查看 **/var/named/named.ca** 文件其内容存储了**13根服务器地址**
 
 ```
-#以下如无特殊要求，默认即可
-```
+; <<>> DiG 9.11.3-RedHat-9.11.3-3.fc27 <<>> +bufsize=1200 +norec @a.root-servers.net
+; (2 servers found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 46900
+;; flags: qr aa; QUERY: 1, ANSWER: 13, AUTHORITY: 0, ADDITIONAL: 27
 
-![image-20211109101813613](images/DNS.assets/image-20211109101813613.png)
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1472
+;; QUESTION SECTION:
+;.				IN	NS
 
-```
-#配置区域文件   /etc/named.rfc1912.zones
-#也可以在named.conf中直接配置
-#因为主文件中使用include包含了named.rfc1912.zones文件
-[root@xiaoshae /]# cat /etc/named.conf | grep "include"
-    include "/etc/crypto-policies/back-ends/bind.config";
-include "/etc/named.rfc1912.zones";
-include "/etc/named.root.key";
-#建议在rfc1912中配置，因为里面有配置模板
-```
+;; ANSWER SECTION:
+.			518400	IN	NS	a.root-servers.net.
+.			518400	IN	NS	b.root-servers.net.
+; ...
 
-![image-20211109104403068](images/DNS.assets/image-20211109104403068.png)
+;; ADDITIONAL SECTION:
+a.root-servers.net.	518400	IN	A	198.41.0.4
+b.root-servers.net.	518400	IN	A	199.9.14.201
+; ...
+a.root-servers.net.	518400	IN	AAAA	2001:503:ba3e::2:30
+b.root-servers.net.	518400	IN	AAAA	2001:500:200::b
+; ...
 
-```
-#第一二个是模板，三四个是新建的
-#因为IP是反向查询，要求IP要反过来写
-#例如192.168.10.0  写成  10.168.192.in-addr.arpa
-#file为改区域的文件位置   /var/named/（缺省不用写）  可在主配置文件中，修改该路径
-——————
-#编辑区域文件
-#进入到/var/named/目录，创建两个文件
-#10.10.10.zone和netskills.net.zone
-#该目录下有一个模板，可直接复制。
-#cp -p ./named.localhost 10.10.10.zone
-#cp -p ./named.localhost netskills.net.zone
-#编辑配置文件
-```
-
-![image-20211109105057664](images/DNS.assets/image-20211109105057664.png)
-
-![image-20211109105120455](images/DNS.assets/image-20211109105120455.png)
+;; Query time: 24 msec
+;; SERVER: 198.41.0.4#53(198.41.0.4)
+;; WHEN: Thu Apr 05 15:57:34 CEST 2018
+;; MSG SIZE  rcvd: 811
 
 ```
-A记录： 将域名指向一个IPv4地址（例如：100.100.100.100），需要增加A记录
-CNAME记录： 如果将域名指向一个域名，实现与被指向域名相同的访问效果，需要增加CNAME记录。这个域名一般是主机服务商提供的一个域名
-MX记录： 建立电子邮箱服务，将指向邮件服务器地址，需要设置MX记录。建立邮箱时，一般会根据邮箱服务商提供的MX记录填写此记录
-NS记录： 域名解析服务器记录，如果要将子域名指定某个域名服务器来解析，需要设置NS记录
-TXT记录： 可任意填写，可为空。一般做一些验证记录时会使用此项，如：做SPF（反垃圾邮件）记录
-AAAA记录： 将主机名（或域名）指向一个IPv6地址（例如：ff03:0:0:0:0:0:0:c1），需要添加AAAA记录
-SRV记录： 添加服务记录服务器服务记录时会添加此项，SRV记录了哪台计算机提供了哪个服务。格式为：服务的名字.协议的类型（例如：_example-server._tcp）。
-SOA记录： SOA叫做起始授权机构记录，NS用于标识多台域名解析服务器，SOA记录用于在众多NS记录中那一台是主服务器
-PTR记录： PTR记录是A记录的逆向记录，又称做IP反查记录或指针记录，负责将IP反向解析为域名
-显性URL转发记录： 将域名指向一个http(s)协议地址，访问域名时，自动跳转至目标地址。例如：将www.liuht.cn显性转发到www.itbilu.com后，访问www.liuht.cn时，地址栏显示的地址为：www.itbilu.com。
 
-隐性UR转发记录L： 将域名指向一个http(s)协议地址，访问域名时，自动跳转至目标地址，隐性转发会隐藏真实的目标地址。例如：将www.liuht.cn显性转发到www.itbilu.com后，访问www.liuht.cn时，地址栏显示的地址仍然是：www.liuht.cn。
-```
+
+
+当前要使用**本地DNS根服务器**，且只有一台，所以更改 **/var/named/named.ca** 配置文件的位置。
+
+只保留一台 **a.root-servers.net.** 根服务器，并将其默认的 **ipv4** 地址从 **198.41.0.4** 修改为本地根服务器地址 **10.12.0.202**，不保留默认的 **ipv6** 地址。
+
+注意：所有 **DNS** 的 **TTL** 全部设置为 **1 秒**。
 
 ```
-#重启bind服务，并配置网卡中DNS服务器的地址
+.					1	IN	NS	a.root-servers.net.
+a.root-servers.net.	1	IN	A	198.41.0.4
+```
+
+
+
+使用命令 **systemctl restart named** 重新启动 **named** 服务，并在客户端通过 **dig** 命令进行测试，由于此时**根服务器还没有配置**，所以**无响应结果**。
+
+```
+root@xiashae:/docker# dig @10.12.0.201 . 
+
+; <<>> DiG 9.18.28-0ubuntu0.22.04.1-Ubuntu <<>> @10.12.0.201 .
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 38035
+;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 296010fdaf0f9bba5c5c33a066f27199def21e096d6d2b83 (good)
+;; QUESTION SECTION:
+;.				IN	A
+
+;; Query time: 0 msec
+;; SERVER: 10.12.0.201#53(10.12.0.201) (UDP)
+;; WHEN: Tue Sep 24 16:00:25 CST 2024
+;; MSG SIZE  rcvd: 56
+```
+
+
+
+#### 2. 根服务器
+
+**基础配置**
+
+IP 地址：**10.12.0.202**
+
+**递归解析：关闭**
+
+
+
+本服务器为一台根服务器，需要配置 **"."** 区域，注释 **/etc/named.conf** 中的 **include "/etc/named.rfc1912.zones"** 和 **"." 区域**，并重新添加 **"."** 区域。
+
+![image-20240924143408069](./images/DNS.assets/image-20240924143408069.png)
+
+
+
+配置 **"."** 区域配置文件  **/var/named/root.zone**，配置 **"."** 区域的 **SOA** 和 **NS**，以及 **com** 区域的 **NS** 和 **NS 对应的 A 记录**。
+
+```
+.						1	IN 	SOA	a.root-servers.net. nstld.verisign-grs.com. (
+									0	; serial
+									1D	; refresh
+									1H	; retry
+									1W	; expire
+									3H )	; minimum
+
+.						1	IN	NS	a.root-servers.net.
+a.root-servers.net.		1	IN	NS	10.12.0.202
+
+com.					1	IN	NS	a.gtld-servers.net.
+a.gtld-servers.net.		1	IN	A	10.12.0.203
+```
+
+
+
+重新启动 **named** 服务，在客户机上使用 **dig** 命令进行测试**根服务器**，此时**根服务器**可以正常获取到 **SOA**。
+
+```
+root@xiashae:/docker# dig @10.12.0.201 . 
+
+; <<>> DiG 9.18.28-0ubuntu0.22.04.1-Ubuntu <<>> @10.12.0.201 .
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 38233
+;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 36b76e95436e2467cd5ecfcd66f2725948de229772203ee5 (good)
+;; QUESTION SECTION:
+;.				IN	A
+
+;; AUTHORITY SECTION:
+.			1	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. 0 86400 3600 604800 10800
+
+;; Query time: 0 msec
+;; SERVER: 10.12.0.201#53(10.12.0.201) (UDP)
+;; WHEN: Tue Sep 24 16:03:38 CST 2024
+;; MSG SIZE  rcvd: 131
+```
+
+
+
+测试获取 **com** 的 **NS** 记录，由于此时 **com TLD 服务器并未配置**，所以无结果。
+
+```
+root@xiashae:/docker# dig @10.12.0.201 com ns
+
+; <<>> DiG 9.18.28-0ubuntu0.22.04.1-Ubuntu <<>> @10.12.0.201 com ns
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 45011
+;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 1520b048341e335004bf5c6d66f272b9eae4d1c22a81a638 (good)
+;; QUESTION SECTION:
+;com.				IN	NS
+
+;; Query time: 0 msec
+;; SERVER: 10.12.0.201#53(10.12.0.201) (UDP)
+;; WHEN: Tue Sep 24 16:05:14 CST 2024
+;; MSG SIZE  rcvd: 60
+```
+
+
+
+#### 3. TLD 服务器
+
+**基础配置**
+
+IP 地址：**10.12.0.203**
+
+**递归解析：关闭**
+
+
+
+本服务器设置为 **com** 顶级域的 TLD 服务器，不需要根服务器列表，所以注释 **/etc/named.conf** 文件中的 **"." 根区域**和 **include "/etc/named.rfc1912.zones"**，并添加 **com** 区域。
+
+![image-20240924154725371](./images/DNS.assets/image-20240924154725371.png)
+
+
+
+编辑 **/var/named/com.zone** 配置文件，设置 **com** 的 **SOA** 、 **NS** 和 **NS 对应的 A 记录**，以及 **xiaoshae.com** 的 **NS** 和 **NS 对应的 A 记录**。
+
+```
+com.				1	IN	 SOA	a.gtld-servers.net. nstld.verisign-grs.com. (
+									0	; serial
+									1D	; refresh
+									1H	; retry
+									1W	; expire
+									3H )	; minimum
+
+com.				1	IN	NS	a.gtld-servers.net.
+a.gtld-servers.net.	1	IN	A	10.12.0.203
+
+xiaoshae.com.		1	IN	NS	ns1.xiaoshae.com.
+ns1.xiaoshae.com.	1	IN	A	10.12.0.204
+```
+
+
+
+重新启动 **named** 服务，测试 **com** 记录正常获取到 **SOA** 记录。
+
+```
+root@xiashae:/docker# dig @10.12.0.201 com 
+
+; <<>> DiG 9.18.28-0ubuntu0.22.04.1-Ubuntu <<>> @10.12.0.201 com
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 3680
+;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 18133cf5c78cd1cbfbad334866f27309edf6b9b07a637a4e (good)
+;; QUESTION SECTION:
+;com.				IN	A
+
+;; AUTHORITY SECTION:
+com.			1	IN	SOA	a.gtld-servers.net. nstld.verisign-grs.com. 0 86400 3600 604800 10800
+
+;; Query time: 0 msec
+;; SERVER: 10.12.0.201#53(10.12.0.201) (UDP)
+;; WHEN: Tue Sep 24 16:06:33 CST 2024
+;; MSG SIZE  rcvd: 133
+```
+
+
+
+测试 **xiaoshae.com** 的 **NS 记录**，由于此时 **xiaoshae.com 权威服务器未配置**，所以无法获取到结果。
+
+```
+root@xiashae:/docker# dig @10.12.0.201 xiaoshae.com
+
+; <<>> DiG 9.18.28-0ubuntu0.22.04.1-Ubuntu <<>> @10.12.0.201 xiaoshae.com
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 48880
+;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 206e056055d1a940b10386c566f2734a6069ee9870378a7b (good)
+;; QUESTION SECTION:
+;xiaoshae.com.			IN	A
+
+;; Query time: 0 msec
+;; SERVER: 10.12.0.201#53(10.12.0.201) (UDP)
+;; WHEN: Tue Sep 24 16:07:38 CST 2024
+;; MSG SIZE  rcvd: 69
+```
+
+
+
+#### 4. 权威服务器
+
+**基础配置**
+
+IP 地址：**10.12.0.204**
+
+**递归解析：关闭**
+
+
+
+本服务器设置为 **xiaoshae.com** 权威服务器，不需要根服务器列表，所以注释 **/etc/named.conf** 文件中的 **"." 根区域**和 **include "/etc/named.rfc1912.zones"**，并添加 **xiaoshae.com** 区域。
+
+![image-20240924160847525](./images/DNS.assets/image-20240924160847525.png)
+
+
+
+编辑 **/var/named/xiaoshae.com.zone** 配置文件，设置 **xiaoshae.com** 的 **SOA** 、 **NS** 和 **NS 对应的 A 记录**，以及 **xiaoshae.com** 子域名的 **A 记录**。
+
+```
+xiaoshae.com.		1	IN	SOA	ns1.xiaoshae.com. admin.xiaoshae.com. (
+						0	; serial
+						1D	; refresh
+						1H	; retry
+						1W	; expire
+						3H )	; minimum
+
+xiaoshae.com.		1	IN	NS	ns1.xiaoshae.com.
+
+ns1.xiaoshae.com.	1	IN	A	10.12.0.204
+
+xiaoshae.com.		1	IN	A	10.12.0.204
+www.xiaoshae.com.	1	IN	A	10.12.0.204
+```
+
+
+
+重新启动 **named** 服务，测试 **www.xiaoshae.com** 记录正常获取到 **A** 记录。
+
+```
+root@xiashae:/docker# dig @10.12.0.201 www.xiaoshae.com a
+
+; <<>> DiG 9.18.28-0ubuntu0.22.04.1-Ubuntu <<>> @10.12.0.201 www.xiaoshae.com a
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 27867
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: e1a4b96fe23888810d0fcf5866f276999921190902aa85a8 (good)
+;; QUESTION SECTION:
+;www.xiaoshae.com.		IN	A
+
+;; ANSWER SECTION:
+www.xiaoshae.com.	1	IN	A	10.12.0.204
+
+;; AUTHORITY SECTION:
+xiaoshae.com.		1	IN	NS	ns1.xiaoshae.com.
+
+;; ADDITIONAL SECTION:
+ns1.xiaoshae.com.	1	IN	A	10.12.0.204
+
+;; Query time: 0 msec
+;; SERVER: 10.12.0.201#53(10.12.0.201) (UDP)
+;; WHEN: Tue Sep 24 16:21:46 CST 2024
+;; MSG SIZE  rcvd: 123
 ```
 
