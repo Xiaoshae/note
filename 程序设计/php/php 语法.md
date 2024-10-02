@@ -1,7 +1,5 @@
 # php
 
-
-
 ## 基本语法
 
 ###  标记
@@ -1789,3 +1787,689 @@ PHP 8.0.0 之前，如果 string 与数字或者数字字符串进行比较， �
 | ! $a       | Not（逻辑非）   | **`true`**，如果 $a 不为 **`true`**。                     |
 | $a && $b   | And（逻辑与）   | **`true`**，如果 $a 和 $b 都为 **`true`**。               |
 | $a \|\| $b | Or（逻辑或）    | **`true`**，如果 $a 或 $b 任一为 **`true`**。             |
+
+
+
+## 流程控制
+
+### if
+
+`if` 结构
+
+```
+<?php
+if (expr)
+  statement
+?>
+```
+
+
+
+如同在表达式一章中定义的，expr 按照布尔求值。如果 expr 的值为 true，PHP 将执行 statement，如果值为 false ——将忽略 statement。
+
+```php
+<?php
+if ($a > $b)
+  echo "a is bigger than b";
+?>
+```
+
+
+
+经常需要按照条件执行不止一条语句，可以将这些语句放入语句组中。
+
+```php
+<?php
+if ($a > $b) {
+  echo "a is bigger than b";
+  $b = $a;
+}
+?>
+```
+
+
+
+`if` 语句中的表达式的值为 **`false`** 时执行 else 语句
+
+```php
+<?php
+if ($a > $b) {
+  echo "a is greater than b";
+} else {
+  echo "a is NOT greater than b";
+}
+?>
+```
+
+
+
+它仅在 `elseif` 的条件表达式值为 **`true`** 时执行语句，也可以写成 `else if`（两个单词），行为完全一样。
+
+```php
+<?php
+if ($a > $b) {
+    echo "a is bigger than b";
+} elseif ($a == $b) {
+    echo "a is equal to b";
+} else {
+    echo "a is smaller than b";
+}
+?>
+```
+
+
+
+如果用冒号来定义 `if`/`elseif` 条件，必须在一个单词中使用 `elseif`，否则 PHP 会产生解析错误。
+
+```php
+<?php
+
+/* 不正确的使用方法： */
+if ($a > $b):
+    echo $a." is greater than ".$b;
+else if ($a == $b): // 将无法编译
+    echo "The above line causes a parse error.";
+endif;
+
+
+/* 正确的使用方法： */
+if ($a > $b):
+    echo $a." is greater than ".$b;
+elseif ($a == $b): // 注意使用了一个单词的 elseif
+    echo $a." equals ".$b;
+else:
+    echo $a." is neither greater than or equal to ".$b;
+endif;
+
+?>
+```
+
+
+
+PHP 提供了一些流程控制的替代语法，包括 `if`，`while`，`for`，`foreach` 和 `switch`。替代语法的基本形式是把左花括号（{）换成冒号（:），把右花括号（}）分别换成 `endif;`，`endwhile;`，`endfor;`，`endforeach;` 以及 `endswitch;`。
+
+```php
+<?php if ($a == 5): ?>
+A is equal to 5
+<?php endif; ?>
+```
+
+
+
+在上面的例子中，HTML 内容“A is equal to 5”用替代语法嵌套在 `if` 语句中。该 HTML 的内容仅在 $a 等于 5 时显示。
+
+替代语法同样可以用在 `else` 和 `elseif` 中。下面是一个包括 `elseif` 和 `else` 的 `if` 结构用替代语法格式写的例子：
+
+```php
+<?php
+if ($a == 5):
+    echo "a equals 5";
+    echo "...";
+elseif ($a == 6):
+    echo "a equals 6";
+    echo "!!!";
+else:
+    echo "a is neither 5 nor 6";
+endif;
+?>
+```
+
+
+
+`switch` 和第一个 `case` 之间的任何输出（含空格）将导致语法错误。
+
+无效的：
+
+```php
+<?php switch ($foo): ?>
+    <?php case 1: ?>
+    ...
+<?php endswitch; ?>
+```
+
+有效的，`switch` 之后的换行符被认为是结束标记 `?>` 的一部分：
+
+```php
+<?php switch ($foo): ?>
+<?php case 1: ?>
+    ...
+<?php endswitch; ?>
+```
+
+
+
+### while
+
+`while` 循环是 PHP 中最简单的循环类型。`while` 语句的基本格式是：
+
+```
+while (expr)
+    statement
+```
+
+下面两个例子完全一样，都显示数字 1 到 10：
+
+```php
+<?php
+/* 示例 1 */
+
+$i = 1;
+while ($i <= 10) {
+    echo $i++;  /* 在自增前（后自增）打印的值将会是 $i */
+}
+
+/* 示例 2 */
+
+$i = 1;
+while ($i <= 10):
+    print $i;
+    $i++;
+endwhile;
+?>
+```
+
+
+
+### do-while
+
+`do-while` 循环和 `while` 循环非常相似，区别在于表达式的值是在每次循环结束时检查而不是开始时。
+
+`do-while` 循环只有一种语法：
+
+```php
+<?php
+$i = 0;
+do {
+   echo $i;
+} while ($i > 0);
+?>
+```
+
+
+
+### for
+
+`for` 循环是 PHP 中最复杂的循环结构。它的行为和 C 语言的相似。 `for` 循环的语法是：
+
+```
+for (expr1; expr2; expr3)
+    statement
+```
+
+第一个表达式（expr1）在循环开始前无条件求值（并执行）一次。
+
+expr2 在每次循环开始前求值。如果值为 **`true`**，则继续循环，执行嵌套的循环语句。如果值为 **`false`**，则终止循环。
+
+expr3 在每次循环之后被求值（并执行）。
+
+
+
+每个表达式都可以为空或包括逗号分隔的多个表达式。
+
+表达式 expr2 中，所有用逗号分隔的表达式都会计算，但只取最后一个结果。
+
+expr2 为空意味着将无限循环下去（和 C 一样，PHP 暗中认为其值为 **`true`**）。
+
+
+
+考虑以下的例子，它们都显示数字 1 到 10：
+
+```php
+<?php
+/* 示例 1 */
+
+for ($i = 1; $i <= 10; $i++) {
+    echo $i;
+}
+
+/* 示例 2 */
+
+for ($i = 1; ; $i++) {
+    if ($i > 10) {
+        break;
+    }
+    echo $i;
+}
+
+/* 示例 3 */
+
+$i = 1;
+for (;;) {
+    if ($i > 10) {
+        break;
+    }
+    echo $i;
+    $i++;
+}
+
+/* 示例 4 */
+
+for ($i = 1, $j = 0; $i <= 10; $j += $i, print $i, $i++);
+?>
+```
+
+
+
+### foreach
+
+`foreach` 语法结构提供了遍历数组的简单方式。
+
+有两种语法：
+
+```
+foreach (iterable_expression as $value)
+    statement
+foreach (iterable_expression as $key => $value)
+    statement
+```
+
+第一种格式遍历给定的 `iterable_expression` 迭代器。每次循环中，当前单元的值被赋给 `$value`。
+
+第二种格式做同样的事，只除了当前单元的键名也会在每次循环中被赋给变量 `$key`。
+
+
+
+
+
+在 `$value` 之前加上 & 来修改数组的元素，以**引用赋值**而不是拷贝数组中的值。
+
+```php
+<?php
+$arr = array(1, 2, 3, 4);
+foreach ($arr as &$value) {
+    $value = $value * 2;
+}
+// 现在 $arr 是 array(2, 4, 6, 8)
+unset($value); // 最后取消掉引用
+?>
+```
+
+
+
+数组最后一个元素的 $value 引用在 foreach 循环之后仍会保留。建议使用 unset() 来将其销毁。 否则你会遇到下面的情况：
+
+```php
+<?php
+$arr = array(1, 2, 3, 4);
+foreach ($arr as &$value) {
+    $value = $value * 2;
+}
+// 现在 $arr 是 array(2, 4, 6, 8)
+
+// 未使用 unset($value) 时，$value 仍然引用到最后一项 $arr[3]
+
+foreach ($arr as $key => $value) {
+    // $arr[3] 会被 $arr 的每一项值更新掉…
+    echo "{$key} => {$value} ";
+    print_r($arr);
+}
+// 直到最终倒数第二个值被复制到最后一个值
+
+// output:
+// 0 => 2 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 2 )
+// 1 => 4 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 4 )
+// 2 => 6 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 6 )
+// 3 => 6 Array ( [0] => 2, [1] => 4, [2] => 6, [3] => 6 )
+?>
+```
+
+
+
+**foreach 示例：多维数组**
+
+```php
+$a = array();
+$a[0][0] = "a";
+$a[0][1] = "b";
+$a[1][0] = "y";
+$a[1][1] = "z";
+
+foreach ($a as $v1) {
+    foreach ($v1 as $v2) {
+        echo "$v2\n";
+    }
+}
+```
+
+
+
+#### 用 list() 给嵌套的数组解包
+
+list() 解包，可以通过 在变量名前加上 & 变为引用。
+
+```php
+<?php
+
+$array = array(1,2,3);
+
+list(&$a,&$b,$c) = $array;
+
+$a = 2;
+$b = 4;
+$c = 6;
+
+echo $array[0]."</br>";
+echo $array[1]."</br>";
+echo $array[2]."</br>";
+
+?>
+```
+
+
+
+可以遍历一个数组的数组并且把嵌套的数组解包到循环变量中，只需将 list() 作为值提供。
+
+```php
+<?php
+$array = [
+    [1, 2],
+    [3, 4],
+];
+
+foreach ($array as list($a, $b)) {
+    // $a 包含嵌套数组的第一个元素，
+    // $b 包含嵌套数组的第二个元素。
+    echo "A: $a; B: $b\n";
+}
+?>
+```
+
+
+
+list() 中的单元可以少于嵌套数组的，此时多出来的数组单元将被忽略：
+
+```php
+<?php
+$array = [
+    [1, 2],
+    [3, 4],
+];
+
+foreach ($array as list($a)) {
+    // 注意这里没有 $b。
+    echo "$a\n";
+}
+?>
+```
+
+注意：如果 list() 中列出的单元多于嵌套数组则会发出一条消息级别的错误信息。
+
+
+
+
+
+### break
+
+`break` 结束执行当前的 `for`、`foreach`、`while`、`do-while`、`switch` 结构。
+
+`break` 接受一个数字的可选参数，决定跳出几重循环。 默认值是 `1`。
+
+```php
+<?php
+$arr = array('one', 'two', 'three', 'four', 'stop', 'five');
+foreach ($arr as $val) {
+    if ($val == 'stop') {
+        break;    /* 也可以在这里写 'break 1;'。 */
+    }
+    echo "$val<br />\n";
+}
+
+/* 使用可选参数 */
+
+$i = 0;
+while (++$i) {
+    switch ($i) {
+        case 5:
+            echo "At 5<br />\n";
+            break 1;  /* 只退出 switch. */
+        case 10:
+            echo "At 10; quitting<br />\n";
+            break 2;  /* 退出 switch 和 while 循环 */
+        default:
+            break;
+    }
+}
+?>
+```
+
+
+
+### continue
+
+`continue` 在循环结构用用来跳过本次循环中剩余的代码并在条件求值为真时开始执行下一次循环。
+
+`continue` 接受一个可选的数字参数来决定跳过几重循环到循环结尾。默认值是 `1`，即跳到当前循环末尾。
+
+```php
+<?php
+$arr = ['zero', 'one', 'two', 'three', 'four', 'five', 'six'];
+foreach ($arr as $key => $value) {
+    if (0 === ($key % 2)) { // 跳过偶数键的成员
+        continue;
+    }
+    echo $value . "\n";
+}
+?>
+```
+
+以上示例会输出：
+
+```
+one
+three
+five
+```
+
+
+
+示例 2 ：
+
+```php
+<?php
+$i = 0;
+while ($i++ < 5) {
+    echo "Outer\n";
+    while (1) {
+        echo "Middle\n";
+        while (1) {
+            echo "Inner\n";
+            continue 3;
+        }
+        echo "This never gets output.\n";
+    }
+    echo "Neither does this.\n";
+}
+?>
+```
+
+以上示例会输出：
+
+```
+Outer
+Middle
+Inner
+Outer
+Middle
+Inner
+Outer
+Middle
+Inner
+Outer
+Middle
+Inner
+Outer
+Middle
+Inner
+```
+
+
+
+**注意：** 在 PHP 中 switch 语句被认为是可以使用 continue 的一种循环结构。 continue 的行为类似于没有传递参数的 break ，但会引发警告，因为这可能是一个错误。 如果 switch 在循环内， continue 2 将会外部循环中的下一个迭代中继续。 
+
+
+
+### switch
+
+`switch` 语句类似于具有同一个表达式的一系列 `if` 语句。很多场合下需要把同一个变量（或表达式）与很多不同的值比较，并根据它等于哪个值来执行不同的代码。
+
+**注意：**switch/case 作的是松散比较。
+
+
+
+**示例 #1 `switch` 结构**
+
+```php
+// 这是 switch 语句
+
+switch ($i) {
+    case 0:
+        echo "i equals 0";
+        break;
+    case 1:
+        echo "i equals 1";
+        break;
+    case 2:
+        echo "i equals 2";
+        break;
+}
+
+// 相当于：
+
+if ($i == 0) {
+    echo "i equals 0";
+} elseif ($i == 1) {
+    echo "i equals 1";
+} elseif ($i == 2) {
+    echo "i equals 2";
+}
+?>
+```
+
+
+
+`switch` 语句一行接一行地执行（实际上是语句接语句），不在 case 的语句段最后写上 `break` 的话，PHP 将继续执行下一个 case 中的语句段。
+
+```php
+<?php
+switch ($i) {
+    case 0:
+        echo "i equals 0";
+    case 1:
+        echo "i equals 1";
+    case 2:
+        echo "i equals 2";
+}
+?>
+```
+
+这里如果 $i 等于 0，PHP 将执行所有的 echo 语句！如果 $i 等于 1，PHP 将执行后面两条 echo 语句。只有当 $i 等于 2 时，才会得到“预期”的结果——只显示“i equals 2”。
+
+
+
+在 `switch` 语句中条件只求值一次并用来和每个 `case` 语句比较。在 `elseif` 语句中条件会再次求值。如果条件比一个简单的比较要复杂得多或者在一个很多次的循环中，那么用 `switch` 语句可能会快一些。
+
+
+
+一个 case 的特例是 `default`。它匹配了任何和其它 case 都不匹配的情况。
+
+从技术上讲，`default` case 可以按照任何顺序列出。只有在没有匹配到其它的 case 时才会使用它。但是最好按照惯例，将其作为最后一个分支放在最后。
+
+如果没有匹配到 `case` 分支且没有 `default` 分支，则不会执行任何代码，就像 `if` 不为 true 一样。
+
+```php
+<?php
+switch ($i) {
+    case 0:
+        echo "i equals 0";
+        break;
+    case 1:
+        echo "i equals 1";
+        break;
+    case 2:
+        echo "i equals 2";
+        break;
+    default:
+        echo "i is not equal to 0, 1 or 2";
+}
+?>
+```
+
+
+
+case 的值可以使用表达式。然而，该表达式将会自我求值，然后与 switch 的值进行松散比较。这意味着它不适合用于复杂的 switch 值求值。例如：
+
+```php
+<?php
+$target = 1;
+$start = 3;
+
+switch ($target) {
+    case $start - 1:
+        print "A";
+        break;
+    case $start - 2:
+        print "B";
+        break;
+    case $start - 3:
+        print "C";
+        break;
+    case $start - 4:
+        print "D";
+        break;
+}
+
+// 输出“B”
+?>
+```
+
+
+
+对于更复杂的比较，值 **`true`** 可用于 switch 的值。或使用 `if`-`else` 代替 `switch`。
+
+```php
+<?php
+$offset = 1;
+$start = 3;
+
+switch (true) {
+    case $start - $offset === 1:
+        print "A";
+        break;
+    case $start - $offset === 2:
+        print "B";
+        break;
+    case $start - $offset === 3:
+        print "C";
+        break;
+    case $start - $offset === 4:
+        print "D";
+        break;
+}
+
+// 输出“B”
+?>
+```
+
+
+
+`switch` 支持替代语法的流程控制，使用分号代替 case 语句后的冒号，例如：
+
+```php
+<?php
+switch($beer)
+{
+    case 'tuborg';
+    case 'carlsberg';
+    case 'stella';
+    case 'heineken';
+        echo 'Good choice';
+        break;
+    default;
+        echo 'Please make a new selection...';
+        break;
+}
+?>
+```
+
+
+
