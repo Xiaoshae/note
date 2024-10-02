@@ -129,7 +129,64 @@ make -j16
 make install
 ```
 
-​	
+
+
+### 如何在 Ubuntu 上隐藏 SSH 欢迎消息
+
+通过 SSH 登录访问远程 Ubuntu 服务器时，您会看到以下 SSH 欢迎屏幕：
+
+![image-20241002110651017](./images/Ubuntu.assets/image-20241002110651017.png)
+
+用户在连接到运行 Ubuntu 或任何基于 Debian 的发行版的服务器时通常会遇到此屏幕。
+
+最初拥有它很好，但是每次服务器连接处理冗长的 SSH 欢迎文本最终会变得很麻烦。
+
+
+
+SSH 欢迎消息显示在位于`/etc/update-motd.d/`路径的文件和`/etc/ssh/sshd_config`文件中定义的设置中。
+
+要禁止显示欢迎消息，请首先打开终端并使用您喜欢的文本编辑器修改**/etc/ssh/sshd_config**文件。
+
+文件打开后，找到`PrintMotd`字段并将其值设置为`no` 。
+
+![image-20241002110743421](./images/Ubuntu.assets/image-20241002110743421.png)
+
+
+
+保存并关闭文件，然后继续编辑/etc/pam.d/sshd文件。
+
+然后找到下面两行，找到它们后，通过在每行前面放置#来注释它们，如下所示：
+
+```
+# session    optional     pam_motd.so  motd=/run/motd.dynamic
+# session    optional     pam_motd.so noupdate
+```
+
+
+
+以下是对上述两行进行注释后的文件外观：
+
+![image-20241002110823770](./images/Ubuntu.assets/image-20241002110823770.png)
+
+保存并关闭文件，通过运行以下命令重新启动 SSH 服务器：
+
+```
+sudo systemctl restart ssh
+```
+
+
+
+完成任务后，尝试连接到远程服务器，您会发现这次您不会收到欢迎消息，如下所示：
+
+![image-20241002110855305](./images/Ubuntu.assets/image-20241002110855305.png)
+
+
+
+参考链接：
+
+1. [如何在 Ubuntu 上隐藏 SSH 欢迎消息 | How to Hide the SSH Welcome Message on Ubuntu | HackerNoon](https://hackernoon.com/how-to-hide-the-ssh-welcome-message-on-ubuntu)
+
+
 
 
 
