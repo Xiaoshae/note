@@ -1,4 +1,4 @@
-# Docker Compose
+# 	Docker Compose
 
 使用Docker Compose，您可以使用YAML配置文件（称为Compose文件）来配置应用程序的服务，然后使用Compose CLI从配置中创建并启动所有服务。
 
@@ -420,7 +420,7 @@ environment:
 
 当同时为服务设置了 `env_file` 和 `environment` 时， `environment` 设置的值具有优先权。
 
-
+​	
 
 #### expose 
 
