@@ -80,6 +80,44 @@ EXPOSE 8000
 
 
 
+## WORKDIR
+
+`WORKDIR` 指令用于设置容器内的当前工作目录。这会影响后续的 `RUN`, `CMD`, `ENTRYPOINT` 指令，以及容器启动后的工作目录。
+
+```dockerfile
+WORKDIR /app
+```
+
+
+
+## ENTRYPOINT
+
+`ENTRYPOINT` 指令类似于 `CMD`，但它不会被 `docker run` 命令行参数覆盖，无论传递什么参数给容器，都会先执行 `ENTRYPOINT` 中定义的命令。
+
+`ENTRYPOINT` 也有两种形式：shell 形式和 exec 形式
+
+**Shell 形式：**
+
+这种形式下，命令会被 `/bin/sh -c` 解释执行。
+
+```dockerfile
+ENTRYPOINT echo Hello World
+```
+
+**Exec 形式：**
+
+推荐使用，因为它直接执行指定的程序，不通过 shell 层，因此可以正确处理信号。
+
+```dockerfile
+ENTRYPOINT ["python3", "./my_script.py"]
+```
+
+
+
+**shell 形式**下由于命令是通过 shell 解释器执行的，所以信号（如 `SIGTERM` 和 `SIGINT`）会被 shell 捕获，而不是直接传递给目标进程。这可能导致信号处理不正确，尤其是在需要优雅关闭服务的情况下。
+
+
+
 ## CMD 启动应用程序
 
 `CMD` 指令设置了当用户基于此镜像启动容器时运行的命令。
