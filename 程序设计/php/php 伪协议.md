@@ -2,6 +2,107 @@
 
 
 
+## file://
+
+file:// — 访问本地文件系统
+
+```
+/path/to/file.ext
+file:///path/to/file.ext
+
+./data.txt
+file://./data.txt
+
+
+
+C:/example/file.txt
+file://C:/example/file.txt
+
+.\data.txt         //如果在字符串中可用需要转义 .\\data.txt
+file://./data.txt
+```
+
+
+
+## http(s)://
+
+http:// -- https:// — 访问 HTTP(s) 网址
+
+允许通过 HTTP 对文件/资源进行可读访问。默认使用 HTTP 1.0 GET。 HTTP 请求会附带一个 `Host:` 头，用于兼容基于域名的虚拟主机。
+
+如果在你的 php.ini 文件中或字节流上下文（context）配置了 user_agent 字符串，它也会被包含在请求之中。
+
+
+
+数据流允许读取资源的 body，而 headers 则储存在了 $http_response_header 变量里。
+
+如果需要知道文档资源来自哪个 URL（经过所有重定向的处理后）， 需要处理数据流返回的系列响应报头（response headers）。
+
+
+
+用法：
+
+- http://example.com
+- http://example.com/file.php?var1=val1&var2=val2
+- http://user:password@example.com
+- https://example.com
+- https://example.com/file.php?var1=val1&var2=val2
+- https://user:password@example.com
+
+
+
+**示例 #1 检测重定向后最终的 URL**
+
+```php
+<?php
+$url = 'http://www.example.com/redirecting_page.php';
+
+$fp = fopen($url, 'r');
+
+$meta_data = stream_get_meta_data($fp);
+foreach ($meta_data['wrapper_data'] as $response) {
+
+    /* 我们是否被重定向了？ */
+    if (strtolower(substr($response, 0, 10)) == 'location: ') {
+
+        /* 更新我们被重定向后的 $url */
+        $url = substr($response, 10);
+    }
+
+}
+
+?>
+```
+
+
+
+## ftp(s)://
+
+ftp:// -- ftps:// — 访问 FTP(s) URLs
+
+允许通过 FTP 读取存在的文件，以及创建新文件。 如果服务器不支持被动（passive）模式的 FTP，连接会失败。
+
+打开文件后你既可以读也可以写，但是不能同时进行。 当远程文件已经存在于 ftp 服务器上，如果尝试打开并写入文件的时候， 未指定上下文（context）选项 `overwrite`，连接会失败。 
+
+ 如果要通过 FTP 覆盖存在的文件， 指定上下文（context）的 overwrite 选项来打开、写入。 另外可使用 FTP 扩展来代替。
+
+
+
+如果你设置了 php.ini 中的 from 指令， 这个值会作为匿名（anonymous）ftp 的密码。
+
+
+
+用法：
+
+- ftp://example.com/pub/file.txt
+- ftp://user:password@example.com/pub/file.txt
+- ftps://example.com/pub/file.txt
+- ftps://user:password@example.com/pub/file.txt
+
+
+
+
+
 ## data://
 
 data:// ，它是 RFC 2397 中定义的一种用于在URL中内联数据的方案
@@ -366,3 +467,36 @@ echo fread($fp,1024);
 
 #### 过滤器
 
+string.rot13：ROT13 编码简单地使用**当前字母在字母表中后面第 13 个字母替换当前字母**，同时**忽略非字母表中的字符**。
+
+string.toupper：将字符串转化为大写
+
+string.tolower：将字符串转化为小写
+
+string.strip_tags：去除字符串中的空字符、HTML 和 PHP 标签后的结果。
+
+
+
+
+
+
+
+convert.base64-encode：对数据进行base64编码
+
+convert.base64-decode：对数据进行base64解码
+
+
+
+Quoted-Printable 编码：主要用于处理那些大部分已经是可打印的ASCII字符的数据。这种编码方式试图保留尽可能多的原始字符不变，只对那些非ASCII或控制字符进行编码。
+
+convert.quoted-printable-encode：对数据进行quoted-printable编码
+
+convert.quoted-printable-decode：对数据进行quoted-printable解码
+
+
+
+convert.iconv.`<input-encoding>`.`<output-encoding> `：将数据从  input-encoding 编码转为 output-encoding 编码。
+
+第二种格式：`convert.iconv.<input-encoding>/<output-encoding>` （两种写法的语义都相同）
+
+支持的编码：
