@@ -137,6 +137,7 @@ MIME 于指示电子邮件或HTTP消息中的文件类型，它不仅限于文�
 
 **文本类型**
 
+- `text/plain`：纯文本文件。
 - `text/html`：HTML格式的文本。
 - `text/css`：CSS样式表。
 - `text/javascript`：JavaScript代码。
@@ -499,4 +500,14 @@ convert.iconv.`<input-encoding>`.`<output-encoding> `：将数据从  input-enco
 
 第二种格式：`convert.iconv.<input-encoding>/<output-encoding>` （两种写法的语义都相同）
 
-支持的编码：
+如何在 PHP 中获取 iconv 库支持的编码列表？
+
+在 PHP 中， `iconv` 扩展没有列出所有可用编码的函数。
+
+可用的编码取决于 `iconv` 内部使用哪个库。例如，有 libiconv。该网站还包含您可以使用的字符集列表。
+
+您还可以通过 SSH 连接到您的服务器并执行以下命令：
+
+这将为您提供该系统上的可用列表，前提是 PHP 与命令行实用程序编译了相同的库。
+
+iconv 编码和别名列表（2013 年 2 月；https://gist.github.com/4188459 ）
