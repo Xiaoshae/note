@@ -201,7 +201,11 @@ r = requests.get(url, headers=headers)
 要实现这个，只需简单地传递一个字典给 data 参数。数据字典在发出请求时会自动编码为表单形式：
 
 ```python
-payload = {'key1': 'value1', 'key2': 'value2'}
+payload = {
+    'key1': 'value1', 
+    'key2': 'value2'
+}
+
 r = requests.post("http://httpbin.org/post", data=payload)
 print(r.text)
 ###
@@ -222,6 +226,12 @@ print(r.text)
 
 ```python
 payload = (('key1', 'value1'), ('key1', 'value2'))
+### 两者效果相同
+payload = {
+    'key1' : [ 'value1' , 'value2' ]
+}
+###
+
 r = requests.post('http://httpbin.org/post', data=payload)
 print(r.text)
 ###
@@ -258,6 +268,67 @@ url = 'https://api.github.com/some/endpoint'
 payload = {'some': 'data'}
 r = requests.post(url, json=payload)
 ```
+
+
+
+## 上传文件
+
+一个 HTTP POST 请求
+
+```
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryarRaCZImD1CM5zuM
+
+
+------WebKitFormBoundaryarRaCZImD1CM5zuM
+Content-Disposition: form-data; name="up_file"; filename="sess"
+Content-Type: image/png
+
+{{hexd(08)}}username|s:5:"admin";
+------WebKitFormBoundaryarRaCZImD1CM5zuM
+```
+
+
+
+request.post 支持一个files参数，允许你用字典提供多个文件和描述这些文件的信息。
+
+```python
+r = requests.post(url, files=files)
+```
+
+
+
+files 字典示例
+
+```python
+file = b'\x08hello'
+# file = open('/path/filename','rb')
+filename = "index.php"
+custom_mime_type = 'text/plain'
+headers = {
+    'X-Custom-Header': 'CustomValue'
+}
+
+files = {
+	'name': (
+       	filename, 
+        file, 
+        custom_mime_type, 
+        headers
+    ),
+    'name2': (
+       	filename2, 
+        file2, 
+        custom_mime_type2, 
+        headers2
+    )
+}
+```
+
+- **name**：表单字段的名称，对应 name="up_file"
+- **filename**：上传文件的名称，对应 filename="sess"
+- **file**：文件对象或文件内容，对应 `{{hexd(08)}}username|s:5:"admin";`
+- **mime_type**：文件的 MIME 类型，对应 Content-Type: image/png
+- **headers**：附加的 HTTP 头信息，对应 `Content-Disposition: form-data;`
 
 
 
@@ -476,3 +547,77 @@ requests.exceptions.Timeout: HTTPConnectionPool(host='github.com', port=80): Req
 若请求超过了设定的最大重定向次数，则会抛出一个 `TooManyRedirects` 异常。
 
 所有Requests显式抛出的异常都继承自 `requests.exceptions.RequestException` 。
+
+
+
+## 使用代理
+
+如果需要使用代理，你可以通过为任意请求方法提供 `proxies` 参数来配置单个请求：
+
+```python
+import requests
+
+proxies = {
+  "http": "http://10.10.1.10:3128",
+  "https": "http://10.10.1.10:1080",
+}
+
+requests.get("http://example.org", proxies=proxies)
+```
+
+
+
+可以通过环境变量 `HTTP_PROXY` 和 `HTTPS_PROXY` 来配置代理。
+
+```bash
+$ export HTTP_PROXY="http://10.10.1.10:3128"
+$ export HTTPS_PROXY="http://10.10.1.10:1080"
+
+$ python
+>>> import requests
+>>> requests.get("http://example.org")
+```
+
+
+
+若你的代理需要使用HTTP Basic Auth，可以使用 http://user:password@host/ 语法：
+
+```python
+proxies = {
+    "http": "http://user:pass@10.10.1.10:3128/",
+}
+```
+
+
+
+要为某个特定的连接方式或者主机设置代理，使用 scheme://hostname 作为 key， 它会针对指定的主机和连接方式进行匹配。
+
+```python
+proxies = {'http://10.20.1.128': 'http://10.10.1.10:5323'}
+```
+
+注意，代理 URL 必须包含连接方式。
+
+
+
+### SOCKS
+
+除了基本的 HTTP 代理，Request 还支持 SOCKS 协议的代理。这是一个可选功能，若要使用， 你需要安装第三方库。
+
+你可以用 `pip` 获取依赖:
+
+```bash
+$ pip install requests[socks]
+```
+
+
+
+安装好依赖以后，使用 SOCKS 代理和使用 HTTP 代理一样简单：
+
+```python
+proxies = {
+    'http': 'socks5://user:pass@host:port',
+    'https': 'socks5://user:pass@host:port'
+}
+```
+
