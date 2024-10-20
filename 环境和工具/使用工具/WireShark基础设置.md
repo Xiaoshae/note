@@ -130,6 +130,26 @@ packet diagram 则表示使用 数据包图标 的方式来展示信息。
 
 
 
+## matches
+
+matches 允许你使用正则表达式来过滤流量
+
+```
+dns.cname matches ".cn"
+```
+
+
+
+## tls client hello
+
+只显示 tls client hello 的流量
+
+```
+tls.handshake.type == 1
+```
+
+
+
 # 接口捕获设置
 
 ![image-20231130094830632](images/WireShark%E5%9F%BA%E7%A1%80%E8%AE%BE%E7%BD%AE.assets/image-20231130094830632.png)
@@ -511,3 +531,27 @@ WireShark可以提取部分协议中传输的问题，通过分析数据包发�
 ![image-20231205091816406](images/WireShark%E5%9F%BA%E7%A1%80%E8%AE%BE%E7%BD%AE.assets/image-20231205091816406.png)
 
 ![image-20240103123656976](images/WireShark%E5%9F%BA%E7%A1%80%E8%AE%BE%E7%BD%AE.assets/image-20240103123656976.png)
+
+
+
+# tls 解密
+
+导入 TLS 私钥进行解密
+
+![image-20241020100417787](./images/WireShark%E5%9F%BA%E7%A1%80%E8%AE%BE%E7%BD%AE.assets/image-20241020100417787.png)
+
+![img](./images/WireShark%E5%9F%BA%E7%A1%80%E8%AE%BE%E7%BD%AE.assets/1497295-20190913155902948-1727782905.png)
+
+
+
+## SSLKEYLOGFILE
+
+`SSLKEYLOGFILE` 是一个环境变量，它通常用于指定一个文件路径，该文件将记录SSL/TLS会话密钥。
+
+当使用某些支持这个功能的浏览器或工具时（例如Firefox、Chrome等），设置这个环境变量可以让你保存加密通信的主密钥到指定的日志文件中。
+
+在 Wireshark 中指定该文件的位置，可以使用该文件的记录的主密钥自动解密TLS流量。
+
+![img](./images/WireShark%E5%9F%BA%E7%A1%80%E8%AE%BE%E7%BD%AE.assets/1497295-20190913161459489-1232507597.png)
+
+![img](./images/WireShark%E5%9F%BA%E7%A1%80%E8%AE%BE%E7%BD%AE.assets/1497295-20190913163859908-246308769.png)
