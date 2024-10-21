@@ -1,7 +1,3 @@
-
-
-
-
 ## checksec.sh
 
 ```
