@@ -159,7 +159,7 @@ make install
 
 
 
-### 如何在 Ubuntu 上隐藏 SSH 欢迎消息
+# 如何在 Ubuntu 上隐藏 SSH 欢迎消息
 
 通过 SSH 登录访问远程 Ubuntu 服务器时，您会看到以下 SSH 欢迎屏幕：
 
@@ -189,6 +189,8 @@ SSH 欢迎消息显示在位于`/etc/update-motd.d/`路径的文件和`/etc/ssh/
 # session    optional     pam_motd.so  motd=/run/motd.dynamic
 # session    optional     pam_motd.so noupdate
 ```
+
+注意：如果想终端登录也没有欢迎消息，对 /etc/pam.d/login 文件的这一部分内容进行相同的操作
 
 
 
