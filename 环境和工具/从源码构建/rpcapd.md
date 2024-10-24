@@ -15,6 +15,15 @@ rpcapd 是一个为 Windows 版本的 Wireshark 协议分析器提供远程流�
 
 ## 编译
 
+安装依赖
+
+```
+apt-get update
+apt install build-essential autoconf git flex bison
+```
+
+
+
 从 GitHub 仓库下获取 libpcap 的源码。
 
 ```
