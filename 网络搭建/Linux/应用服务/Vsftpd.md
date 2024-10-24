@@ -121,10 +121,6 @@ yetAnotherPaSsw0rd
 
 **本地用户**
 
-
-
-
-
 **chroot_local_user**：启用后，本地用户在登录后将变更根目录到他们的主目录。
 
 **chroot_list_enable**：当启用时，登录时将文件中列出的本地用户放置在 **chroot** 监狱中，该文件在 chroot_list_file 指令中指定。
@@ -152,6 +148,28 @@ yetAnotherPaSsw0rd
 **passwd_chroot_enable**：当与 **chroot_local_user** 指令一起启用时，vsftpd 会根据 **/etc/passwd** 文件中用户家目录内**是否出现 /./ 字段**来改变本地用户的根目录。
 
 **user_config_dir**：指定包含本地系统用户名称的配置文件的路径，这些文件包含特定于该用户设置。用户配置文件中的任何指令都会覆盖 **/etc/vsftpd/vsftpd.conf** 中的指令。
+
+
+
+## ssl
+
+ssl_enable：启用 SSL 加密连接
+
+ssl_tlsv1：如果启用，此选项将允许 TLS v1 协议连接。首选 TLS v1 连接。
+
+ssl_tlsv1_1：允许 TLS v1.1 协议连接
+
+ssl_tlsv1_2：允许 TLS v1.2 协议连接
+
+ssl_ciphers：此选项可用于选择 vsftpd 允许加密 SSL 连接的 SSL 密码套件。
+
+require_ssl_reuse：如果设置为YES，则所有SSL数据连接都必须展示SSL会话重用（这证明它们与控制通道共享相同的主密钥）。尽管这是一个安全的默认设置，但它可能会破坏许多FTP客户端，因此您可能需要禁用它。
+
+ssl_sslv2：如果启用，此选项将允许 SSL v2 协议连接。
+
+ssl_sslv3：如果启用，此选项将允许 SSL v3 协议连接。首选 TLS v1 连接。
+
+rsa_cert_file：此选项指定用于 SSL 加密连接的 RSA 证书的位置。
 
 
 
