@@ -191,3 +191,183 @@ s = b.decode(encoding='gbk')
 
 - 表示一个字节的八进制值，其中 `ooo` 是一个最多三位的八进制数。
 - 例如：`b'\101'` 表示字节值 `41`（即大写字母 'A'）。
+
+
+
+## 进制转换
+
+### int
+
+基础用法
+
+```python
+print(int(10))        # 输出: 10
+print(int(3.14))      # 输出: 3
+print(int(-3.14))     # 输出: -3
+print(int("123"))     # 输出: 123
+print(int("-123"))    # 输出: -123
+```
+
+处理前导零和下划线
+
+```python
+print(int("00123"))    # 输出: 123
+print(int("1_2_3"))    # 输出: 123
+print(int("001_2_3"))  # 输出: 123
+```
+
+处理正负号和空格
+
+```python
+print(int("+123"))     # 输出: 123
+print(int("-123"))     # 输出: -123
+print(int("  123  "))  # 输出: 123
+```
+
+
+
+将**（2 8 16）字符串**转为整形（十进制）。
+
+```python
+print(int("101", 2))   # 输出: 5  （二进制）
+print(int("ff", 16))   # 输出: 255 （十六进制）
+print(int("12", 8))    # 输出: 10  （八进制）
+print(int("0b101", 0)) # 输出: 5  （自动检测前缀）
+print(int("0x1f", 0))  # 输出: 31 （自动检测前缀）
+print(int("0o12", 0))  # 输出: 10 （自动检测前缀）
+```
+
+
+
+## int to str
+
+Python **hex**() 函数用于将整数转换为**前缀为“0x”**的小写**十六进制**字符串。
+
+```python
+i = int("0xff0c23bb",0)
+print(hex(i)) # 0xff0c23bb
+```
+
+Python **oct**() 函数用于将整数转换为**前缀为“0o”**的小写**八进制**字符串。
+
+```python
+i = int("0o261736421",0)
+print(oct(i)) # 0o261736421
+```
+
+Python **bin**() 函数用于将整数转换为前缀为“0b”的小写**二进制**字符串。
+
+```python
+i = int("0b1010010111100011010",0)
+print(bin(i)) # 0b1010010111100011010
+```
+
+Python **str**() 函数用于将整数转换为**十进制**字符串。
+
+```python
+i = int("134241241214",0)
+print(str(i)) # 134241241214
+```
+
+
+
+## int.to_bytes
+
+int.to_bytes(length, byteorder, *, signed=False)
+
+返回表示一个整数的字节数组。
+
+**length** 用于指示 使用多少个字节来存储 整型。
+
+如果整形所占的字节数 大于 length 提供的字节数，则会引发 OverflowError。
+
+
+
+**byteorder** 参数确定用于表示整数的字节顺序。
+
+如果 *byteorder* 为 `"big"`，则最高位字节放在字节数组的开头。
+
+如果 *byteorder* 为 `"little"`，则最高位字节放在字节数组的末尾。 
+
+
+
+**signed** 参数确定是否使用二的补码来表示整数。 如果 signed 为 False 并且给出的是负整数，则会引发 OverflowError。 signed 的默认值为 False。
+
+示例：
+
+```python
+s = "bcefaacf2fc0"
+i = int(s,16)
+
+print("i = ", i )
+h = i.to_bytes(length=round(len(hex(i)[2:]) / 2),byteorder='big')
+print("h = ", h)
+# i =  207737548910528
+# h =  b'\xbc\xef\xaa\xcf/\xc0'
+```
+
+```python
+s = "bcefaacf2fc0"
+i = int(s,16)
+
+h = i.to_bytes(length=round(len(hex(i)[2:]) / 2),byteorder='big')
+print("h = ", h)
+# h =  b'\xc0/\xcf\xaa\xef\xbc'
+```
+
+
+
+## int.from_bytes
+
+classmethod int.from_bytes(bytes, byteorder, *, signed=False)
+
+返回由给定字节数组所表示的整数。
+
+**bytes** 参数必须为一个 bytes-like object 或是生成字节的可迭代对象。
+
+
+
+**byteorder** 参数确定用于表示整数的字节顺序。 
+
+如果 *byteorder* 为 `"big"`，则最高位字节放在字节数组的开头。
+
+如果 *byteorder* 为 `"little"`，则最高位字节放在字节数组的末尾。
+
+
+
+**signed** 参数指明是否使用二的补码来表示整数。
+
+示例：
+
+```python
+s = "bcefaacf2fc0"
+i = int(s,16)
+
+print("i = ", i )
+h = i.to_bytes(length=round(len(hex(i)[2:]) / 2),byteorder='big')
+print("h = ", h)
+i = int.from_bytes(h,byteorder='big')
+print("i = ", i )
+# i =  207737548910528
+# h =  b'\xbc\xef\xaa\xcf/\xc0'
+# i =  207737548910528
+```
+
+```python
+s = "bcefaacf2fc0"
+i = int(s,16)
+
+print("i = ", i )
+h = i.to_bytes(length=round(len(hex(i)[2:]) / 2),byteorder='big')
+print("h = ", h)
+i = int.from_bytes(h,byteorder='little')
+print("i = ", i )
+h = i.to_bytes(length=round(len(hex(i)[2:]) / 2),byteorder='big')
+print("h = ", h)
+
+# i =  207737548910528
+# h =  b'\xbc\xef\xaa\xcf/\xc0'
+# i =  211311580082108
+# h =  b'\xc0/\xcf\xaa\xef\xbc'
+```
+
