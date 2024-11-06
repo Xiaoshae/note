@@ -371,3 +371,130 @@ print("h = ", h)
 # h =  b'\xc0/\xcf\xaa\xef\xbc'
 ```
 
+
+
+## bytes and bytearray
+
+bytes 是只读的，bytearray 是读写的。
+
+Python 3 的 `bytes` 和 `bytearray` 类都保存字节数组，其中每个字节可以取 0 到 255 之间的值。主要区别在于 `bytes` 对象是*不可变*的，这意味着一旦创建，就无法修改其元素。相比之下，`bytearray` 对象允许您修改其元素。
+
+`bytes` 和 `bytearray` 都提供了用于编码和解码字符串的函数。
+
+
+
+bytes 对象可以通过几种不同的方式构造：
+
+```python
+>>> bytes(5)
+b'\x00\x00\x00\x00\x00'
+
+>>> bytes([116, 117, 118])
+b'tuv'
+
+>>> b'tuv'
+b'tuv'
+
+>>> bytes('tuv')
+TypeError: string argument without an encoding
+
+>>> bytes('tuv', 'utf-8')
+b'tuv'
+
+>>> 'tuv'.encode('utf-8')
+b'tuv'
+
+>>> 'tuv'.encode('utf-16')
+b'\xff\xfet\x00u\x00v\x00'
+
+>>> 'tuv'.encode('utf-16-le')
+b't\x00u\x00v\x00'
+```
+
+由于 bytes 对象是不可变的，因此尝试更改其元素之一会导致错误：
+
+```python
+>>> a = bytes('tuv', 'utf-8')
+>>> a
+b'tuv'
+>>> a[0] = 115
+TypeError: 'bytes' object does not support item assignment
+```
+
+
+
+bytearray 可以通过多种方式构造：
+
+```python
+>>> bytearray(5)
+bytearray(b'\x00\x00\x00\x00\x00')
+
+>>> bytearray([116, 117, 118])
+bytearray(b'tuv')
+
+>>> bytearray('tuv')
+TypeError: string argument without an encoding
+
+>>> bytearray('tuv', 'utf-8')
+bytearray(b'tuv')
+
+>>> bytearray('tuv', 'utf-16')
+bytearray(b'\xff\xfet\x00u\x00v\x00')
+
+>>> bytearray('abc', 'utf-16-le')
+bytearray(b't\x00u\x00v\x00')
+```
+
+因为 `bytearray` 是*可变*的，所以你可以修改它的元素：
+
+```python
+>>> a = bytearray('tuv', 'utf-8')
+>>> a
+bytearray(b'tuv')
+>>> a[0]=115
+>>> a
+bytearray(b'suv')
+```
+
+
+
+附加 bytes 和 bytearray
+
+`bytes` 和 `bytearray` 对象可以使用 + 运算符进行连接：
+
+```python
+>>> a = bytes(3)
+>>> a
+b'\x00\x00\x00'
+
+>>> b = bytearray(4)
+>>> b
+bytearray(b'\x00\x00\x00\x00')
+
+>>> a+b
+b'\x00\x00\x00\x00\x00\x00\x00'
+
+>>> b+a
+bytearray(b'\x00\x00\x00\x00\x00\x00\x00')
+```
+
+请注意，连接的结果采用第一个参数的类型，因此 `a+b` 生成一个 `bytes` 对象，`b+a` 生成一个 `bytearray`。
+
+
+
+可以使用 `decode` 函数将 bytes 和 `bytearray` 对象转换为字符串。该函数假定您提供与编码类型相同的解码类型。例如：
+
+```python
+>>> a = bytes('tuv', 'utf-8')
+>>> a
+b'tuv'
+>>> a.decode('utf-8')
+'tuv'
+
+>>> b = bytearray('tuv', 'utf-16-le')
+>>> b
+bytearray(b't\x00u\x00v\x00')
+>>> b.decode('utf-16-le')
+'tuv'
+```
+
