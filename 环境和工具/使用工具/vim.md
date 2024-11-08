@@ -163,3 +163,40 @@ p：粘贴
 100dd：从当前行开始删除100行
 
 100yy：从当前行开始复制100行
+
+
+
+.vimrc 
+
+```
+inoremap jj <Esc>
+
+set expandtab
+set shiftwidth=4
+set tabstop=4
+
+set number
+
+highlight CursorLine ctermbg=236 guibg=#333333
+set cursorline
+```
+
+
+
+.virc
+
+```
+set noautoindent
+set nosmartindent
+syntax off
+```
+
+
+
+/usr/bin/vi
+
+```
+#!/bin/bash
+vim -S /root/.virc "$@"
+```
+
