@@ -39,6 +39,7 @@ call function         ; 调用名为function的子程序
 
 ```
 push ip
+jmp function
 ```
 
 
@@ -51,3 +52,10 @@ push ip
 ret                  ; 返回到调用者
 ```
 
+相当于：
+
+```
+pop ip
+```
+
+`ret` 指令的工作原理是直接从栈中弹出返回地址并将指令指针设置为该地址，而不需要显式的 `jmp` 操作。
