@@ -91,8 +91,8 @@ python3-pip install on ubuntu 24.04
 # 安装`gcc -m32`安装环境
 
 ```
-sudo apt install build-essential
-sudo apt-get install lib32readline-dev
+apt -y install build-essential
+apt -y install lib32readline-dev
 ```
 
 
@@ -100,7 +100,11 @@ sudo apt-get install lib32readline-dev
 ## Autotools工具
 
 ```
-sudo apt-get install autoconf automake libtool m4 autoconf-archive
+apt -y install autoconf automake libtool m4 autoconf-archive
+```
+
+```
+
 ```
 
 
