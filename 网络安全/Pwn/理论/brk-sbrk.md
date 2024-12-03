@@ -106,3 +106,119 @@ void *sbrk(intptr_t increment);
 ## 参考
 
 execve(2), getrlimit(2), end(3), malloc(3)
+
+
+
+
+
+对于堆的操作，操作系统提供了 brk 函数，glibc 库提供了 sbrk 函数，我们可以通过增加 brk 的大小来向操作系统申请内存。
+
+初始时，堆的起始地址 start_brk 以及堆的当前末尾 brk 指向同一地址。根据是否开启 ASLR，两者的具体位置会有所不同
+
+- 不开启 ASLR 保护时，start_brk 以及 brk 会指向 data/bss 段的结尾。
+- 开启 ASLR 保护时，start_brk 以及 brk 也会指向同一位置，只是这个位置是在 data/bss 段结尾后的随机偏移处。
+
+![img](./images/brk-sbrk.assets/program_virtual_address_memory_space.png)
+
+```c
+/* sbrk and brk example */
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+
+int main()
+{
+        void *start_brk = NULL, *end_brk = NULL;
+
+        printf("Welcome to sbrk example:%d\n\n", getpid());
+
+        start_brk = end_brk = sbrk(0);
+
+        printf("start_brk:\t%p\n",start_brk);
+        printf("end_brk:\t%p\n",end_brk);
+
+        printf("----------------------------------\n");
+
+        brk(end_brk + 0x1000);
+        end_brk = sbrk(0);
+
+        printf("start_brk:\t%p\n",start_brk);
+        printf("end_brk:\t%p\n",end_brk);
+
+        printf("----------------------------------\n");
+
+        brk(end_brk - 0x1000);
+        end_brk = sbrk(0);
+
+        printf("start_brk:\t%p\n",start_brk);
+        printf("end_brk:\t%p\n",end_brk);
+
+        return 0;
+}
+```
+
+输出结果：
+
+```
+Welcome to sbrk example:8081
+
+start_brk:	0x6085f15d7000
+end_brk:	0x6085f15d7000
+----------------------------------
+start_brk:	0x6085f15d7000
+end_brk:	0x6085f15d8000
+----------------------------------
+start_brk:	0x6085f15d7000
+end_brk:	0x6085f15d7000
+```
+
+
+
+下面的代码与上面几乎一模一样，但是不知道哪里出了问题。还没有找到
+
+```c
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+
+int main(void) {
+
+    void *start_brk = NULL, *end_brk = NULL;
+
+    start_brk = end_brk = sbrk(0);
+
+    printf("start_brk:\t%p\n",start_brk);
+    printf("end_brk:\t%p\n",end_brk);
+
+    printf("------------------------\n");
+
+    brk(end_brk + 0x1000); // 0x1000 = 4096
+    end_brk = sbrk(0);
+
+    printf("start_brk:\t%p\n",start_brk);
+    printf("end_brk:\t%p\n",end_brk);
+
+    printf("------------------------\n");
+
+    brk(end_brk - 0x1000);
+    end_brk = sbrk(0);
+
+    printf("start_brk:\t%p\n",start_brk);
+    printf("end_brk:\t%p\n",end_brk);
+
+    return 0;
+}
+```
+
+输出结果：
+
+```
+start_brk:	0x57d3d9f92000
+end_brk:	0x57d3d9f92000
+------------------------
+start_brk:	0x57d3d9f92000
+end_brk:	0x57d3d9f93000
+------------------------
+Segmentation fault (core dumped)
+```
+
