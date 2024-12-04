@@ -249,3 +249,53 @@ chunk 不仅包含将作为 malloc 返回值提供给程序员的 “user data�
 
 块元数据在内存中的确切布局可能有点令人困惑，因为**堆管理器源代码（堆管理器的实现）**将**一个块末尾的元数据与下一个块开头的元数据组合在一起**，而且某些元数据字段的存在或使用取决于块的各种特征。
 
+
+
+这是 Chunk 在 malloc.c 中的的结构体定义
+
+```C
+struct malloc_chunk {
+
+INTERNAL_SIZE_T      mchunk_prev_size;  /* 前一个块的大小（如果可用）。  */
+INTERNAL_SIZE_T      mchunk_size;       /* 当前块大小（以字节为单位），包括开销（为了对齐而填充的字节） */
+
+struct malloc_chunk* fd;         /* 双向链表的指针 —— 仅在 free chunk 中使用. */
+struct malloc_chunk* bk;
+
+/* 仅用于 large chunk：指向上或下一个 large chunk 的指针.  */
+
+struct malloc_chunk* fd_nextsize; /* 双向链表的指针 —— 仅在 free chunk 中使用. */
+struct malloc_chunk* bk_nextsize;
+
+};
+```
+
+
+
+*mchunk_size*：提供给程序员的 “user data” 区域的**前面（低地址）**存在 *mchunk_size* 字段。在 *malloc* 期间写入，稍后由 *free* 用于决定如何处理分配的释放。
+
+*mchunk_size*字段在 32 位系统上是 4 字节整数，在 64 位系统上是 8 字节整数。
+
+*mchunk_size* 存储四条信息：块大小和称为 “A”、“M” 和 “P” 的三个位。（存储在同一个 *size_t* 字段）
+
+假设位于 64 位系统上，块大小是 16 字节对齐的，那么 `mchunk_size` 字段的布局如下：
+
+```
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|             Size of chunk, in bytes                     |A|M|P|
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+- **块大小**：表示**当前块的实际大小**。
+- **`A` 标志位**：**设置 “A” 标志（值：1）**用于告诉堆管理器该**块属于 secondary arena**，而**不是 main arena**。
+    - 如果设置了 A 标志，则管理器必须搜索每个arena，并查看指针是否位于任意一个arena的子堆（subheaps）内。
+    - 如果未设置标志，则堆管理器可以使搜索短路，因为它知道 chunk 来自主 arena。
+- **`M` 标志位**：**“M” 标志**用于表示该块是通过 **mmap 进行的堆外分配**。
+    - 当这个分配最终被传递回 *free* 时，堆管理器将立即通过 munmap 将整个块返回给操作系统， 而不是尝试回收它。
+    - 因此，释放的 chunks 永远不会设置此标志。
+- **`P` 标志位**：**“P” 标志**用来指示**当前块之前的那个块**是**否是空闲**的（即已经被释放，可以用于合并）。
+    - 它指示前一个 chunk 是 *free* chunk。这意味着当*这个* chunk 被释放时，它可以安全地与前一个 chunk 合并，从而创建一个更大的 free chunk。
+
+![img](./images/heap.assets/chunk-allocated-CS.png.pagespeed.ce.izBEpRX-xB.png)
+
+![img](./images/heap.assets/heap-chunks-coalescing-gif-color.gif.pagespeed.ce.KsRGry1KEF.gif)
