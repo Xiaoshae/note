@@ -157,13 +157,13 @@ yum install -y iaas-xiandian
 ```
 ##--------------------system Config--------------------##
 ##Controller Server Manager IP. example:x.x.x.x
-HOST_IP=192.168.100.100
+HOST_IP=192.168.100.10
 
 ##Controller Server hostname. example:controller
 HOST_NAME=controller
 
 ##Compute Node Manager IP. example:x.x.x.x
-HOST_IP_NODE=192.168.100.200
+HOST_IP_NODE=192.168.100.20
 
 ##Compute Node hostname. example:compute
 HOST_NAME_NODE=compute
@@ -251,7 +251,7 @@ SWIFT_PASS=root
 #OBJECT_DISK=<磁盘分区2>
 
 ##The NODE IP for Swift Storage Network. example:x.x.x.x.
-STORAGE_LOCAL_NET_IP=192.168.10.10
+STORAGE_LOCAL_NET_IP=127.0.0.1
 
 ##--------------------Heat Config----------------------##
 ##Password for Mysql heat user. exmaple:000000
