@@ -41,7 +41,8 @@ x/nfu address
 
 - `b`：字节 (1 byte)
 - `h`：半字 (2 bytes)
-- `w`：字 (4 bytes)
+    - `w`：字 (4 bytes)
+
 - `g`：巨字 (8 bytes)
 
 

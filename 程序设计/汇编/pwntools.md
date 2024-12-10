@@ -184,7 +184,7 @@ context.log_level = "DEBUG"
 
 `gdb.attach` 函数允许你将 GDB（GNU Debugger）附加到一个正在运行的进程中。
 
-注意：gdb.attach 将 gdb 附加到进程后，并不会停止程序的继续执行。
+**注意：gdb.attach 将 gdb 附加到进程后，并不会停止程序的继续执行。**
 
 ```
 gdb.attach(p,gdbscript='''
