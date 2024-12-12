@@ -245,7 +245,7 @@ if (!isset($_SESSION['count'])) {
 
 
 
-### 示例 #2 从 $_SESSION 中反注册变量。
+### 示例 #2 从 $_SESSION 中注销变量。
 
 ```php
 <?php
