@@ -1,5 +1,12 @@
 # stack
 
+关闭地址随机化（注：重启或重新进入终端后会失效，需要重新执行）
+
+```
+ulimit -s unlimited
+echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
+```
+
 
 
 ## 格式化字符串
@@ -34,7 +41,7 @@ $ echo "%p%p%p%p%p%p%p%p%p%p%p%p%p%p%p" | ./a.out
 
 
 
-**实际参数 vs 可选参数**
+### 实际参数 vs 可选参数
 
 ```
 printf("%d %d %d",a,b,c);
@@ -107,6 +114,8 @@ AAAA0xffffcf18 0x41414141
 
 
 
+### 任意内存写入
+
 那么如何将其转换为**任意内存写入**呢？ **printf** 有一个非常有趣的格式说明符 **%n**。根据 **printf** 的手册页：
 
 - 已经写入的字符数存储到由 **int***（或变体）指针参数指示的整数中。不转换任何参数。
@@ -130,6 +139,8 @@ AAAA0xffffcf18 0x41414141
 
 
 
+
+
 如果要写入的地址为 **0x2a87ce430**，转为整形为**11416691760**，也就说 **printf** 要打印 **11416691760** 个字符，这需要等待很久很久的时间。
 
 **printf 支持 %hn 和 %hhn** 选项：
@@ -138,6 +149,8 @@ AAAA0xffffcf18 0x41414141
 - **%hhn** 会将已输出的字符数作为**带符号字符**（**signed char**），在 32 位系统中为 **1 字节**，写入到由参数指向的内存位置。
 
 
+
+### 覆盖 got 表
 
 将 **0x2a87ce430** 拆分为 **0x2a87** 和 **0xce430**，因为使用的是**小端**，小端**低位**在内存中为**低地址**，**高位**在内存中是**高地址**，分两次写入目标地址的**高两位地址**和**低两位地址**。
 
@@ -180,7 +193,7 @@ context.terminal =  ['tmux', 'splitw', '-h']
 # p = remote("1.95.36.136",2107)
 
 p = process('./test')
-gdb.attach(p,gdbscript='''
+gdb.attach(p,gdbscript=''' 	
     break * main + 84
     break * main + 99
     c
@@ -208,4 +221,3 @@ p.sendline(payload)
 
 p.interactive()
 ```
-
