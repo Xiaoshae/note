@@ -273,9 +273,30 @@ print(str(i)) # 134241241214
 
 ## int.to_bytes
 
+用途：将**整数**转为**字节数组**。
+
+
+
+```
+i = 0xffcc
+bytes = i.to(4,'little')
+
+等价于 pwntools 中的
+
+bytes = p32(i)
+```
+
+
+
+
+
+length 参数指示，存储这个整数，需要多少字节的内存。对应的是**字节数组**的**元素个数**。
+
+
+
 int.to_bytes(length, byteorder, *, signed=False)
 
-返回表示一个整数的字节数组。
+返回**表示一个整数**的**字节数组**。
 
 **length** 用于指示 使用多少个字节来存储 整型。
 
@@ -319,9 +340,27 @@ print("h = ", h)
 
 ## int.from_bytes
 
+作用：将**字节数组**转**为整数**。
+
+
+
+```
+i = 0xffcc
+b = i.to(4,'little')
+---
+
+i = int.from_bytes(b,'little')
+
+等价于 pwntools 中的
+
+i = u32(b)
+```
+
+
+
 classmethod int.from_bytes(bytes, byteorder, *, signed=False)
 
-返回由给定字节数组所表示的整数。
+返回由给**定字节数组**所表示的**整数**。
 
 **bytes** 参数必须为一个 bytes-like object 或是生成字节的可迭代对象。
 
