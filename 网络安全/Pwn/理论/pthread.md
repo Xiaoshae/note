@@ -1,6 +1,6 @@
 # pthread.h
 
-## 概念介绍
+## 多线程
 
 **单线程**与**多线程执行**的可视化对比
 
@@ -78,19 +78,19 @@
 
 
 
-## pthread_create
+### pthread_create
 
 pthread_create — 创建一个新线程
 
 
 
-### 库
+#### 库
 
 POSIX 线程库（libpthread、-lpthread）
 
 
 
-### 用法
+#### 用法
 
 ```C
 #include <pthread.h>
@@ -102,7 +102,7 @@ int pthread_create(pthread_t *restrict thread,
 
 
 
-### 描述
+#### 描述
 
 `pthread_create()` 函数在调用进程内启动一个新线程。新线程通过调用 `start_routine()` 开始执行；`arg` 作为 `start_routine()` 的唯一参数传递。
 
@@ -127,13 +127,13 @@ Linux 特定细节 新线程继承了调用线程的能力集（`capabilities(7)
 
 
 
-### 返回值
+#### 返回值
 
 成功时，`pthread_create()` 返回 0；错误时，它返回一个错误编号，并且 `*thread` 的内容未定义。
 
 
 
-### 错误
+#### 错误
 
 - `EAGAIN`: 资源不足，无法创建另一个线程。
 - `EAGAIN`: 遇到了系统强加的线程数量限制。可能触发此错误的限制包括：每个真实用户 ID 的进程和线程数量软资源限制（通过 `setrlimit(2)` 设置），即 `RLIMIT_NPROC`；内核对整个系统范围内进程和线程数量的限制，`/proc/sys/kernel/threads-max`（参见 `proc(5)`）；或最大 PID 数量，`/proc/sys/kernel/pid_max`（参见 `proc(5)`）。
@@ -142,7 +142,7 @@ Linux 特定细节 新线程继承了调用线程的能力集（`capabilities(7)
 
 
 
-### 属性
+#### 属性
 
 有关本节所用术语的解释，请参阅 `attributes(7)`。
 
@@ -152,13 +152,13 @@ Linux 特定细节 新线程继承了调用线程的能力集（`capabilities(7)
 
 
 
-### 标准
+#### 标准
 
 POSIX.1-2001, POSIX.1-2008.
 
 
 
-### 注意
+#### 注意
 
 请参阅 `pthread_self(3)` 以了解由 `pthread_create()` 在 `*thread` 中返回的线程 ID 的更多信息。除非使用实时调度策略，否则在调用 `pthread_create()` 后，不确定哪个线程——调用者或新线程——将首先执行。
 
@@ -178,7 +178,7 @@ POSIX.1-2001, POSIX.1-2008.
 
 
 
-### 缺陷
+#### 缺陷
 
 在废弃的 LinuxThreads 实现中，进程中的每个线程都有不同的进程 ID。这违反了 POSIX 线程规范，并且是许多不符合标准的行为的根源；参见 `pthreads(7)`。
 
@@ -342,21 +342,21 @@ sys	0m0.002s
 
 
 
-## pthread_join
+### pthread_join
 
-### 名称
+#### 名称
 
 `pthread_join` - 与一个已终止的线程连接
 
 
 
-### 函数库
+#### 函数库
 
 POSIX 线程库 (libpthread, -lpthread)
 
 
 
-### 语法
+#### 语法
 
 ```C
 #include <pthread.h>
@@ -365,7 +365,7 @@ int pthread_join(pthread_t thread, void **retval);
 
 
 
-### 描述
+#### 描述
 
 `pthread_join()` 函数会等待由 `thread` 指定的线程终止。如果该线程已经终止，则 `pthread_join()` 会立即返回。`thread` 所指定的线程必须是可连接的（joinable）。
 
@@ -375,13 +375,13 @@ int pthread_join(pthread_t thread, void **retval);
 
 
 
-### 返回值
+#### 返回值
 
 成功时，`pthread_join()` 返回 0；出错时，它返回一个错误编号。
 
 
 
-### 错误
+#### 错误
 
 - `EDEADLK`: 检测到了死锁（例如，两个线程试图互相连接）；或者 `thread` 指定了调用线程本身。
 - `EINVAL`: `thread` 不是一个可连接的线程。
@@ -390,7 +390,7 @@ int pthread_join(pthread_t thread, void **retval);
 
 
 
-### 属性
+#### 属性
 
 有关本节中使用的术语解释，请参阅 `attributes(7)`。
 
@@ -400,13 +400,13 @@ int pthread_join(pthread_t thread, void **retval);
 
 
 
-### 标准
+#### 标准
 
 POSIX.1-2001, POSIX.1-2008.
 
 
 
-### 注意事项
+#### 注意事项
 
 成功调用 `pthread_join()` 后，调用者可以确保目标线程已经终止。调用者可以选择在目标线程终止后进行任何必要的清理工作（例如，释放分配给目标线程的内存或其他资源）。
 
@@ -484,5 +484,83 @@ void * sub_thread(void * p) {
 
     return (void*)(sum);
 }
+```
+
+
+
+## 条件竞争
+
+什么是竞争条件？
+
+竞争条件发生在程序依赖于一个或多个事件的发生顺序或时间来正确工作时。
+
+当多个线程同时访问共享变量（或状态）时，通常会发生竞争条件。
+
+
+
+当两个存款函数同时运行时，语句的执行可能会交错进行（我们模拟的“网络延迟”进一步保证了这一点）。
+
+这样当它们访问相同的共享状态时就会发生竞争条件。 
+
+请看两个线程如何访问余额，更新余额，并写入余额，导致最终余额不正确！
+
+```
+//  Thread #1             Thread #2              Bank Balance
+//     
+//  Read Balance  <----------------------------------- 0
+//  balance = 0 
+//                        Read Balance  <------------- 0
+//                        balance = 0
+//
+//  Deposit +300
+//  balance = 300
+//                        Deposit +200 
+//                        balance  = 200
+//
+//  Write Balance  ----------------------------------> 300
+//  balance = 300
+//                        Write Balance  ------------> 200
+//                        balance = 200
+```
+
+
+
+
+
+### 互斥锁
+
+
+
+互斥版代码的可视化执行
+
+```
+//  Thread #1             Thread #2              Bank Balance
+//
+//                        **  LOCK  **
+//       
+//  WAIT @ LOCK           Read Balance  <------------- 0
+//       |                balance = 0
+//       |
+//       |                Deposit +200 
+//       |                balance  = 200
+//       |
+//       |                Write Balance  ------------> 200
+//       |                balance = 200
+//       |
+//   LOCK FREE            ** UNLOCK **
+// 
+//  **  LOCK  ** 
+//
+//  Read Balance  <----------------------------------- 200
+//  balance = 0 
+//
+//  Deposit +300
+//  balance = 500
+//
+//  Write Balance  ----------------------------------> 500
+//  balance = 500
+//
+//  ** UNLOCK **
+//
 ```
 
