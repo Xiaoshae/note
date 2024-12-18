@@ -157,6 +157,10 @@ payload = p64(address, endian='big')
 
 使用`p.interactive()`，我们可以像在典型终端中一样与进程交互。
 
+```
+p.interactive()
+```
+
 
 
 ### 日志
