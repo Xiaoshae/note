@@ -313,5 +313,63 @@ RouterA、RouterB、RouterC使用OSPF协议路由实现公网互通。在PC1和P
 
     PC1和PC2可以相互Ping通。
 
+    
 
+    \# 配置 OSPF 动态路由协议。
 
+    \# 配置RouterA。
+
+    ```
+    #
+    ip ip-prefix direct index 10 permit 192.168.1.0 24
+    #
+    
+    #
+    route-policy direct permit node 10
+     if-match ip-prefix direct
+    #
+    
+    #
+    ospf 2
+     import-route direct route-policy direct
+     area 0.0.0.0
+      network 192.168.13.0 0.0.0.255
+    #
+    ```
+
+    \# 配置RouterC。
+
+    ```
+    #
+    ip ip-prefix direct index 10 permit 10.1.1.0 24
+    #
+    
+    #
+    route-policy direct permit node 10
+     if-match ip-prefix direct
+    #
+    
+    #
+    ospf 2
+     import-route direct route-policy direct
+     area 0.0.0.0
+      network 192.168.13.0 0.0.0.255
+    #
+    ```
+
+    \# 路由信息通过 OSPF 协议学习到。
+
+    ```
+    Route Flags: R - relay, D - download to fib
+    ------------------------------------------------------------------------------
+    Routing Tables: Public
+             Destinations : 10       Routes : 10       
+    
+    Destination/Mask    Proto   Pre  Cost      Flags NextHop         Interface
+    
+           10.1.1.0/24  O_ASE   150  1           D   192.168.13.3    Tunnel0/0/1
+    ```
+
+    
+
+​	
