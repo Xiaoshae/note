@@ -29,7 +29,7 @@ r = requests.options('http://httpbin.org/get')
 
 ## URL 参数
 
-手工构建 URL 参数，一个问号的后面，以键/值对的形式置于 URL 中，例如`https://xiaoshae.cn/get?key=val`
+手工构建 URL 参数，一个问号的后面，以键 / 值对的形式置于 URL 中，例如`https://xiaoshae.cn/get?key=val`
 
 
 
