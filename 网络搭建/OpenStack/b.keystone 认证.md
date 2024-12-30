@@ -260,30 +260,31 @@ openstack group add user group1 user1
 
 1. 创建一个项目
 
-![image-20241230102535438](./images/keystone%20%E8%AE%A4%E8%AF%81.assets/image-20241230102535438.png)
+![image-20241230102535438](./images/b.keystone%20%E8%AE%A4%E8%AF%81.assets/image-20241230102535438-1735525950232-9.png)
 
 
 
 2. 创建一个角色
 
-![image-20241230102637700](./images/keystone%20%E8%AE%A4%E8%AF%81.assets/image-20241230102637700.png)
+![image-20241230102637700](./images/b.keystone%20%E8%AE%A4%E8%AF%81.assets/image-20241230102637700-1735525940133-6.png)
 
 
 
 3. 创建一个用户
 
-![image-20241230102725849](./images/keystone%20%E8%AE%A4%E8%AF%81.assets/image-20241230102725849.png)
+![image-20241230102725849](./images/b.keystone%20%E8%AE%A4%E8%AF%81.assets/image-20241230102725849.png)
 
 
 
 4. 创建一个组
 
-![image-20241230102749530](./images/keystone%20%E8%AE%A4%E8%AF%81.assets/image-20241230102749530.png)
+![image-20241230102749530](./images/b.keystone%20%E8%AE%A4%E8%AF%81.assets/image-20241230102749530.png)
 
 
 
 5. 将用户加入组
 
-![image-20241230102813415](./images/keystone%20%E8%AE%A4%E8%AF%81.assets/image-20241230102813415.png)
+![image-20241230102813415](./images/b.keystone%20%E8%AE%A4%E8%AF%81.assets/image-20241230102813415.png)
 
-![image-20241230102845682](./images/keystone%20%E8%AE%A4%E8%AF%81.assets/image-20241230102845682.png)
+![image-20241230102845682](./images/b.keystone%20%E8%AE%A4%E8%AF%81.assets/image-20241230102845682.png)
+
