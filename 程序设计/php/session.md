@@ -73,7 +73,7 @@
 
 
 
-### session_start 
+### session_start
 
 **session_start()** 会创建新会话或者重用现有会话。 如果通过 GET 或者 POST 方式，或者使用 cookie 提交了会话 ID， 则会重用现有会话。
 
