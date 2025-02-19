@@ -28,13 +28,13 @@ Netfilter钩子与内置链的对应关系及触发场景:
 
 iptables通过**表**对规则进行分类，每个表包含一组链（**并非所有表都包含全部链**），链中存放实际规则。
 
-| 表           | 支持的链                                        |
-| ------------ | ----------------------------------------------- |
-| **filter**   | INPUT, FORWARD, OUTPUT                          |
-| **nat**      | PREROUTING (DNAT), OUTPUT, POSTROUTING (SNAT)   |
-| **mangle**   | PREROUTING, INPUT, FORWARD, OUTPUT, POSTROUTING |
-| **raw**      | PREROUTING, OUTPUT                              |
-| **security** | INPUT, FORWARD, OUTPUT                          |
+| Raw        | Mangle      | Nat         | Filter  | Security |
+| ---------- | ----------- | ----------- | ------- | -------- |
+| PREROUTING | PREROUTING  | PREROUTING  |         |          |
+|            | INPUT       |             | INPUT   | INPUT    |
+|            | FORWARD     |             | FORWARD | FORWARD  |
+| OUTPUT     | OUTPUT      | OUTPUT      | OUTPUT  | OUTPUT   |
+|            | POSTROUTING | POSTROUTING |         |          |
 
 注意：**同一表中的不同链**（如 filter 表的 INPUT 和 FORWARD），**以及不同表中的同名链**（如 filter 表的 INPUT 和 security 表的 INPUT），可配置的规则类型均不同。
 
