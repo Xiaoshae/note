@@ -1284,7 +1284,1354 @@ vol2 -f ... --profile=... linux_mount_cache [options]
 
 
 
-## Windows
+## Windows 进程
+
+Windows系统包含许多确保其平稳运行的核心进程。本文将重点介绍以下9个关键进程：
+
+1. **System**（系统进程）
+2. **smss.exe**（会话管理器子系统）
+3. **csrss.exe**（客户端/服务器运行时子系统）
+4. **wininit.exe**（Windows初始化进程）
+5. **winlogon.exe**（Windows登录管理器）
+6. **lsass.exe**（本地安全认证子系统）
+7. **services.exe**（服务控制管理器）
+8. **explorer.exe**（Windows资源管理器）
+9. **svchost.exe**（Windows服务宿主进程）
+
+![图](./images/volatility2.assets/1f9jahIR0bVZQcZbNmYet8g.png)
+
+
+
+**Windows核心进程树**
+
+![图](https://miro.medium.com/v2/resize:fit:1050/1*0hMo2NA-_5S0Z5jiy-KMYQ.png)
+
+
+
+### System Idle Process
+
+**System Idle Process 进程（系统空闲进程）**
+
+- **PID固定为0**，是Windows系统中唯一PID为0的进程。
+
+- **任务管理器显示的“CPU使用率”**中，空闲进程的百分比代表当前未被利用的CPU资源（例如，显示“90%空闲”表示CPU有90%的时间处于空闲状态）。
+
+
+
+### System
+
+**System 进程（系统进程）**
+
+- **进程ID（PID）**：始终为**4**。
+- **功能**：管理系统级操作，包括内核操作、硬件中断处理、内存管理和资源分配。
+- **父进程**：系统空闲进程（System Idle Process）。
+- **子进程**：创建**smss.exe**。
+
+**需关注的异常行为**：
+
+- 镜像路径非`C:\Windows\system32\ntoskrnl.exe`。
+- 存在多个实例（正常仅一个）。
+- 父进程非系统空闲进程。
+
+
+
+### smss.exe
+
+**smss.exe 进程（会话管理器子系统）**
+
+- **功能**：创建Windows会话，初始化内核与用户模式环境，并设置系统变量。
+- **父进程**：System进程（PID 4）。
+- **子进程**：创建**csrss.exe**、**wininit.exe**和**winlogon.exe**后自终止。
+
+**需关注的异常行为**：
+
+- 镜像路径非`C:\Windows\System32\smss.exe`。
+- 父进程非System进程。
+- 存在多个持续运行的实例。
+
+
+
+### csrss.exe
+
+**csrss.exe 进程（客户端/服务器运行时子系统）**
+
+- **功能**：提供Windows API支持，管理驱动器映射及系统关机流程。
+- **父进程**：smss.exe。
+- **运行模式**：通常存在两个实例，分别运行于**Session 0**（系统模式）和**Session 1**（用户模式）。
+
+**需关注的异常行为**：
+
+- 镜像路径非`C:\Windows\System32\csrss.exe`。
+- 用户账户非SYSTEM。
+- 存在拼写变体（如`csrsss.exe`）以伪装恶意进程。
+
+
+
+### wininit.exe
+
+**wininit.exe 进程（Windows初始化进程）**
+
+- **功能**：负责系统初始化，运行于**Session 0**。
+- **父进程**：smss.exe。
+- **子进程**：创建**services.exe**、**lsass.exe**和**lsaiso.exe**。
+
+**需关注的异常行为**：
+
+- 镜像路径非`C:\Windows\System32\wininit.exe`。
+- 存在多个实例（正常仅一个）。
+
+
+
+### services.exe
+
+**services.exe 进程（服务控制管理器）**
+
+- **功能**：管理Windows服务的启动、停止和交互。
+- **父进程**：wininit.exe。
+- **子进程**：创建**svchost.exe**、**spoolsv.exe**等。
+
+**需关注的异常行为**：
+
+- 镜像路径非`C:\Windows\System32\services.exe`。
+- 父进程非wininit.exe。
+
+
+
+### svchost.exe
+
+**svchost.exe 进程（Windows服务宿主进程）**
+
+- **功能**：以动态链接库（DLL）形式托管和管理Windows服务。
+- **父进程**：services.exe。
+- **子进程**：包括**taskhostw.exe**、**runtimebroker.exe**等。
+
+**需关注的异常行为**：
+
+- 镜像路径非`C:\Windows\System32\svchost.exe`。
+- 命令行缺少`-k`参数（如`-k DoomLaunch`）。
+
+
+
+### lsass.exe
+
+**lsass.exe 进程（本地安全认证子系统）**
+
+- **功能**：执行安全策略，生成SAM（安全账户管理器）、AD（活动目录）和NETLOGON的安全令牌。
+- **父进程**：wininit.exe。
+- **攻击目标**：常被工具如Mimikatz用于凭据窃取。
+
+**需关注的异常行为**：
+
+- 镜像路径非`C:\Windows\System32\lsass.exe`。
+- 存在拼写变体（如`lsasss.exe`）以伪装恶意进程。
+
+
+
+### winlogon.exe
+
+**winlogon.exe 进程（Windows登录管理器）**
+
+- **功能**：管理用户登录，加载用户配置文件（NTUSER.DAT）和用户界面（通过userinit.exe）。
+- **父进程**：smss.exe。
+- **子进程**：创建**userinit.exe**（随后自终止并生成explorer.exe）。
+
+**需关注的异常行为**：
+
+- 注册表中Shell值非`explorer.exe`。
+- 用户账户非SYSTEM。
+
+
+
+### explorer.exe
+
+**explorer.exe 进程（Windows资源管理器）**
+
+- **功能**：提供图形用户界面（GUI），包括文件管理、开始菜单和任务栏。
+- **父进程**：userinit.exe。
+- **特殊性**：唯一直接位于系统根目录的进程。
+
+**需关注的异常行为**：
+
+- 镜像路径非`C:\Windows\explorer.exe`。
+- 存在异常外联TCP/IP连接。
+
+
+
+## windows
+
+
+
+### pslist
+
+通过 EPROCESS 列表列出所有运行中的进程
+
+```
+vol2 -f ... --profile=... pslist [options]
+
+  -o OFFSET, --offset=OFFSET
+                        指定物理地址空间中 EPROCESS 结构的偏移量（十六进制）
+  -p PID, --pid=PID     设置目标进程 ID 列表（逗号分隔）
+  -n NAME, --name=NAME  设置目标进程名称匹配规则（支持正则表达式）
+  -P, --physical-offset
+                        显示物理偏移量替代虚拟地址
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 pslist
+```
+
+![image-20250312093835164](./images/volatility2.assets/image-20250312093835164.png)
+
+
+
+### psscan
+
+进程对象的池扫描器
+
+```
+vol2 -f ... --profile=... psscan [options]
+
+  -V, --virtual         扫描虚拟空间而非物理空间
+  -W, --show-unallocated
+                        跳过未分配对象（例如 0xbad0b0b0）
+  -A START, --start=START
+                        指定扫描操作的起始地址
+  -G LENGTH, --length=LENGTH
+                        设置从起始地址扫描的字节长度（单位：字节）
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 psscan
+```
+
+![image-20250312093913618](./images/volatility2.assets/image-20250312093913618.png)
+
+
+
+### pstree
+
+以树状列出进程
+
+```
+vol2 -f ... --profile=... pstree [options]
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 pstree
+```
+
+![image-20250312093947387](./images/volatility2.assets/image-20250312093947387.png)
+
+
+
+### psxview
+
+通过多进程列表发现隐藏进程
+
+```
+vol2 -f ... --profile=... psxview [options]
+
+  -P, --physical-offset
+                        物理偏移量
+  -R, --apply-rules
+                        应用已知有效规则
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 psxview
+```
+
+![image-20250312094025535](./images/volatility2.assets/image-20250312094025535.png)
+
+
+
+### envars
+
+显示进程环境变量
+
+```
+vol2 -f ... --profile=... envars [options]
+
+  -o OFFSET, --offset=OFFSET
+                        指定物理地址空间中 EPROCESS 结构的偏移量（十六进制）
+  -p PID, --pid=PID     设置目标进程 ID 列表（逗号分隔）
+  -n NAME, --name=NAME  设置目标进程名称匹配规则（支持正则表达式）
+  -s, --silent          隐藏常见及非持久化变量
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 envars
+```
+
+```
+Pid      Process              Block              Variable                       Value
+-------- -------------------- ------------------ ------------------------------ -----
+     248 smss.exe             0x00000000004a1320 Path                           C:\Windows\System32
+     248 smss.exe             0x00000000004a1320 SystemDrive                    C:
+     248 smss.exe             0x00000000004a1320 SystemRoot                     C:\Windows
+     320 csrss.exe            0x00000000002d1320 ComSpec                        C:\Windows\system32\cmd.exe
+     320 csrss.exe            0x00000000002d1320 FP_NO_HOST_CHECK               NO
+     320 csrss.exe            0x00000000002d1320 NUMBER_OF_PROCESSORS           1
+     320 csrss.exe            0x00000000002d1320 OS                             Windows_NT
+```
+
+
+
+### shimcache
+
+ 解析应用兼容性 Shim 缓存注册表项
+
+```
+vol2 -f ... --profile=...  shimcache
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 shimcache
+```
+
+```
+Last Modified                  Path
+------------------------------ ----
+2010-11-21 03:24:09 UTC+0000   \??\C:\Windows\system32\LogonUI.exe
+2009-07-14 01:39:37 UTC+0000   \??\C:\Windows\system32\SearchFilterHost.exe
+2009-07-14 01:39:37 UTC+0000   \??\C:\Windows\system32\SearchProtocolHost.exe
+2009-07-14 01:39:06 UTC+0000   \??\C:\Windows\system32\DllHost.exe
+2010-11-21 03:24:03 UTC+0000   \??\C:\Windows\System32\usercpl.dll
+2009-07-14 01:38:52 UTC+0000   \??\C:\Windows\System32\wscui.cpl
+2009-07-14 01:14:18 UTC+0000   \??\C:\Windows\SysWOW64\DllHost.exe
+```
+
+
+
+### dlllist
+
+列出进程加载的 DLL
+
+```
+vol2 -f ... --profile=... dlllist [options]
+
+  -o OFFSET, --offset=OFFSET
+                        指定物理地址空间中 EPROCESS 结构的偏移量（十六进制）
+  -p PID, --pid=PID     设置目标进程 ID 列表（逗号分隔）
+  -n NAME, --name=NAME  设置目标进程名称匹配规则（支持正则表达式）
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 dlllist -p 796
+```
+
+![image-20250312161521822](./images/volatility2.assets/image-20250312161521822.png)
+
+
+
+### dlldump
+
+从进程地址空间转储 DLL
+
+```
+vol2 -f ... --profile=... dlldump [options]
+
+  -p PID, --pid=PID      指定目标进程ID集合（逗号分隔）
+  -n NAME, --name=NAME   正则匹配目标进程名称
+  -D DIR, --dump-dir=DIR
+                         设置可执行文件转存储目录
+  -u, --unsafe          禁用内存完整性校验（危险模式）
+  -m, --memory          按内存原始布局提取（非PE文件结构）
+  -x, --fix             将转储镜像基址同步为内存实际基址
+  -r REGEX, --regex=REGEX
+                         按正则表达式筛选转储DLL
+  -i, --ignore-case     启用正则表达式大小写不敏感模式
+  -o OFFSET, --offset=OFFSET
+                         基于物理内存偏移量提取进程DLL
+  -b BASE, --base=BASE   基于虚拟地址空间基址提取进程DLL
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 dlldump -p 796 -D out
+```
+
+![image-20250313084532539](./images/volatility2.assets/image-20250313084532539.png)
+
+
+
+### procdump
+
+转储进程的可执行文件
+
+```
+vol2 -f ... --profile=... procdump [options]
+
+  -o OFFSET, --offset=OFFSET
+                        指定物理地址空间中 EPROCESS 结构的偏移量（十六进制）
+  -p PID, --pid=PID     设置目标进程 ID 列表（逗号分隔）
+  -n NAME, --name=NAME  设置目标进程名称匹配规则（支持正则表达式）
+  -D DUMP_DIR, --dump-dir=DUMP_DIR
+                        设置可执行文件转储目录
+  -u, --unsafe          绕过完整性检查以创建内存镜像
+  -m, --memory          按内存样本格式转储（非可执行/磁盘格式）
+  -x, --fix             修正转储镜像基址至内存基地址
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 procdump -p 796 -D out
+
+Process(V)         ImageBase          Name                 Result
+------------------ ------------------ -------------------- ------
+0xfffffa8001048060 0x0000000001340000 DumpIt.exe           OK: executable.796.exe
+
+```
+
+```
+file executable.796.exe
+
+executable.796.exe: PE32 executable (console) Intel 80386, for MS Windows, 5 sections
+```
+
+
+
+### memdump
+
+转储进程内存到文件
+
+```
+vol2 -f ... --profile=... memdump [options]
+
+  -o OFFSET, --offset=OFFSET
+                        指定物理地址空间中 EPROCESS 结构的偏移量（十六进制）
+  -p PID, --pid=PID     设置目标进程 ID 列表（逗号分隔）
+  -n NAME, --name=NAME  设置目标进程名称匹配规则（支持正则表达式）
+  -D DUMP_DIR, --dump-dir=DUMP_DIR
+                        设置内存转储目录
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 memdump -p 1512 -D out
+```
+
+```
+************************************************************************
+Writing WinRAR.exe [  1512] to 1512.dmp
+```
+
+
+
+### cmdline
+
+显示进程命令行参数
+
+```
+vol2 -f ... --profile=... cmdline [options]
+
+  -o OFFSET, --offset=OFFSET
+                        指定物理地址空间中 EPROCESS 结构的偏移量（十六进制）
+  -p PID, --pid=PID     设置目标进程 ID 列表（逗号分隔）
+  -n NAME, --name=NAME  设置目标进程名称匹配规则（支持正则表达式）
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 cmdline
+```
+
+```
+************************************************************************
+System pid:      4
+************************************************************************
+smss.exe pid:    248
+Command line : \SystemRoot\System32\smss.exe
+************************************************************************
+csrss.exe pid:    320
+Command line : %SystemRoot%\system32\csrss.exe ObjectDirectory=\Windows SharedSection=1024,20480,768 Windows=On SubSystemType=Windows ServerDll=basesrv,1 ServerDll=winsrv:UserServerDllInitialization,3 ServerDll=winsrv:ConServerDllInitialization,2 ServerDll=sxssrv,4 ProfileControl=Off MaxRequestThreads=16
+************************************************************************
+```
+
+
+
+### cmdscan
+
+通过扫描 _COMMAND_HISTORY 提取命令历史
+
+```
+vol2 -f ... --profile=... cmdscan [options]
+
+  -M 50, --max_history=50
+                        设置历史命令最大数量（默认值：50）
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 cmdscan
+```
+
+```
+**************************************************
+CommandProcess: conhost.exe Pid: 2692
+CommandHistory: 0x1fe9c0 Application: cmd.exe Flags: Allocated, Reset
+CommandCount: 1 LastAdded: 0 LastDisplayed: 0
+FirstCommand: 0 CommandCountMax: 50
+ProcessHandle: 0x60
+Cmd #0 @ 0x1de3c0: St4G3$1
+Cmd #15 @ 0x1c0158:  
+Cmd #16 @ 0x1fdb30:  
+**************************************************
+CommandProcess: conhost.exe Pid: 2260
+CommandHistory: 0x38ea90 Application: DumpIt.exe Flags: Allocated
+CommandCount: 0 LastAdded: -1 LastDisplayed: -1
+FirstCommand: 0 CommandCountMax: 50
+ProcessHandle: 0x60
+Cmd #15 @ 0x350158: 8
+Cmd #16 @ 0x38dc00: 8
+```
+
+
+
+
+
+### consoles
+
+通过扫描 _CONSOLE_INFORMATION 提取控制台信息
+
+```
+vol2 -f ... --profile=... consoles [options]
+
+  -M 50, --max_history=50
+                        设置历史命令最大数量（默认值：50）
+  -B 4, --history_buffers=4
+                        设置历史缓冲区最大数量（默认值：4）
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 consoles
+```
+
+```
+**************************************************
+ConsoleProcess: conhost.exe Pid: 2692
+Console: 0xff756200 CommandHistorySize: 50
+HistoryBufferCount: 1 HistoryBufferMax: 4
+OriginalTitle: %SystemRoot%\system32\cmd.exe
+Title: C:\Windows\system32\cmd.exe - St4G3$1
+AttachedProcess: cmd.exe Pid: 1984 Handle: 0x60
+----
+CommandHistory: 0x1fe9c0 Application: cmd.exe Flags: Allocated, Reset
+CommandCount: 1 LastAdded: 0 LastDisplayed: 0
+FirstCommand: 0 CommandCountMax: 50
+ProcessHandle: 0x60
+Cmd #0 at 0x1de3c0: St4G3$1
+----
+Screen 0x1e0f70 X:80 Y:300
+Dump:
+Microsoft Windows [Version 6.1.7601]                                            
+Copyright (c) 2009 Microsoft Corporation.  All rights reserved.                 
+                                                                                
+C:\Users\SmartNet>St4G3$1                                                       
+ZmxhZ3t0aDFzXzFzX3RoM18xc3Rfc3Q0ZzMhIX0=                                        
+Press any key to continue . . .                                                 
+**************************************************
+ConsoleProcess: conhost.exe Pid: 2260
+Console: 0xff756200 CommandHistorySize: 50
+HistoryBufferCount: 1 HistoryBufferMax: 4
+OriginalTitle: C:\Users\SmartNet\Downloads\DumpIt\DumpIt.exe
+Title: C:\Users\SmartNet\Downloads\DumpIt\DumpIt.exe
+AttachedProcess: DumpIt.exe Pid: 796 Handle: 0x60
+----
+CommandHistory: 0x38ea90 Application: DumpIt.exe Flags: Allocated
+CommandCount: 0 LastAdded: -1 LastDisplayed: -1
+FirstCommand: 0 CommandCountMax: 50
+ProcessHandle: 0x60
+----
+Screen 0x371050 X:80 Y:300
+Dump:
+  DumpIt - v1.3.2.20110401 - One click memory memory dumper                     
+  Copyright (c) 2007 - 2011, Matthieu Suiche <http://www.msuiche.net>           
+  Copyright (c) 2010 - 2011, MoonSols <http://www.moonsols.com>                 
+                                                                                
+                                                                                
+    Address space size:        1073676288 bytes (   1023 Mb)                    
+    Free space size:          24185389056 bytes (  23064 Mb)                    
+                                                                                
+    * Destination = \??\C:\Users\SmartNet\Downloads\DumpIt\SMARTNET-PC-20191211-
+143755.raw                                                                      
+                                                                                
+    --> Are you sure you want to continue? [y/n] y                              
+    + Processing...                                                             
+```
+
+
+
+
+
+
+
+### filescan
+
+文件对象的池扫描器
+
+```
+vol2 -f ... --profile=... filescan [options]
+
+  -V, --virtual         扫描虚拟空间而非物理空间
+  -W, --show-unallocated
+                        跳过未分配对象（例如 0xbad0b0b0）
+  -A START, --start=START
+                        指定扫描起始地址
+  -G LENGTH, --length=LENGTH
+                        设置从起始地址开始扫描的字节长度
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 filescan
+```
+
+```
+Offset(P)            #Ptr   #Hnd Access Name
+------------------ ------ ------ ------ ----
+0x000000003e801310      2      1 ------ \Device\NamedPipe\MsFteWds
+0x000000003e809610      9      0 R--r-d \Device\HarddiskVolume2\Windows\System32\dot3api.dll
+0x000000003e80b9f0      2      1 ------ \Device\Afd\Endpoint
+0x000000003e80bf20      2      1 ------ \Device\Afd\Endpoint
+0x000000003e80c070      9      0 R--r-d \Device\HarddiskVolume2\Windows\System32\eappcfg.dll
+0x000000003e80fb00     15      0 R--r-d \Device\HarddiskVolume2\Windows\ehome\ehepgres.dll
+0x000000003e8105e0      1      0 R--rwd \Device\HarddiskVolume2\Users\Alissa Simpson\Links\desktop.ini
+0x000000003e811220      1      0 R--rwd \Device\HarddiskVolume2\Users\Alissa Simpson\Favorites\desktop.ini
+0x000000003e811370      1      0 R--rwd \Device\HarddiskVolume2\Users\Alissa Simpson\Downloads\desktop.ini
+```
+
+
+
+### dumpfiles
+
+提取内存映射和缓存文件
+
+```
+vol2 -f ... --profile=...  dumpfiles [options]
+
+  -r REGEX, --regex=REGEX
+                        转储匹配正则表达式的文件
+  -i, --ignore-case     忽略模式匹配大小写
+  -o OFFSET, --offset=OFFSET
+                        转储物理地址偏移量对应进程的文件
+  -Q PHYSOFFSET, --physoffset=PHYSOFFSET
+                        转储指定物理地址的文件对象（逗号分隔）
+  -D DUMP_DIR, --dump-dir=DUMP_DIR
+                        设置文件提取转储目录
+  -S SUMMARY_FILE, --summary-file=SUMMARY_FILE
+                        指	定摘要信息存储文件路径
+  -p PID, --pid=PID     设置目标进程 ID 列表（逗号分隔）
+  -n, --name            在输出路径中包含提取文件名
+  -u, --unsafe          解除安全限制以获取更多数据
+  -F FILTER, --filter=FILTER
+                        设置应用过滤器（逗号分隔），可选值：
+                            SharedCacheMap,DataSectionObject,ImageSectionObject,HandleTable,VAD
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 dumpfiles -Q 0x000000003fa3ebc0 -D out
+
+DataSectionObject 0x3fa3ebc0   None   \Device\HarddiskVolume2\Users\Alissa Simpson\Documents\Important.rar
+```
+
+```
+file file.None.0xfffffa8001034450.dat
+
+file.None.0xfffffa8001034450.dat: RAR archive data, v5
+```
+
+
+
+### netscan
+
+扫描网络连接（Vista+ 系统）
+
+```
+vol2 -f ... --profile=...  dumpfiles [options]
+
+  -V, --virtual         扫描虚拟空间而非物理空间
+  -W, --show-unallocated
+                        跳过未分配对象（例如 0xbad0b0b0）
+  -A START, --start=START
+                        指定扫描起始地址
+  -G LENGTH, --length=LENGTH
+                        设置从起始地址扫描的字节长度（单位：字节）
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 netscan
+```
+
+![image-20250312162202005](./images/volatility2.assets/image-20250312162202005.png)
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 dumpfiles -Q 0x000000003fa3ebc0 -D out
+```
+
+```
+file file.None.0xfffffa8001034450.dat
+
+file.None.0xfffffa8001034450.dat: RAR archive data, v5
+```
+
+
+
+### hivelist
+
+打印注册表配置单元列表
+
+```
+vol2 -f ... --profile=... hivelist [options]
+
+  -V, --virtual        启用虚拟地址空间扫描模式（替代物理内存扫描）
+  -W, --show-unallocated
+                       跳过标记为未分配的内存区域（如0xbad0b0b0）
+  -A ADDR, --start=ADDR
+                       设置内存扫描起始地址（虚拟/物理地址空间）
+  -G LEN, --length=LEN 定义连续扫描的内存区间长度（单位：字节）
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 hivelist
+```
+
+```
+Virtual            Physical           Name
+------------------ ------------------ ----
+0xfffff8a00000d010 0x000000002783f010 [no name]
+0xfffff8a000024010 0x00000000276a4010 \REGISTRY\MACHINE\SYSTEM
+0xfffff8a00004e010 0x00000000276ce010 \REGISTRY\MACHINE\HARDWARE
+0xfffff8a0000b9010 0x0000000037113010 \??\C:\Users\SmartNet\AppData\Local\Microsoft\Windows\UsrClass.dat
+```
+
+
+
+### hivescan
+
+注册表配置单元的池扫描器
+
+```
+vol2 -f ... --profile=... hivescan
+
+-V, --virtual         扫描虚拟空间而非物理空间
+-W, --show-unallocated
+                     跳过未分配对象（例如 0xbad0b0b0）
+-A START, --start=START
+                     指定开始扫描的起始地址
+-G LENGTH, --length=LENGTH
+                     从起始地址开始扫描的字节长度
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 hivescan
+```
+
+```
+Offset(P)         
+------------------
+0x000000000b296010
+0x00000000123d0010
+0x000000001c9a4010
+0x000000001cd57410
+```
+
+
+
+### hivedump
+
+打印注册表配置单元内容
+
+```
+vol2 -f ... --profile=... hivedump -o ...
+
+-o HIVE_OFFSET, --hive-offset=HIVE_OFFSET
+                      注册表配置单元偏移量（虚拟）
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 hivedump -o 0xfffff8a0000b9010
+```
+
+```
+Last Written         Key
+2019-12-10 15:05:19 UTC+0000 \S-1-5-21-3073570648-3149397540-2269648332-1001_Classes
+2019-12-10 15:05:19 UTC+0000 \S-1-5-21-3073570648-3149397540-2269648332-1001_Classes\.htm
+2019-12-10 15:05:19 UTC+0000 \S-1-5-21-3073570648-3149397540-2269648332-1001_Classes\.html
+2019-12-10 15:05:19 UTC+0000 \S-1-5-21-3073570648-3149397540-2269648332-1001_Classes\.oga
+```
+
+
+
+### printkey
+
+打印注册表键及其子键和值
+
+```
+vol2 -f ... --profile=... printkey -o ...
+
+-V, --virtual         扫描虚拟空间而非物理空间
+-W, --show-unallocated
+                     跳过未分配对象（例如 0xbad0b0b0）
+-A START, --start=START
+                     指定开始扫描的起始地址
+-G LENGTH, --length=LENGTH
+                     从起始地址开始扫描的字节长度
+-o HIVE_OFFSET, --hive-offset=HIVE_OFFSET
+                     注册表配置单元偏移量（虚拟）
+-K KEY, --key=KEY    指定要操作的注册表项
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 printkey -o 0xfffff8a0000b9010
+```
+
+```
+Legend: (S) = Stable   (V) = Volatile
+
+----------------------------
+Registry: \??\C:\Users\SmartNet\AppData\Local\Microsoft\Windows\UsrClass.dat
+Key name: S-1-5-21-3073570648-3149397540-2269648332-1001_Classes (S)
+Last updated: 2019-12-10 15:05:19 UTC+0000
+
+Subkeys:
+  (S) .htm
+  (S) .html
+  (S) .oga
+  (S) .ogg
+  (S) .ogv
+  (S) .pdf
+  (S) .shtml
+  (S) .svg
+  (S) .webm
+  (S) .xht
+  (S) .xhtml
+  (S) FirefoxHTML-771EB45391718800
+  (S) FirefoxURL-771EB45391718800
+  (S) ftp
+  (S) http
+  (S) https
+  (S) Local Settings
+
+Values:
+```
+
+
+
+### sessions
+
+列出用户登录会话（_MM_SESSION_SPACE）详细信息
+
+```
+vol2 -f ... --profile=... sessions
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 sessions
+```
+
+```
+**************************************************
+Session(V): fffff88004c57000 ID: 0 Processes: 27
+PagedPoolStart: fffff900c0000000 PagedPoolEnd fffff920bfffffff
+ Process: 320 csrss.exe 2019-12-11 13:41:32 UTC+0000
+ Process: 376 psxss.exe 2019-12-11 13:41:33 UTC+0000
+ Process: 424 wininit.exe 2019-12-11 13:41:34 UTC+0000
+ Process: 484 services.exe 2019-12-11 13:41:35 UTC+0000
+ Process: 492 lsass.exe 2019-12-11 13:41:35 UTC+0000
+ Process: 500 lsm.exe 2019-12-11 13:41:35 UTC+0000
+ Process: 588 svchost.exe 2019-12-11 13:41:39 UTC+0000
+ Process: 652 VBoxService.ex 2019-12-11 13:41:40 UTC+0000
+ Process: 720 svchost.exe 2019-12-11 13:41:41 UTC+0000
+ Process: 816 svchost.exe 2019-12-11 13:41:42 UTC+0000
+ Process: 852 svchost.exe 2019-12-11 13:41:43 UTC+0000
+ Process: 876 svchost.exe 2019-12-11 13:41:43 UTC+0000
+ Process: 472 svchost.exe 2019-12-11 13:41:47 UTC+0000
+ Process: 1044 svchost.exe 2019-12-11 13:41:48 UTC+0000
+ Process: 1208 spoolsv.exe 2019-12-11 13:41:51 UTC+0000
+ Process: 1248 svchost.exe 2019-12-11 13:41:52 UTC+0000
+ Process: 1372 svchost.exe 2019-12-11 13:41:54 UTC+0000
+ Process: 1416 TCPSVCS.EXE 2019-12-11 13:41:55 UTC+0000
+ Process: 1508 sppsvc.exe 2019-12-11 14:16:06 UTC+0000
+ Process: 948 svchost.exe 2019-12-11 14:16:07 UTC+0000
+ Process: 1856 wmpnetwk.exe 2019-12-11 14:16:08 UTC+0000
+ Process: 480 SearchIndexer. 2019-12-11 14:16:09 UTC+0000
+ Process: 2064 audiodg.exe 2019-12-11 14:32:37 UTC+0000
+ Process: 2368 svchost.exe 2019-12-11 14:32:51 UTC+0000
+ Process: 2660 svchost.exe 2019-12-11 14:35:14 UTC+0000
+ Process: 1720 SearchFilterHo 2019-12-11 14:37:21 UTC+0000
+ Process: 2868 SearchProtocol 2019-12-11 14:37:23 UTC+0000
+ Image: 0xfffffa8001550410, Address fffff960000e0000, Name: win32k.sys
+ Image: 0xfffffa8001545590, Address fffff960005a0000, Name: dxg.sys
+ Image: 0xfffffa80015467f0, Address fffff960007c0000, Name: TSDDD.dll
+```
+
+
+
+### privs
+
+显示进程权限
+
+```
+vol2 -f ... --profile=...  privs [options]
+
+-o OFFSET, --offset=OFFSET
+                     物理地址空间中的EPROCESS结构偏移量（十六进制）
+-p PID, --pid=PID    指定要操作的进程ID（逗号分隔）
+-n NAME, --name=NAME 指定要操作的进程名称（正则表达式匹配）
+-s, --silent         过滤低价值信息
+-r REGEX, --regex=REGEX
+                     显示符合正则表达式的权限信息
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 privs
+```
+
+![image-20250313091018668](./images/volatility2.assets/image-20250313091018668.png)
+
+
+
+### notepad
+
+列出记事本当前显示文本
+
+```
+vol2 -f ... --profile=... notepad [options]
+
+-o OFFSET, --offset=OFFSET
+                     物理地址空间中的EPROCESS结构偏移量（十六进制）
+-p PID, --pid=PID    指定要操作的进程ID（逗号分隔）
+-n NAME, --name=NAME 指定要操作的进程名称（正则表达式匹配）
+-D DUMP_DIR, --dump-dir=DUMP_DIR
+                     指定二进制数据转储目录
+```
+
+
+
+### iehistory
+
+重建 IE 缓存/历史记录
+
+```
+vol2 -f ... --profile=... iehistory [options]
+
+-o OFFSET, --offset=OFFSET
+                     物理地址空间中的EPROCESS结构偏移量（十六进制）
+-p PID, --pid=PID    指定要操作的进程ID（逗号分隔）
+-n NAME, --name=NAME 指定要操作的进程名称（正则表达式匹配）
+-L, --leak           查找LEAK类型记录（已删除）
+-R, --redr           查找REDR类型记录（重定向）
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 iehistory
+```
+
+```
+**************************************************
+Process: 604 explorer.exe
+Cache type "URL " at 0x5086000
+Record length: 0x200
+Location: https://www.google.com/favicon.ico
+Last modified: 2019-10-22 18:30:00 UTC+0000
+Last accessed: 2019-12-04 14:16:44 UTC+0000
+File Offset: 0x200, Data Offset: 0x8c, Data Length: 0x9c
+File: favicon[1].ico
+Data: HTTP/1.1 200 OK
+Content-Type: image/x-icon
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Alt-Svc: quic=":443"; ma=2592000; v="46,43",h3-Q050=":443"; ma=2592000,h3-Q049=":443"; ma=2592000,h3-Q048=":443"; ma=2592000,h3-Q046=":443"; ma=2592000,h3-Q043=":443"; ma=2592000
+Content-Length: 5430
+
+~U:smartnet
+```
+
+
+
+### hashdump
+
+从内存转储密码哈希（LM/NTLM）
+
+```
+vol2 -f ... --profile=... hashdump [options]
+
+-y SYS_OFFSET, --sys-offset=SYS_OFFSET
+                     SYSTEM配置单元偏移量（虚拟）
+-s SAM_OFFSET, --sam-offset=SAM_OFFSET
+                     SAM配置单元偏移量（虚拟）
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 hashdump
+```
+
+```
+Administrator:500:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+SmartNet:1001:aad3b435b51404eeaad3b435b51404ee:4943abb39473a6f32c11301f4987e7e0:::
+HomeGroupUser$:1002:aad3b435b51404eeaad3b435b51404ee:f0fc3d257814e08fea06e63c5762ebd5:::
+Alissa Simpson:1003:aad3b435b51404eeaad3b435b51404ee:f4ff64c8baac57d22f22edc681055ba6:::
+```
+
+
+
+### handles
+
+打印各进程的打开句柄列表
+
+```
+vol2 -f ... --profile=... handles [options]
+
+-o OFFSET, --offset=OFFSET
+                     物理地址空间中的EPROCESS结构偏移量（十六进制）
+-p PID, --pid=PID    指定要操作的进程ID（逗号分隔）
+-n NAME, --name=NAME 指定要操作的进程名称（正则表达式匹配）
+-P, --physical-offset
+                     使用物理偏移量模式
+-t OBJECT_TYPE, --object-type=OBJECT_TYPE
+                     显示指定类型的对象（逗号分隔）
+-s, --silent         过滤低价值信息
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 handles
+```
+
+```
+Offset(V)             Pid             Handle             Access Type             Details
+------------------ ------ ------------------ ------------------ ---------------- -------
+0xfffffa8000ca0040      4                0x4           0x1fffff Process          System(4)
+0xfffff8a000069ee0      4                0x8            0x2001f Key              MACHINE\SYSTEM\CONTROLSET001\CONTROL\HIVELIST
+0xfffff8a000006270      4                0xc            0xf000f Directory        GLOBAL??
+0xfffff8a000019ca0      4               0x10                0x0 Key              
+```
+
+
+
+### getsids
+
+打印进程所有者 SID
+
+```
+vol2 -f ... --profile=... getsids [options]
+
+-o OFFSET, --offset=OFFSET
+                     物理地址空间中的EPROCESS结构偏移量（十六进制）
+-p PID, --pid=PID    指定要操作的进程ID（逗号分隔）
+-n NAME, --name=NAME 指定要操作的进程名称（正则表达式匹配）
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 getsids -p 604
+```
+
+```
+explorer.exe (604): S-1-5-21-3073570648-3149397540-2269648332-1001 (SmartNet)
+explorer.exe (604): S-1-5-21-3073570648-3149397540-2269648332-513 (Domain Users)
+explorer.exe (604): S-1-1-0 (Everyone)
+explorer.exe (604): S-1-5-21-3073570648-3149397540-2269648332-1000
+explorer.exe (604): S-1-5-32-544 (Administrators)
+explorer.exe (604): S-1-5-32-545 (Users)
+explorer.exe (604): S-1-5-4 (Interactive)
+explorer.exe (604): S-1-2-1 (Console Logon (Users who are logged onto the physical console))
+explorer.exe (604): S-1-5-11 (Authenticated Users)
+explorer.exe (604): S-1-5-15 (This Organization)
+explorer.exe (604): S-1-5-5-0-211840 (Logon Session)
+explorer.exe (604): S-1-2-0 (Local (Users with the ability to log in locally))
+explorer.exe (604): S-1-5-64-10 (NTLM Authentication)
+explorer.exe (604): S-1-16-8192 (Medium Mandatory Level)
+```
+
+
+
+### getservicesids
+
+从注册表获取服务名并返回计算的 SID
+
+```
+vol2 -f ... --profile=... getservicesids
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 getservicesids
+```
+
+```
+servicesids = { 
+    'S-1-5-80-2676549577-1911656217-2625096541-4178041876-1366760775': 'AudioSrv',
+    'S-1-5-80-957945053-4060038483-2323299089-2025834768-4289255912': 'b57nd60a',
+    'S-1-5-80-289285388-4137671665-1240080895-2344186716-3552465961': 'clr_optimization_v2.0.50727_64',
+    'S-1-5-80-2597136289-665204401-1725106016-1253143166-1853691573': 'dmvsc',
+    'S-1-5-80-799667949-3218159461-2708755627-866028366-136143606': 'DumpIt',
+    'S-1-5-80-1708301557-710215499-1045718168-382692165-3542596111': 'HdAudAddService',
+    'S-1-5-80-2876499719-392125430-158013367-819050375-2387260967': 'ksthunk',
+	...
+}
+```
+
+
+
+### dumpregistry
+
+将文件转储到磁盘
+
+```
+vol2 -f ... --profile=... dumpregistry [options]
+
+-o HIVE_OFFSET, --hive-offset=HIVE_OFFSET
+                     注册表配置单元偏移量（虚拟）
+-D DUMP_DIR, --dump-dir=DUMP_DIR
+                     指定存储转储文件的目录
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 dumpregistry -o 0xfffff8a0000b9010 -D out
+```
+
+```
+**************************************************
+Writing out registry: registry.0xfffff8a0000b9010.UsrClassdat.reg
+
+**************************************************
+```
+
+
+
+### clipboard
+
+提取 Windows 剪贴板内容
+
+```
+vol2 -f ... --profile=... clipboard
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 clipboard
+```
+
+![image-20250313092502930](./images/volatility2.assets/image-20250313092502930.png)
+
+
+
+### auditpol
+
+打印注册表 HKLM\SECURITY\Policy\PolAdtEv 的审计策略
+
+```
+vol2 -f ... --profile=... auditpol [options]
+
+-H, --hex            输出Policy\PolAdtEv注册表键的十六进制数据
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 auditpol
+```
+
+```
+System Events:
+	Security State Change: S
+	Security System Extention: Not Logged
+	System Integrity: S/F
+	IPSec Driver: Not Logged
+	Other System Events: S/F
+Logon/Logoff Events:
+	Logon: S
+	Logoff: S
+	Account Lockout: S
+	IPSec Main Mode: Not Logged
+	Special Logon: S
+	IPSec Quick Mode: Not Logged
+	IPSec Extended Mode: Not Logged
+	Other Logon Events: Not Logged
+	Network Policy Server: S/F
+```
+
+
+
+### svcscan
+
+扫描 Windows 服务
+
+```
+vol2 -f ... --profile=...  svcscan
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 svcscan
+```
+
+```
+Offset: 0xcfe540
+Order: 221
+Start: SERVICE_AUTO_START
+Process ID: 588
+Service Name: Power
+Display Name: Power
+Service Type: SERVICE_WIN32_SHARE_PROCESS
+Service State: SERVICE_RUNNING
+Binary Path: C:\Windows\system32\svchost.exe -k DcomLaunch
+
+Offset: 0xcfe450
+Order: 220
+Start: SERVICE_DEMAND_START
+Process ID: -
+Service Name: PolicyAgent
+Display Name: IPsec Policy Agent
+Service Type: SERVICE_WIN32_SHARE_PROCESS
+Service State: SERVICE_STOPPED
+Binary Path: -
+```
+
+
+
+### shutdowntime
+
+打印注册表中的系统关机时间
+
+```
+vol2 -f ... --profile=...  shutdowntime
+```
+
+
+
+示例
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 shutdowntime
+```
+
+```
+Volatility Foundation Volatility Framework 2.6.1
+Registry: SYSTEM
+Key Path: ControlSet001\Control\Windows
+Key Last updated: 2019-12-11 13:40:18 UTC+0000
+Value Name: ShutdownTime
+Value: 2019-12-11 13:40:18 UTC+0000
+```
 
 
 
@@ -1609,4 +2956,238 @@ Pid    Uid    Gid    Arguments
 
 
 
-答案：gpg
+答案：**gpg**
+
+
+
+### MemLabs：1
+
+我姐姐的电脑崩溃了。我们很幸运能够恢复这个内存转储文件。你的任务是从系统中获取她所有的重要文件。根据我们的回忆，当时我们突然看到一个黑窗口弹出来，似乎有一些东西正在执行。在电脑崩溃的时候，她正尝试画一些东西。这就是我们对崩溃时情况的全部记忆了。
+
+**注意**：本挑战由3个标志（flag）组成。
+
+
+
+根据描述，有一个黑窗口弹出来，猜测可能是 cmd.exe ，使用 consoles 插件提取控制台信息。
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 consoles
+```
+
+```
+**************************************************
+ConsoleProcess: conhost.exe Pid: 2692
+Console: 0xff756200 CommandHistorySize: 50
+HistoryBufferCount: 1 HistoryBufferMax: 4
+OriginalTitle: %SystemRoot%\system32\cmd.exe
+Title: C:\Windows\system32\cmd.exe - St4G3$1
+AttachedProcess: cmd.exe Pid: 1984 Handle: 0x60
+----
+CommandHistory: 0x1fe9c0 Application: cmd.exe Flags: Allocated, Reset
+CommandCount: 1 LastAdded: 0 LastDisplayed: 0
+FirstCommand: 0 CommandCountMax: 50
+ProcessHandle: 0x60
+Cmd #0 at 0x1de3c0: St4G3$1
+----
+Screen 0x1e0f70 X:80 Y:300
+Dump:
+Microsoft Windows [Version 6.1.7601]                                            
+Copyright (c) 2009 Microsoft Corporation.  All rights reserved.                 
+                                                                                
+C:\Users\SmartNet>St4G3$1                                                       
+ZmxhZ3t0aDFzXzFzX3RoM18xc3Rfc3Q0ZzMhIX0=                                        
+Press any key to continue . . .                                                 
+```
+
+
+
+consoles 输出了当时 cmd.exe 窗口中的内容，用户输入了 St4G3$1 命令，然后输出了一个 base64 编码的内容，进行解码后获得 flag。
+
+```
+echo ZmxhZ3t0aDFzXzFzX3RoM18xc3Rfc3Q0ZzMhIX0= | base64 -d
+
+flag{th1s_1s_th3_1st_st4g3!!}
+```
+
+
+
+根据描述，它的姐姐正在试图画一些东西，使用 pslist 插件查看是否有和画图有关的进程，搜索发现 Windows 自带的画图软件进程名为 mspaint。
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 pslist > win.pslist
+```
+
+```
+cat win.pslist | grep mspaint
+
+0xfffffa80022bab30 mspaint.exe            2424    604      6      128      1      0 2019-12-11 14:35:14 UTC+0000
+```
+
+
+
+通过分析发现当时电脑上确实存在 mspaint 进程（PID 2424），使用 memdump 将该进程的内存导出。
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 memdump -p 2424 -D out
+
+************************************************************************
+Writing mspaint.exe [  2424] to 2424.dmp
+```
+
+
+
+将导出的文件 2424.dmp 重命名为 2424.data，并使用 gimp 软件尝试恢复画图进程的屏幕内容。
+
+首先将**图像类型**选择为 **RGB**，**宽度和高度**设置为 **1000**。
+
+![image-20250313095142049](./images/volatility2.assets/image-20250313095142049.png)
+
+
+
+逐渐拖动滑块，**高度和宽度保持不变**，寻找到**白色、灰白色、灰色的部分**。
+
+![image-20250313095902068](./images/volatility2.assets/image-20250313095902068.png)
+
+
+
+逐步**减小或增加宽度**，**位移和高度保持不变**，发现意思画图进程当时的屏幕内容，但可能是翻转的样子。
+
+![image-20250313100025676](./images/volatility2.assets/image-20250313100025676.png)
+
+
+
+点击右下角的“打开”按钮，打开图片，并设置**竖直翻转**，成功获得 flag。
+
+![image-20250313100220517](./images/volatility2.assets/image-20250313100220517.png)
+
+![image-20250313100257119](./images/volatility2.assets/image-20250313100257119.png)
+
+
+
+在描述中要恢复所有重要的内容，使用 filescan 扫描内存中所有的文件。
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 filescan > file
+```
+
+
+
+使用 **hashdump** 插件查看**用户的名称和密码**（加密后）。
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 hashdump
+
+Administrator:500:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+SmartNet:1001:aad3b435b51404eeaad3b435b51404ee:4943abb39473a6f32c11301f4987e7e0:::
+HomeGroupUser$:1002:aad3b435b51404eeaad3b435b51404ee:f0fc3d257814e08fea06e63c5762ebd5:::
+Alissa Simpson:1003:aad3b435b51404eeaad3b435b51404ee:f4ff64c8baac57d22f22edc681055ba6:::
+```
+
+
+
+用户的性别为女性，很可能是使用 Alissa Simpson 用户登录的操作系统。使用关键词过滤搜索到的文件，主要查看用户文件夹下的文件。
+
+```
+cat file | grep Users | grep "Alissa Simpson" | grep -E "Desktop|Documents|Downloads|Pictures|Music|Videos"
+```
+
+```
+root@xiaoshae:/mnt/data/memory# cat file | grep Users | grep "Alissa Simpson" | grep -E "Desktop|Documents|Downloads|Pictures|Music|Videos"
+0x000000003e811370      1      0 R--rwd \Device\HarddiskVolume2\Users\Alissa Simpson\Downloads\desktop.ini
+0x000000003e83b630      1      0 R--rwd \Device\HarddiskVolume2\Users\Alissa Simpson\Pictures\desktop.ini
+0x000000003e865a20      1      0 R--rwd \Device\HarddiskVolume2\Users\Alissa Simpson\Music\desktop.ini
+0x000000003e8aa070      1      0 R--rwd \Device\HarddiskVolume2\Users\Alissa Simpson\Videos\desktop.ini
+0x000000003ebd4d10      1      0 R--rwd \Device\HarddiskVolume2\Users\Alissa Simpson\Desktop\desktop.ini
+0x000000003ed12f20      1      0 R--rwd \Device\HarddiskVolume2\Users\Alissa Simpson\Documents\desktop.ini
+0x000000003fa04790      1      1 R--rw- \Device\HarddiskVolume2\Users\Alissa Simpson\Documents
+0x000000003fa3ebc0      1      0 R--r-- \Device\HarddiskVolume2\Users\Alissa Simpson\Documents\Important.rar
+0x000000003fa89790      1      1 R--rw- \Device\HarddiskVolume2\Users\Alissa Simpson\Documents
+0x000000003fac3bc0      1      0 R--r-- \Device\HarddiskVolume2\Users\Alissa Simpson\Documents\Important.rar
+0x000000003fb0e790      1      1 R--rw- \Device\HarddiskVolume2\Users\Alissa Simpson\Documents
+0x000000003fb48bc0      1      0 R--r-- \Device\HarddiskVolume2\Users\Alissa Simpson\Documents\Important.rar
+...
+```
+
+
+
+发现用户的 Document（文档）文件夹下存在 Important.rar 文件，使用 dumpfiles 导出文件。
+
+```
+vol2 -f MemoryDump_Lab1.raw --profile=Win7SP1x64 dumpfiles -Q 0x000000003fa3ebc0 -D .
+
+DataSectionObject 0x3fa3ebc0   None   \Device\HarddiskVolume2\Users\Alissa Simpson\Documents\Important.rar
+```
+
+
+
+分析文件的信息。
+
+```
+file file.None.0xfffffa8001034450.dat
+
+file.None.0xfffffa8001034450.dat: RAR archive data, v5
+```
+
+```
+rar v file.None.0xfffffa8001034450.rar
+
+RAR 7.00   Copyright (c) 1993-2024 Alexander Roshal   26 Feb 2024
+Trial version             Type 'rar -?' for help
+
+Archive comment:
+Password is NTLM hash(in uppercase) of Alissa's account passwd.
+
+Archive: file.None.0xfffffa8001034450.rar
+Details: RAR 5
+
+ Attributes      Size    Packed Ratio    Date    Time   Checksum  Name
+----------- ---------  -------- ----- ---------- -----  --------  ----
+*   ..A....     46045     41856  90%  2019-12-11 21:34  997C37CD  flag3.png
+----------- ---------  -------- ----- ---------- -----  --------  ----
+                46045     41856  90%                              1
+```
+
+压缩包属性注释提示：密码是 Alissa 账户密码的 NTLM 哈希（大写）。
+
+
+
+在前面导出的 hash 信息中，Alissa Simpson 用户的信息如下。
+
+```
+Alissa Simpson:1003:aad3b435b51404eeaad3b435b51404ee:f4ff64c8baac57d22f22edc681055ba6:::
+```
+
+
+
+Alissa Simpson 用户 NTLM 哈希部分。
+
+```
+f4ff64c8baac57d22f22edc681055ba6
+```
+
+```
+F4FF64C8BAAC57D22F22EDC681055BA6
+```
+
+
+
+压缩包密码是 **F4FF64C8BAAC57D22F22EDC681055BA6**，解压压缩包。
+
+```
+unrar x file.None.0xfffffa8001034450.rar
+
+UNRAR 7.00 freeware      Copyright (c) 1993-2024 Alexander Roshal
+
+Archive comment:
+Password is NTLM hash(in uppercase) of Alissa's account passwd.
+
+
+Extracting from file.None.0xfffffa8001034450.rar
+
+Enter password (will not be echoed) for flag3.png: 
+
+Extracting  flag3.png                                                 OK 
+All OK
+```
+
