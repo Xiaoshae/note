@@ -3191,3 +3191,131 @@ Extracting  flag3.png                                                 OK
 All OK
 ```
 
+
+
+图片内容为 **flag{w3ll_3rd_stage_was_easy}**
+
+![image.png](https://cdn.qwenlm.ai/e2a6e418-3bc9-47eb-bb57-c9f7c01951cc/77c38ffa-d194-426f-8167-147b70147eb1_image.png?key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZXNvdXJjZV91c2VyX2lkIjoiZTJhNmU0MTgtM2JjOS00N2ViLWJiNTctYzlmN2MwMTk1MWNjIiwicmVzb3VyY2VfaWQiOiI3N2MzOGZmYS1kMTk0LTQyNmYtODE2Ny0xNDdiNzAxNDdlYjEiLCJyZXNvdXJjZV9jaGF0X2lkIjpudWxsfQ.ERYkhk4caq6rV3wwkh4lGkWcF6Mxtl_g9M3crglWoYg)
+
+
+
+### MemLabs：2
+
+One of the clients of our company, lost the access to his system due to an unknown error. He is supposedly a very popular "environmental" activist. As a part of the investigation, he told us that his go to applications are browsers, his password managers etc. We hope that you can dig into this memory dump and find his important stuff and give it back to us.
+
+我们公司的一位客户由于未知错误失去了对其系统的访问权限。据说他是一位非常著名的“环保”活动家。作为调查的一部分，他告诉我们他常用的应用程序是浏览器、密码管理器等。我们希望你能深入研究这个内存转储，找到他的重要资料并将其归还给我们。
+
+注意：本挑战包含 3 个 flag。
+
+
+
+在原文中提到 environmental，还加上了引号，这其实是在提醒查看环境变量。
+
+```
+vol2 -f MemoryDump_Lab2.raw --profile=Win7SP1x64 envars
+
+3852 conhost.exe          0x000000000014d880 NEW_TMP C:\Windows\ZmxhZ3t3M2xjMG0zX1QwXyRUNGczXyFfT2ZfTDRCXzJ9
+```
+
+```
+echo ZmxhZ3t3M2xjMG0zX1QwXyRUNGczXyFfT2ZfTDRCXzJ9 | base64 -d
+
+flag{w3lc0m3_T0_$T4g3_!_Of_L4B_2}
+```
+
+
+
+使用 pslist 查看进程，发现 chrome 进程，提示中说明用户常用浏览器，使用 chrome 历史记录读取的浏览器插件。
+
+```
+vol2 -f MemoryDump_Lab2.raw --profile=Win7SP1x64 chromehistory
+```
+
+![image-20250313152840259](./images/volatility2.assets/image-20250313152840259.png)
+
+
+
+浏览器有一个访问 mega.nz 网站的历史记录，该网站是一个网盘类的网站，本机访问该网站尝试下载文件。
+
+![image-20250313152938184](./images/volatility2.assets/image-20250313152938184.png)
+
+
+
+压缩包文件进行解压需要密码，属性提示密码为 MemLabs: 1 关卡第三个 flag（小写）的 sha1 哈希值。
+
+![image-20250313153122596](./images/volatility2.assets/image-20250313153122596.png)
+
+
+
+关卡 1 的 flag 值为 **flag{w3ll_3rd_stage_was_easy}**，sha1 哈希值为 **6045dd90029719a039fd2d2ebcca718439dd100a**，解压后文件内容为 **flag{oK_So_Now_St4g3_3_is_DoNE!!} **。
+
+![image-20250313153443428](./images/volatility2.assets/image-20250313153443428.png)
+
+
+
+
+
+
+
+使用 pslist 查看进程，发现一个名为 KeePass 的进程，这是一个密码密码管理器应用，PID 为 3008
+
+```
+vol2 -f MemoryDump_Lab2.raw --profile=Win7SP1x64 pslist > win.pslist
+```
+
+```
+0xfffffa800224a8c0 KeePass.exe            3008   1064     12      316      1      0 2019-12-14 10:37:56 UTC+0000                                 
+```
+
+
+
+通过搜索得知的是 KeePass 应用程序默认的文件后缀为 kdbx，使用 filescan 插件搜索所有文件，并使用关键字进行过滤。
+
+```
+vol2 -f MemoryDump_Lab2.raw --profile=Win7SP1x64 filescan > file
+```
+
+```
+cat file | grep kdbx
+
+0x000000003fb112a0     16      0 R--r-- \Device\HarddiskVolume2\Users\SmartNet\Secrets\Hidden.kdbx
+```
+
+
+
+使用 dumpfiles 插件将文件导出。
+
+```
+vol2 -f MemoryDump_Lab2.raw --profile=Win7SP1x64 dumpfiles -Q 0x000000003fb112a0 -D . 
+```
+
+
+
+使用本地的 KeePass 密码管理器尝试打开这个文件，提示需要密码进行解密。
+
+![image-20250313140403957](./images/volatility2.assets/image-20250313140403957.png)
+
+
+
+使用关键字过滤文件，搜索用户的目录，发现 Password.png 图片
+
+```
+cat file | grep Users | grep "Alissa Simpson" | grep -E "Desktop|Documents|Downloads|Pictures|Music|Videos"
+
+0x000000003fce1c70      1      0 R--r-d \Device\HarddiskVolume2\Users\Alissa Simpson\Pictures\Password.png
+```
+
+
+
+导出后图片内容如下，密码用很小的字体放置在右下角（**P4SSw0rd_123**）。
+
+![image-20250313140615814](./images/volatility2.assets/image-20250313140615814.png)
+
+
+
+使用密码对 kdbx 文件进行解密，在回收站中发现 flag（**flag{w0w_th1s_1s_Th3_SeC0nD_ST4g3_!!}**）。
+
+![image-20250313140741379](./images/volatility2.assets/image-20250313140741379.png)
+
+
+
