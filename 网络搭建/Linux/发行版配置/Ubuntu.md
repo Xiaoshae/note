@@ -250,7 +250,7 @@ deb-src https://mirrors.aliyun.com/kali kali-rolling main non-free contrib
 
 ```shell
 wget archive.kali.org/archive-key.asc   #下载签名
-apt-key add archive-key.asc   #安装签名
+gpg --dearmor -o /etc/apt/trusted.gpg.d/archive-key.gpg archive-key.asc
 ```
 
 
