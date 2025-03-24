@@ -298,3 +298,31 @@ iptables -A INPUT [ -m tcp ] -p tcp --dport 22 -j ACCEPT
 
 
 
+### 永久保存
+
+确保系统已安装 `iptables-persistent` 以便保存规则：
+
+```
+apt install iptables-persistent
+```
+
+
+
+### 保存 iptables 规则
+
+```
+iptables-save
+```
+
+
+
+## 示例
+
+### NAT
+
+添加 NAT 规则，将 40000-50000 端口的 UDP 流量重定向到 443 端口：
+
+```
+sudo iptables -t nat -A PREROUTING -p udp --dport 40000:50000 -j REDIRECT --to-ports 443
+```
+
