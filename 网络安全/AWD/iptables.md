@@ -66,6 +66,7 @@ iptables通过**表**对规则进行分类，每个表包含一组链（**并非
 
 - 当触发某个 netfilter 的钩子时，系统会按照表格中自上而下的顺序执行处理流程。
 - 某些情况下会跳过特定表的特定链处理，例如：对于新建的网络连接，只有首个数据包会经过 NAT 规则匹配，后续数据包会自动沿用已建立的转换规则
+- 表优先级：**Raw -> Mangle -> Nat -> Filter -> Security**
 
 
 
@@ -128,20 +129,96 @@ iptables通过**表**对规则进行分类，每个表包含一组链（**并非
 
 
 
-3. iptables 基本操作
+## 基本操作
 
-    - 启动iptables: `service iptables start`
-    - 关闭iptables: `service iptables stop`
-    - 重启iptables: `service iptables restart`
-    - 查看iptables状态: `service iptables status`
-    - 保存iptables配置: `service iptables save`
-    - iptables 服务配置文件: `/etc/sysconfig/iptables-config`
-    - iptables 规则保存文件: `/etc/sysconfig/iptables`
-    - 打开iptables 转发: `echo "1" > /proc/sys/net/ipv4/ip_forward`
+- 启动iptables: `service iptables start`
+- 关闭iptables: `service iptables stop`
+- 重启iptables: `service iptables restart`
+- 查看iptables状态: `service iptables status`
+- 保存iptables配置: `service iptables save`
+- iptables 服务配置文件: `/etc/sysconfig/iptables-config`
+- iptables 规则保存文件: `/etc/sysconfig/iptables`
+- 打开iptables 转发: `echo "1" > /proc/sys/net/ipv4/ip_forward`
 
 
 
-## iptables 命令参考
+### ubuntu
+
+安装 iptables-persistent 工具
+
+```
+sudo apt update
+sudo apt install iptables-persistent
+```
+
+
+
+自动保存 IPv4 (`rules.v4`) 和 IPv6 (`rules.v6`) 规则。
+
+```
+netfilter-persistent save
+```
+
+
+
+将当前规则保存到 `/etc/iptables/rules.v4` 以实现永久生效：
+
+```
+sudo iptables-save | sudo tee /etc/iptables/rules.v4
+```
+
+
+
+将当前规则保存到 `/etc/iptables/rules.v6` 以实现永久生效：
+
+```
+sudo ip6tables-save | sudo tee /etc/iptables/rules.v6
+```
+
+
+
+将 `netfilter-persistent` 服务设置为开机自启。
+
+```
+systemctl enable netfilter-persistent
+```
+
+
+
+确认 `netfilter-persistent` 服务已启用，以便启动时加载规则：
+
+```
+systemctl status netfilter-persistent
+
+● netfilter-persistent.service - netfilter persistent configuration
+     Loaded: loaded (/usr/lib/systemd/system/netfilter-persistent.service; enabled; preset: enabled)
+    Drop-In: /usr/lib/systemd/system/netfilter-persistent.service.d
+             └─iptables.conf
+     Active: active (exited) since Wed 2025-03-26 11:24:31 CST; 2min 17s ago
+       Docs: man:netfilter-persistent(8)
+   Main PID: 3158 (code=exited, status=0/SUCCESS)
+        CPU: 6ms
+```
+
+
+
+临时启用 IP 转发
+
+```
+echo "1" > /proc/sys/net/ipv4/ip_forward
+```
+
+
+
+永久启用 IP 转发，编辑 `/etc/sysctl.conf` 文件添加以下行，并执行 `sysctl -p` 生效。
+
+```
+net.ipv4.ip_forward=1
+```
+
+
+
+## 命令参考
 
 命令：
 
@@ -298,25 +375,217 @@ iptables -A INPUT [ -m tcp ] -p tcp --dport 22 -j ACCEPT
 
 
 
-### 永久保存
-
-确保系统已安装 `iptables-persistent` 以便保存规则：
-
-```
-apt install iptables-persistent
-```
-
-
-
-### 保存 iptables 规则
-
-```
-iptables-save
-```
-
-
-
 ## 示例
+
+### 链默认行为
+
+**默认策略（Policy）** 是 iptables 链（如 `INPUT`、`OUTPUT`、`FORWARD`）的最终行为。
+
+如果**数据包未匹配任何规则**，则执行链的默认策略。常用策略：`ACCEPT`（允许）、`DROP`（丢弃）、`REJECT`（拒绝并返回响应）。
+
+
+
+> **INPUT 和 OUTPUT 默认为 ACCEPT，FORWARD 默认为 DROP。**
+
+
+
+设置默认策略的命令语法：
+
+```
+sudo iptables -P <链名> <策略>
+```
+
+
+
+将 INPUT 链默认行为设为 DROP（严格安全模式）
+
+```
+iptables -P INPUT DROP
+```
+
+- 所有未被明确允许的入站流量将被丢弃。
+
+
+
+将 OUTPUT 链默认行为设为 ACCEPT（宽松出站）
+
+```
+iptables -P OUTPUT ACCEPT
+```
+
+- 允许所有未被明确禁止的出站流量。
+
+
+
+将 FORWARD 链设为 REJECT（禁止路由转发）
+
+```
+iptables -P FORWARD REJECT
+```
+
+- 拒绝转发流量并返回 icmp-port-unreachable 响应。
+
+
+
+### Filter
+
+#### INPUT
+
+允许 SSH、HTTP、HTTPS（22、80、443） 访问
+
+```
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+```
+
+- 允许 TCP 协议的 22 端口（SSH）、80 端口（HTTP）和 443 端口（HTTPS）访问本机。
+
+
+
+允许 ICMP（Ping）
+
+```
+iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+```
+
+- 允许 ICMP 协议的 echo-request（Ping 请求）访问本机。
+
+
+
+允许来自特定 IP 的访问
+
+```
+iptables -A INPUT -s 192.168.1.100 -j ACCEPT
+```
+
+- 允许来自 IP 地址 `192.168.1.100` 的所有流量访问本机。
+
+
+
+允许已建立的连接
+
+```
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+```
+
+- 允许已建立的连接和相关的流量访问本机。
+
+
+
+拒绝所有其他流量
+
+```
+iptables -A INPUT -j DROP
+```
+
+- 拒绝所有未明确允许的流量。
+
+
+
+#### OUTPUT
+
+允许本机访问外网
+
+```
+iptables -A OUTPUT -o eth0 -j ACCEPT
+```
+
+- 允许从本机通过外网接口 `eth0` 发出的所有流量。
+
+
+
+允许本机访问 DNS
+
+```
+iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+```
+
+- 允许本机通过 UDP 协议的 53 端口（DNS）访问外部。
+
+
+
+允许本机访问 HTTP 和 HTTPS
+
+```
+iptables -A OUTPUT -p tcp --dport 80 -j ACCEPTiptables -A OUTPUT -p tcp --dport 443 -j ACCEPT
+```
+
+- 允许本机通过 TCP 协议的 80 端口（HTTP）和 443 端口（HTTPS）访问外部。
+
+
+
+允许本机 Ping 外部
+
+```
+iptables -A OUTPUT -p icmp --icmp-type echo-request -j ACCEPT
+```
+
+- 允许本机发出 ICMP 协议的 `echo-request`（Ping 请求）。
+
+
+
+允许已建立的连接
+
+```
+iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+```
+
+- 允许已建立的连接和相关的输出流量。
+
+
+
+拒绝所有其他输出流量
+
+```
+iptables -A OUTPUT -j DROP
+```
+
+- 拒绝所有未明确允许的输出流量。
+
+
+
+#### FORWARD
+
+允许内网访问外
+
+```
+iptables -A FORWARD -i eth1 -o eth0 -j ACCEPT
+```
+
+- 允许从内网接口 eth1 到外网接口 eth0 的转发流量。
+
+
+
+允许外网访问内网特定服务
+
+```
+iptables -A FORWARD -i eth0 -o eth1 -p tcp --dport 80 -j ACCEPT
+```
+
+- 允许从外网接口 eth0 到内网接口 eth1 的 HTTP 流量。
+
+
+
+允许已建立的连接
+
+```
+iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+```
+
+- 允许已建立的连接和相关的转发流量。
+
+
+
+拒绝所有其他转发流量
+
+```
+iptables -A FORWARD -j DROP
+```
+
+- 拒绝所有未明确允许的转发流量。
+
+
 
 ### NAT
 
