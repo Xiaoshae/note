@@ -14,7 +14,7 @@ Linux 绕过登录以 root 用户进入 shell，需要对计算机或控制台�
 
 ![img](./images/Linux%20%E9%80%9A%E7%94%A8%E9%85%8D%E7%BD%AE.assets/reset-root-password01.jpg)
 
-**注：Highlight the row and press the "e" key. 翻译为“高亮显示该行并按“e”键。”**
+**注：Highlight the row and press the "e" key. 翻译为“选中该行并按“e”键。”**
 
 
 
@@ -38,8 +38,6 @@ Linux 绕过登录以 root 用户进入 shell，需要对计算机或控制台�
 系统将以单用户模式启动，您最终将得到一个带有登录 root 帐户的 Bash shell。
 
 ![img](./images/Linux%20%E9%80%9A%E7%94%A8%E9%85%8D%E7%BD%AE.assets/reset-root-password04.jpg)
-
-
 
 `save`：强制将缓存数据写入磁盘
 
