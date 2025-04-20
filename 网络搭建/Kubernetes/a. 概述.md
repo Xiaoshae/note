@@ -27,13 +27,12 @@ Kubernetes 集群由**控制平面**和**一个或多个工作节点（Node）**
 
 
 
-### Node 组件
+### Node
 
-在每个**节点（物理机或虚拟机）**上运行，维护运行的 Pod 并提供 Kubernetes 运行时环境：
+**Node** 是一台**计算机（物理或虚拟的）**。
 
-- **kubelet**：确保 Pod 及其容器正常运行。
-- **kube-proxy（可选）**：维护节点上的网络规则以实现 Service 的功能。
-- **Container runtime**：负责运行容器的软件，阅读容器运行时以了解更多信息。
+- **Control Plane（Master Node）** – 就像**管理者**，负责组织和调度工作。
+- **Worker Node** – 就像**员工**（机器），实际运行Pod中的应用程序。
 
 
 
@@ -62,18 +61,55 @@ Kubernetes 中将**多个容器部署在同一个 Pod** 上，类似于**传统�
 
 
 
-### service & Ingress
+### Cluster
+
+**Kubernetes Cluster（集群）**，将一切整合在一起，包括Node、Pod、网络、存储和安全措施。
 
 
 
-### configMap & secret
+### Deployment
+
+**Deployment（部署）** 确保始终有特定数量的**Pod** 在运行，同时自动化处理更新和扩展。
 
 
 
-### Volume
+### ReplicaSet
+
+**ReplicaSet（备份系统）**确保正确数量的**相同Pod** 始终在运行。
 
 
 
-### Deployment & StatefulSet
+### Service
 
+**Service** 确保用户始终能连接到正确的Pod，即使Pod重启或迁移到其他Node。
+
+
+
+### Ingress
+
+**Ingress** 管理外部用户访问服务的流量，确保网络请求得到正确的引导。
+
+
+
+### ConfigMap
+
+**ConfigMap** 将配置设置与应用程序分开存储，这样就能在不修改代码的情况下进行更改。
+
+
+
+### Secret
+
+**Secret** 用于安全存储敏感数据，如密码、API密钥和证书。
+
+
+
+### PV
+
+**Persistent Volume (PV)** 是一种长期存储，即使应用程序重启也不会消失。
+
+
+
+### Namespace
+
+**Namespace** 帮助在同一个 Kubernetes Cluster 中隔离不同的项目或团队。
 

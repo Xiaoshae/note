@@ -252,3 +252,92 @@ kubeadm token create --print-join-command
 kubeadm join 10.40.1.240:6443 --token xxxxx --discovery-token-ca-cert-hash sha256:xxxxxx
 ```
 
+
+
+### 镜像站配置
+
+在 Containerd 配置镜像站，编辑 /etc/containerd/config.toml 文件，在 **[plugins."io.containerd.grpc.v1.cri".registry.mirrors]** 添加内容。（老方法）
+
+```
+      [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+          endpoint = ["https://deng-registry-1-docker-io.xiaoshae.cn"]
+
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
+          endpoint = ["https://deng-ghcr-io.xiaoshae.cn"]
+
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."gcr.io"]
+          endpoint = ["https://deng-gcr-io.xiaoshae.cn"]
+
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."quay.io"]
+          endpoint = ["https://deng-quay-io.xiaoshae.cn"]
+
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."registry.k8s.io"]
+          endpoint = ["https://deng-registery-k8s.xiaoshae.cn"]
+```
+
+
+
+新方法
+
+- **先移除旧配置文件**：将原配置中的 `mirrors` 部分移除，在 **[plugins."io.containerd.grpc.v1.cri".registry]** 后的 **config_path** 指定文件夹位置。。
+
+```
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
+```
+
+建议使用 `/etc/containerd/certs.d` 作为 `config_path`，因为这是 containerd 的默认推荐目录。可以根据需要修改路径，但要确保该目录已存在。
+
+
+
+在 `config_path` 指定的目录（例如 `/etc/containerd/certs.d`）下，为每个注册中心创建一个子目录。
+
+为 docker.io 创建子目录和文件：
+
+```
+sudo mkdir -p /etc/containerd/certs.d/docker.io
+sudo touch    /etc/containerd/certs.d/docker.io/hosts.toml
+```
+
+
+
+在 `hosts.toml` 文件中写入：
+
+```
+server = "https://docker.io"
+[host."https://deng-registry-1-docker-io.xiaoshae.cn"]
+  capabilities = ["pull", "resolve"]
+```
+
+
+
+如果您的**端点需要认证（例如，用户名/密码）**、**跳过证书验证**，可以在 `hosts.toml` 中添加更多配置，如：
+
+```
+server = "https://docker.io"
+[host."https://deng-registry-1-docker-io.xiaoshae.cn"]
+  capabilities = ["pull", "resolve"]
+  username = "your-username"
+  password = "your-password"
+  skip_verify = true
+```
+
+
+
+保存所有更改后，重启 containerd 服务，让新配置生效：
+
+```
+systemctl restart containerd
+```
+
+
+
+在使用 ctr images pull 时必须使用 **--hosts-dir /etc/containerd/certs.d 指定目录**：
+
+```
+ctr images pull --hosts-dir /etc/containerd/certs.d docker.io/library/nginx:1.27.5-alpine3.21-slim
+```
+
+- **使用 crictl pull 则可以不指定**
+
