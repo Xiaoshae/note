@@ -325,6 +325,26 @@ server = "https://docker.io"
 
 
 
+认证
+
+```
+echo -n "you_username:you_password" | base64
+```
+
+```
+server = "https://harbor.io"
+[host."https://harbor.xiaoshae.cn"]
+  capabilities = ["pull", "push", "resolve"]
+  [host."https://harbor.xiaoshae.cn".header]
+    authorization = "Basic eW91X3VzZXJuYW1lOnlvdV9wYXNzd29yZA=="
+```
+
+
+
+
+
+
+
 保存所有更改后，重启 containerd 服务，让新配置生效：
 
 ```
