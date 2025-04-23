@@ -52,6 +52,82 @@ kubectl 的参数分为两类：**全局参数**（适用于所有子命令）�
 
 
 
+## 参考
+
+```
+kubectl 控制 Kubernetes 集群管理器。
+
+在以下处查找更多信息： https://kubernetes.io/docs/reference/kubectl/
+
+基本命令（初级）：
+  create          从文件或标准输入创建资源
+  expose          将复制控制器、服务、部署或 pod 暴露为新的 Kubernetes 服务
+  run             在集群上运行特定镜像
+  set             为对象设置特定功能
+
+基本命令（中级）：
+  explain         获取资源的文档说明
+  get             显示一个或多个资源
+  edit            编辑服务器上的资源
+  delete          通过文件名、标准输入、资源和名称，或通过资源和标签选择器删除资源
+
+部署命令：
+  rollout         管理资源的滚动更新
+  scale           为部署、副本集或复制控制器设置新规模
+  autoscale       为部署、副本集、有状态集或复制控制器自动缩放
+
+集群管理命令：
+  certificate     修改证书资源
+  cluster-info    显示集群信息
+  top             显示资源（CPU/内存）使用情况
+  cordon          将节点标记为不可调度
+  uncordon        将节点标记为可调度
+  drain           为维护做准备时清空节点
+  taint           更新一个或多个节点的污点
+
+故障排除和调试命令：
+  describe        显示特定资源或资源组的详细信息
+  logs            打印 pod 中容器的日志
+  attach          附加到运行中的容器
+  exec            在容器中执行命令
+  port-forward    将一个或多个本地端口转发到 pod
+  proxy           运行到 Kubernetes API 服务器的代理
+  cp              复制文件和目录到容器或从容器复制
+  auth            检查授权
+  debug           为工作负载和节点创建调试会话
+  events          列出事件
+
+高级命令：
+  diff            比较实时版本与待应用版本的差异
+  apply           通过文件名或标准输入将配置应用到资源
+  patch           更新资源的字段
+  replace         通过文件名或标准输入替换资源
+  wait            实验性：等待一个或多个资源满足特定条件
+  kustomize       从目录或 URL 构建 kustomization 目标
+
+设置命令：
+  label           更新资源的标签
+  annotate        更新资源的注解
+  completion      为指定 shell（bash、zsh、fish 或 powershell）输出 shell 补全代码
+
+插件提供的子命令：
+
+其他命令：
+  api-resources   打印服务器上支持的 API 资源
+  api-versions    以“组/版本”形式打印服务器上支持的 API 版本
+  config          修改 kubeconfig 文件
+  plugin          提供与插件交互的实用工具
+  version         打印客户端和服务器版本信息
+
+用法：
+  kubectl [flags] [options]
+
+使用 “kubectl <command> --help” 获取给定命令的更多信息。
+使用 “kubectl options” 获取全局命令行选项列表（适用于所有命令）。
+```
+
+
+
 ### get
 
 `get` 命令用于获取 Kubernetes 集群中指定资源的列表或详细信息。它提供了一个快速的概述，帮助您查看资源的当前状态，而不深入到详细配置。
