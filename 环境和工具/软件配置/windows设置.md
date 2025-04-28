@@ -1,4 +1,6 @@
-# 保留的存储
+# Windows 设置
+
+## 保留的存储
 
 在 Windows 中，「保留的存储」（Reserved Storage）是指 Windows 操作系统在系统分区（通常是 C 盘）上预留的一部分存储空间。该空间会用于存储临时文件、缓存文件、系统更新文件等。
 
@@ -52,7 +54,7 @@ dism /Online /Set-ReservedStorageState /State:Enabled
 
 
 
-# 隐藏“此电脑”窗口中的“桌面”选项
+## 隐藏“此电脑”窗口中的“桌面”选项
 
 Windows10 中打开此电脑后，顶级菜单不是“此电脑”而是“桌面”，修改回来。
 
@@ -84,7 +86,25 @@ Windows10 中打开此电脑后，顶级菜单不是“此电脑”而是“桌�
 
 
 
+## Bitlocker 等待激活
+
+BitLocker 的“等待激活”状态是指 BitLocker 已启用，但加密过程尚未开始，磁盘未被完全加密。此状态下，系统已为 BitLocker 配置了保护措施（如 TPM 或密码），但实际的加密操作被推迟，数据仍未受到完整保护。
 
 
-## 安装 office 到其他盘
+
+在 Bitlocker 管理中呈现出以下状态：
+
+![win10电脑提示bitlocker正在等待激活的原因和解决方法](./images/windows%E8%AE%BE%E7%BD%AE.assets/fcadaff30ae09517f8364a9a1c50c9b2.jpeg)
+
+
+
+在 CMD 中输入以下命令，禁用 Bitlocker 即可解决：
+
+```
+manage-bde -off C:
+```
+
+
+
+## 完全关闭 hyper-v
 
