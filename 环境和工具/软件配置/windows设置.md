@@ -16,12 +16,12 @@
 
 2. 导航到「系统」-「存储」，然后点击「显示更多类别」。
 
-![点击显示更多类别](https://img.sysgeek.cn/img/2023/12/windows-reserved-storage-p5.jpg)
+![点击显示更多类别](./images/windows%E8%AE%BE%E7%BD%AE.assets/windows-reserved-storage-p5.jpg)
 
 3. 在展开的列表中点击「系统和保留」选项。
 4. 在新打开的页面中即可查看到用量。
 
-![查看保留的存储](https://img.sysgeek.cn/img/2023/12/windows-reserved-storage-p6.jpg)
+![查看保留的存储](./images/windows%E8%AE%BE%E7%BD%AE.assets/windows-reserved-storage-p6.jpg)
 
 
 
@@ -43,7 +43,7 @@ dism /Online /Get-ReservedStorageState
 dism /Online /Set-ReservedStorageState /State:Disabled
 ```
 
-![img](https://img.sysgeek.cn/img/2023/12/windows-reserved-storage-p7.jpg)
+![img](./images/windows%E8%AE%BE%E7%BD%AE.assets/windows-reserved-storage-p7.jpg)
 
 4. 重启计算机。
 5. （可选）如果有需要，可以随时使用以下命令再次启用。
@@ -108,3 +108,68 @@ manage-bde -off C:
 
 ## 完全关闭 hyper-v
 
+Windows 的 Hyper-V 和 VMware 都使用 CPU 的硬件虚拟化扩展（如 Intel VT-x 或 AMD-V），两者无法同时运行。
+
+在 Windows 10 和 11（包括家庭版、专业版和企业版）中完全禁用 Hyper-V，以允许 VMware（特别是嵌套虚拟化）正常运行。
+
+
+
+首先，检查 **BIOS** 中是否开启了硬件虚拟化。在 Windows 中，打开**任务管理器**，切换到**性能**中的 **CPU** 窗口，查看**虚拟化**字段是否显示 **已启用**。
+
+如果显示**已启用**，则表明硬件层面支持虚拟化，但 **VMware** 无法启用嵌套虚拟化可能是软件（操作系统）问题。如果显示**未启用**，则大概率为硬件问题，需要在 **BIOS** 中启用硬件虚拟化选项。目前，绝大多数台式机和笔记本在 **BIOS** 中默认启用硬件虚拟化。
+
+![image-20250428190812424](./images/windows%E8%AE%BE%E7%BD%AE.assets/image-20250428190812424.png)
+
+
+
+软件（操作系统）问题中，**绝大多数**是由于 **Windows 系统**直接或间接启用了 **Hyper-V**，因此需要通过多种方法**完全禁用 Hyper-V**。
+
+
+
+1. 关闭 Windows 功能
+
+打开**控制面板**，导航至**程序和功能**，然后点击**打开或关闭 Windows 功能**。取消选中 **Hyper-V**、**虚拟机平台** 和 **Windows 虚拟机监控程序平台**。点击**确定**，并根据提示重启计算机。
+
+![image-20250428191132027](./images/windows%E8%AE%BE%E7%BD%AE.assets/image-20250428191132027.png)
+
+![image-20250428191203659](./images/windows%E8%AE%BE%E7%BD%AE.assets/image-20250428191203659.png)
+
+![image-20250428191300993](./images/windows%E8%AE%BE%E7%BD%AE.assets/image-20250428191300993.png)
+
+
+
+	2. 使用 BCDEdit 禁用 Hyper-V：
+
+**以管理员身份**打开**命令提示符**（按 Win + X，选择“命令提示符（管理员）”）。输入命令：**bcdedit /set hypervisorlaunchtype off** 并按回车。最后，重启计算机以应用更改。
+
+```
+bcdedit /set hypervisorlaunchtype off
+```
+
+![image-20250428192734010](./images/windows%E8%AE%BE%E7%BD%AE.assets/image-20250428192734010.png)
+
+![image-20250428191531158](./images/windows%E8%AE%BE%E7%BD%AE.assets/image-20250428191531158.png)
+
+
+
+3. 禁用核心隔离中的内存完整性：
+
+首先，打开 **Windows 安全中心**，然后导航到**设备安全** > **核心隔离**。接下来，关闭**内存完整性**开关。**最后，重启计算机**以应用更改。
+
+![image-20250428192002325](./images/windows%E8%AE%BE%E7%BD%AE.assets/image-20250428192002325.png)
+
+
+
+**验证 Hyper-V 已完全禁用**
+
+首先，按 **Win + R** 组合键打开运行对话框，然后输入 **msinfo32.exe** 并按回车。在“系统信息”窗口中，检查是否显示 **“检测到虚拟机监控程序。Hyper-V 所需的功能将不显示。”** 如果没有此提示，则说明 **Hyper-V 已成功禁用**。
+
+
+
+如果显示的界面如以下图片所示，则表示 **Hyper-V 已启用（未完全禁用）**。
+
+![image-20250428192235526](./images/windows%E8%AE%BE%E7%BD%AE.assets/image-20250428192235526.png)
+
+
+
+如果显示的界面如以下图片所示，则表示 **Hyper-V 已禁用**。
