@@ -202,3 +202,100 @@ dhclient eth0
        valid_lft forever preferred_lft forever
 ```
 
+
+
+### 跨主机通讯
+
+gre 是点对点通讯，gre 可以封装二层（数据链路层）流量。
+
+gre 跨主机通讯
+
+linux1 网卡 ip 10.13.0.101
+
+linux2 网卡 ip 10.13.0.102
+
+
+
+linux1
+
+```
+ovs-vsctl add-br br
+
+ovs-vsctl add-port br gre
+ovs-vsctl set interface gre type=gre options:remote_ip=10.13.0.102
+```
+
+
+
+```
+ip netns add dhcp
+ip link add dhcp type veth peer name eth0 netns dhcp
+ip link set dhcp up
+ovs-vsctl add-port br dhcp
+```
+
+
+
+```
+ip netns exec dhcp bash
+
+ip link set lo up
+ip link set eth0 up
+
+ip address add 192.168.100.1/24 dev eth0
+
+dnsmasq \
+    --no-daemon \
+    --interface=eth0 \
+    --dhcp-range=192.168.100.100,192.168.100.200,12h \
+    --dhcp-option=option:router,192.168.100.1 \
+    --dhcp-option=option:dns-server,223.5.5.5,223.6.6.6
+
+dnsmasq: started, version 2.90 cachesize 150
+dnsmasq: compile time options: IPv6 GNU-getopt DBus no-UBus i18n IDN2 DHCP DHCPv6 no-Lua TFTP conntrack ipset nftset auth cryptohash DNSSEC loop-detect inotify dumpfile
+dnsmasq-dhcp: DHCP, IP range 192.168.100.100 -- 192.168.100.200, lease time 12h
+dnsmasq: reading /etc/resolv.conf
+dnsmasq: using nameserver 127.0.0.53#53
+dnsmasq: read /etc/hosts - 8 names
+...
+
+# linux2 中的 main 命名空间中执行 dhclient eth0 后
+dnsmasq-dhcp: DHCPDISCOVER(eth0) b6:88:e7:1f:5f:3d 
+dnsmasq-dhcp: DHCPOFFER(eth0) 192.168.100.199 b6:88:e7:1f:5f:3d 
+dnsmasq-dhcp: DHCPDISCOVER(eth0) b6:88:e7:1f:5f:3d 
+dnsmasq-dhcp: DHCPOFFER(eth0) 192.168.100.199 b6:88:e7:1f:5f:3d 
+dnsmasq-dhcp: DHCPREQUEST(eth0) 192.168.100.199 b6:88:e7:1f:5f:3d 
+dnsmasq-dhcp: DHCPACK(eth0) 192.168.100.199 b6:88:e7:1f:5f:3d u4-2
+```
+
+
+
+linux2
+
+```
+ovs-vsctl add-br br
+
+ovs-vsctl add-port br gre
+ovs-vsctl set interface gre type=gre options:remote_ip=10.13.0.101
+```
+
+
+
+```
+ip netns add main
+ip link add main type veth peer name eth0 netns main
+ip link set main up
+ovs-vsctl add-port br main
+```
+
+
+
+```
+ip netns exec main bash
+
+ip link set lo up
+ip link set eth0 up
+
+dhclient eth0
+```
+
