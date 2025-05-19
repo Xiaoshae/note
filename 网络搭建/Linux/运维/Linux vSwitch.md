@@ -299,3 +299,168 @@ ip link set eth0 up
 dhclient eth0
 ```
 
+
+
+## gre openstack
+
+openstack 组网
+
+linux1 网卡1（ens33） 192.168.20.180 （能上外网）
+
+linux1 网卡2 10.13.0.101 （内网通讯）
+
+
+
+linux2 网卡1 10.13.0.102 （内网通讯）
+
+
+
+linux3 网卡1 10.13.0.103 （内网通讯）
+
+
+
+linux1
+
+```
+ip netns add forward
+
+ip link add dhcp type veth peer name eth0 netns forward
+ip link add net-ext type veth peer name eth1 netns forward
+
+ip link set dhcp up
+ip link set net-ext up
+```
+
+
+
+```
+ovs-vsctl add-br br-int
+
+ovs-vsctl add-port br-int gre1
+ovs-vsctl add-port br-int gre2
+
+ovs-vsctl set interface gre1 type=gre options:remote_ip=10.13.0.102
+ovs-vsctl set interface gre2 type=gre options:remote_ip=10.13.0.103
+
+ovs-vsctl add-port br-int dhcp
+```
+
+
+
+```
+ovs-vsctl add-br br-ext
+
+ovs-vsctl add-port br-ext ens33
+ovs-vsctl add-port br-ext net-ext
+
+ip link set br-ext up
+ip address add 192.168.20.180/24 dev br-ext
+```
+
+
+
+```
+ip netns exec forward bash
+
+ip link set lo up
+ip link set eth0 up
+ip link set eth1 up
+
+ip address add 192.168.100.1/24 dev eth0
+ip address add 192.168.20.254/24 dev eth1
+
+ip route add default via 192.168.20.180 dev eth1 src 192.168.20.254 proto static
+
+dnsmasq \
+    --no-daemon \
+    --interface=eth0 \
+    --dhcp-range=192.168.100.100,192.168.100.200,12h \
+    --dhcp-option=option:router,192.168.100.1 \
+    --dhcp-option=option:dns-server,223.5.5.5,223.6.6.6
+
+```
+
+
+
+```
+# 主网络命名空间
+
+ip route add default via 192.168.20.2 dev br-ext proto static metric 1
+
+ip route add 192.168.100.0/24 via 192.168.20.254 dev br-ext src 192.168.20.180 proto static
+
+iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -o br-ext -j MASQUERADE
+```
+
+
+
+
+
+linux2
+
+```
+ip netns add main
+
+ip link add main type veth peer name eth0 netns main
+
+ip link set main up
+```
+
+
+
+```
+ovs-vsctl add-br br-int
+
+ovs-vsctl add-port br-int gre
+
+ovs-vsctl set interface gre type=gre options:remote_ip=10.13.0.101
+
+ovs-vsctl add-port br-int main
+```
+
+
+
+```
+ip netns exec main bash
+
+ip link set lo up
+ip link set eth0 up
+
+dhclient eth0
+```
+
+
+
+linux3
+
+```
+ip netns add main
+
+ip link add main type veth peer name eth0 netns main
+
+ip link set main up
+```
+
+
+
+```
+ovs-vsctl add-br br-int
+
+ovs-vsctl add-port br-int gre
+
+ovs-vsctl set interface gre type=gre options:remote_ip=10.13.0.101
+
+ovs-vsctl add-port br-int main
+```
+
+
+
+```
+ip netns exec main bash
+
+ip link set lo up
+ip link set eth0 up
+
+dhclient eth0
+```
+
