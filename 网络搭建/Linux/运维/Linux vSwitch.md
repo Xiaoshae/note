@@ -701,7 +701,7 @@ dl_type=0x0800,nw_src=192.168.1.1,nw_dst=192.168.1.2,actions=output:1
 
 #### priority
 
-**priority=value**：设置流的**（显示）优先级**，value 范围为 0 到 65535，默认为 32768。
+**priority=value**：设置流的**（显示）优先级**，value 范围为 0 到 65535，**值越大优先级越高**，默认为 32768。
 
 精确匹配的流（即匹配条件中没有通配符，所有字段都明确指定），其**隐式优先级等同于 65535**（最高优先级）。
 
@@ -1010,3 +1010,188 @@ eth_type（或 dl_type）字段指的是**载荷的协议类型**，而不是 80
 若 port 指定，替换数据包 in_port 字段，并重新匹配（**从指定的流表（或默认流表）的第一条流表项开始进行匹配**。）
 
 若 table 指定，提交数据包到指定 table，并匹配。
+
+
+
+
+
+## 简单表流
+
+linux1
+
+```
+ovs-vsctl add-br br-int
+ovs-vsctl add-br br-tun
+
+ovs-vsctl add-port br-int patch-int -- set interface patch-int type=patch options:peer=patch-tun
+ovs-vsctl add-port br-tun patch-tun -- set interface patch-tun type=patch options:peer=patch-int
+
+ovs-vsctl add-port br-tun gre2 -- set interface gre2 type=gre options:remote_ip=10.13.0.102
+ovs-vsctl add-port br-tun gre3 -- set interface gre3 type=gre options:remote_ip=10.13.0.103
+```
+
+
+
+```
+ovs-ofctl del-flows --strict br-tun "table=0,priority=0" #删除默认规则
+
+# table 0
+ovs-ofctl add-flow br-tun "table=0,priority=0,in_port=1,actions=resubmit(,1)"
+ovs-ofctl add-flow br-tun "table=0,priority=0,in_port=2,actions=resubmit(,2)"
+ovs-ofctl add-flow br-tun "table=0,priority=0,in_port=3,actions=resubmit(,2)"
+
+# table 1
+ovs-ofctl add-flow br-tun "table=1,priority=1,eth_dst=01:00:00:00:00:00/01:00:00:00:00:00,actions=resubmit(,21)"
+ovs-ofctl add-flow br-tun "table=1,priority=0,actions=resubmit(,20)"
+
+# table 2
+ovs-ofctl add-flow br-tun "table=2,priority=0,actions=learn(table=20,priority=1,eth_dst=eth_src,output=in_port),output:1"
+
+# table 20
+ovs-ofctl add-flow br-tun "table=20,priority=0,actions=resubmit(,21)"
+
+# table 21
+ovs-ofctl add-flow br-tun "table=21,priority=0,actions=output:2,output:3"
+```
+
+
+
+```
+ip netns add main
+ip link add main type veth peer name eth0 netns main
+ip link set main up
+
+ovs-vsctl add-port br-int main
+```
+
+
+
+```
+ip netns exec main bash
+
+ip link set lo up
+ip link set eth0 up
+
+ip address add 192.168.100.10/24 dev eth0
+```
+
+
+
+linux2
+
+```
+ovs-vsctl add-br br-int
+ovs-vsctl add-br br-tun
+
+ovs-vsctl add-port br-int patch-int -- set interface patch-int type=patch options:peer=patch-tun
+ovs-vsctl add-port br-tun patch-tun -- set interface patch-tun type=patch options:peer=patch-int
+
+ovs-vsctl add-port br-tun gre1 -- set interface gre1 type=gre options:remote_ip=10.13.0.101
+ovs-vsctl add-port br-tun gre3 -- set interface gre3 type=gre options:remote_ip=10.13.0.103
+```
+
+
+
+```
+ovs-ofctl del-flows --strict br-tun "table=0,priority=0" #删除默认规则
+
+# table 0
+ovs-ofctl add-flow br-tun "table=0,priority=0,in_port=1,actions=resubmit(,1)"
+ovs-ofctl add-flow br-tun "table=0,priority=0,in_port=2,actions=resubmit(,2)"
+ovs-ofctl add-flow br-tun "table=0,priority=0,in_port=3,actions=resubmit(,2)"
+
+# table 1
+ovs-ofctl add-flow br-tun "table=1,priority=1,eth_dst=01:00:00:00:00:00/01:00:00:00:00:00,actions=resubmit(,21)"
+ovs-ofctl add-flow br-tun "table=1,priority=0,actions=resubmit(,20)"
+
+# table 2
+ovs-ofctl add-flow br-tun "table=2,priority=0,actions=learn(table=20,priority=1,eth_dst=eth_src,output=in_port),output:1"
+
+# table 20
+ovs-ofctl add-flow br-tun "table=20,priority=0,actions=resubmit(,21)"
+
+# table 21
+ovs-ofctl add-flow br-tun "table=21,priority=0,actions=output:2,output:3"
+```
+
+
+
+```
+ip netns add main
+ip link add main type veth peer name eth0 netns main
+ip link set main up
+
+ovs-vsctl add-port br-int main
+```
+
+
+
+```
+ip netns exec main bash
+
+ip link set lo up
+ip link set eth0 up
+
+ip address add 192.168.100.20/24 dev eth0
+```
+
+
+
+linux3
+
+```
+ovs-vsctl add-br br-int
+ovs-vsctl add-br br-tun
+
+ovs-vsctl add-port br-int patch-int -- set interface patch-int type=patch options:peer=patch-tun
+ovs-vsctl add-port br-tun patch-tun -- set interface patch-tun type=patch options:peer=patch-int
+
+ovs-vsctl add-port br-tun gre1 -- set interface gre1 type=gre options:remote_ip=10.13.0.101
+ovs-vsctl add-port br-tun gre2 -- set interface gre2 type=gre options:remote_ip=10.13.0.102
+```
+
+
+
+```
+ovs-ofctl del-flows --strict br-tun "table=0,priority=0" #删除默认规则
+
+# table 0
+ovs-ofctl add-flow br-tun "table=0,priority=0,in_port=1,actions=resubmit(,1)"
+ovs-ofctl add-flow br-tun "table=0,priority=0,in_port=2,actions=resubmit(,2)"
+ovs-ofctl add-flow br-tun "table=0,priority=0,in_port=3,actions=resubmit(,2)"
+
+# table 1
+ovs-ofctl add-flow br-tun "table=1,priority=1,eth_dst=01:00:00:00:00:00/01:00:00:00:00:00,actions=resubmit(,21)"
+ovs-ofctl add-flow br-tun "table=1,priority=0,actions=resubmit(,20)"
+
+# table 2
+ovs-ofctl add-flow br-tun "table=2,priority=0,actions=learn(table=20,priority=1,eth_dst=eth_src,output=in_port),output:1"
+
+# table 20
+ovs-ofctl add-flow br-tun "table=20,priority=0,actions=resubmit(,21)"
+
+# table 21
+ovs-ofctl add-flow br-tun "table=21,priority=0,actions=output:2,output:3"
+```
+
+
+
+```
+ip netns add main
+ip link add main type veth peer name eth0 netns main
+ip link set main up
+
+ovs-vsctl add-port br-int main
+```
+
+
+
+```
+ip netns exec main bash
+
+ip link set lo up
+ip link set eth0 up
+
+ip address add 192.168.100.30/24 dev eth0
+```
+
