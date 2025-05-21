@@ -137,3 +137,301 @@ VXLAN FDB 表中的匹配目标 MAC 地址为 `00:00:00:00:00:00` 的条目是 B
 
 
 注意：开启 MISS 消息后，仅在不存在对应的表项时发送通知，不会影响 **VXLAN 的数据转发机制**。
+
+
+
+
+
+### flannel
+
+linux1 ip 10.13.0.101
+
+linux2 ip 10.13.0.102
+
+linux3 ip 10.13.0.103
+
+
+
+linux1
+
+```
+ip link add br0 type bridge
+ip link set br0 up
+
+ip link add vxlan type vxlan id 1 local 10.13.0.101 dstport 0
+ip link set vxlan master br0 up
+
+bridge fdb add 00:00:00:00:00:00 dst 10.13.0.102 dev vxlan
+bridge fdb append 00:00:00:00:00:00 dst 10.13.0.103 dev vxlan
+```
+
+
+
+```
+ip netns add pod1
+ip link add pod1 type veth peer name eth0 netns pod1
+ip link set pod1 master br0 up
+```
+
+
+
+```
+ip netns exec pod1 bash
+
+ip link set lo up
+ip link set eth0 up
+
+ip address add 192.168.10.10/24 dev eth0
+ip route add 192.168.20.0/24 dev eth0 proto static src 192.168.10.10
+ip route add 192.168.30.0/24 dev eth0 proto static src 192.168.10.10
+```
+
+
+
+linux2
+
+```
+ip link add br0 type bridge
+ip link set br0 up
+
+ip link add vxlan type vxlan id 1 local 10.13.0.102 dstport 0
+ip link set vxlan master br0 up
+
+bridge fdb add 00:00:00:00:00:00 dst 10.13.0.101 dev vxlan
+bridge fdb append 00:00:00:00:00:00 dst 10.13.0.103 dev vxlan
+```
+
+
+
+```
+ip netns add pod2
+ip link add pod2 type veth peer name eth0 netns pod2
+ip link set pod2 master br0 up
+```
+
+
+
+```
+ip netns exec pod2 bash
+
+ip link set lo up
+ip link set eth0 up
+
+ip address add 192.168.20.10/24 dev eth0
+ip route add 192.168.10.0/24 dev eth0 proto static src 192.168.20.10
+ip route add 192.168.30.0/24 dev eth0 proto static src 192.168.20.10
+```
+
+
+
+linux3
+
+```
+ip link add br0 type bridge
+ip link set br0 up
+
+ip link add vxlan type vxlan id 1 local 10.13.0.103 dstport 0
+ip link set vxlan master br0 up
+
+bridge fdb add 00:00:00:00:00:00 dst 10.13.0.101 dev vxlan
+bridge fdb append 00:00:00:00:00:00 dst 10.13.0.102 dev vxlan
+```
+
+
+
+```
+ip netns add pod3
+ip link add pod3 type veth peer name eth0 netns pod3
+ip link set pod3 master br0 up
+```
+
+
+
+```
+ip netns exec pod3 bash
+
+ip link set lo up
+ip link set eth0 up
+
+ip address add 192.168.30.10/24 dev eth0
+ip route add 192.168.10.0/24 dev eth0 proto static src 192.168.30.10
+ip route add 192.168.20.0/24 dev eth0 proto static src 192.168.30.10
+```
+
+
+
+### kube-proxy
+
+linux1 ip 10.13.0.101
+
+linux2 ip 10.13.0.102
+
+linux3 ip 10.13.0.103
+
+
+
+linux1
+
+```
+ip link add br0 type bridge
+ip link set br0 up
+
+ip link add vxlan type vxlan id 1 local 10.13.0.101 dstport 0
+ip link set vxlan master br0 up
+
+bridge fdb add 00:00:00:00:00:00 dst 10.13.0.102 dev vxlan
+bridge fdb append 00:00:00:00:00:00 dst 10.13.0.103 dev vxlan
+```
+
+
+
+```
+ip netns add pod1
+ip link add pod1 type veth peer name eth0 netns pod1
+ip link set pod1 master br0 up
+
+ip address add 192.168.10.1/24 dev br0
+ip route add 192.168.20.0/24 via 192.168.20.1 dev br0 onlink proto static src 192.168.10.1
+ip route add 192.168.30.0/24 via 192.168.30.1 dev br0 onlink proto static src 192.168.10.1
+```
+
+
+
+```
+ip netns exec pod1 bash
+
+ip link set lo up
+ip link set eth0 up
+
+ip address add 192.168.10.10/24 dev eth0
+ip route add default via 192.168.10.1 dev eth0 proto static src 192.168.10.10
+ip route add 192.168.10.100/32 via 192.168.10.1 dev eth0 proto static src 192.168.10.10
+```
+
+
+
+在主命名空间中创建
+
+```
+# 创建 nat 表中的 KUBE-SERVICES 链
+iptables -t nat -N KUBE-SERVICES
+
+# 创建 KUBE-SVC-HTTP 链
+iptables -t nat -N KUBE-SVC-HTTP
+
+# 创建 KUBE-SEP-POD2 链
+iptables -t nat -N KUBE-SEP-POD2
+
+# 创建 KUBE-SEP-POD3 链
+iptables -t nat -N KUBE-SEP-POD3
+
+# PREROUTING 捕获所有进入节点的流量，跳转到 KUBE-SERVICES 链
+iptables -t nat -A PREROUTING -j KUBE-SERVICES
+
+# OUTPU 捕获所有进入节点的流量，跳转到 KUBE-SERVICES 链
+iptables -t nat -A OUTPUT -j KUBE-SERVICES
+
+# KUBE-SERVICES 链中捕获发送给 192.168.10.100:80 的 TCP 流量，跳转到 KUBE-SVC-HTTP
+iptables -t nat -A KUBE-SERVICES -d 192.168.10.100/32 -p tcp --dport 80 -j KUBE-SVC-HTTP
+
+# KUBE-SVC-HTTP 链中使用 statistic 模块，50% 概率跳转到 KUBE-SEP-POD2
+iptables -t nat -A KUBE-SVC-HTTP -m statistic --mode random --probability 0.5 -j KUBE-SEP-POD2
+
+# KUBE-SVC-HTTP 链中剩余流量（50% 概率）跳转到 KUBE-SEP-POD3
+iptables -t nat -A KUBE-SVC-HTTP -j KUBE-SEP-POD3
+
+# KUBE-SEP-POD2 链中 DNAT 到 192.168.20.10:80
+iptables -t nat -A KUBE-SEP-POD2 -p tcp -j DNAT --to-destination 192.168.20.10:80
+
+# KUBE-SEP-POD3 链中 DNAT 到 192.168.30.10:80
+iptables -t nat -A KUBE-SEP-POD3 -p tcp -j DNAT --to-destination 192.168.30.10:80
+```
+
+
+
+linux2
+
+```
+ip link add br0 type bridge
+ip link set br0 up
+
+ip link add vxlan type vxlan id 1 local 10.13.0.102 dstport 0
+ip link set vxlan master br0 up
+
+bridge fdb add 00:00:00:00:00:00 dst 10.13.0.101 dev vxlan
+bridge fdb append 00:00:00:00:00:00 dst 10.13.0.103 dev vxlan
+```
+
+
+
+```
+ip netns add pod2
+ip link add pod2 type veth peer name eth0 netns pod2
+ip link set pod2 master br0 up
+
+ip address add 192.168.20.1/24 dev br0
+ip route add 192.168.10.0/24 via 192.168.10.1 dev br0 onlink proto static src 192.168.20.1
+ip route add 192.168.30.0/24 via 192.168.30.1 dev br0 onlink proto static src 192.168.20.1
+```
+
+
+
+```
+ip netns exec pod2 bash
+
+ip link set lo up
+ip link set eth0 up
+
+ip address add 192.168.20.10/24 dev eth0
+ip route add default via 192.168.20.1 dev eth0 proto static src 192.168.20.10
+
+mkdir /opt/web/
+echo "Welcome to Pod2!" > /opt/web/index.html
+python3 -m http.server 80
+```
+
+
+
+linux3
+
+```
+ip link add br0 type bridge
+ip link set br0 up
+
+ip link add vxlan type vxlan id 1 local 10.13.0.103 dstport 0
+ip link set vxlan master br0 up
+
+bridge fdb add 00:00:00:00:00:00 dst 10.13.0.101 dev vxlan
+bridge fdb append 00:00:00:00:00:00 dst 10.13.0.102 dev vxlan
+```
+
+
+
+```
+ip netns add pod3
+ip link add pod3 type veth peer name eth0 netns pod3
+ip link set pod3 master br0 up
+
+ip address add 192.168.30.1/24 dev br0
+ip route add 192.168.10.0/24 via 192.168.10.1 dev br0 onlink proto static src 192.168.30.1
+ip route add 192.168.20.0/24 via 192.168.20.1 dev br0 onlink proto static src 192.168.30.1
+```
+
+
+
+```
+ip netns exec pod3 bash
+
+ip link set lo up
+ip link set eth0 up
+
+ip address add 192.168.30.10/24 dev eth0
+ip route add default via 192.168.30.1 dev eth0 proto static src 192.168.30.10
+
+mkdir /opt/web/
+echo "Welcome to Pod3!" > /opt/web/index.html
+python3 -m http.server 80
+```
+
+
+
