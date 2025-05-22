@@ -43,3 +43,51 @@ net.ipv4.ip_forward=1
 sysctl -p
 ```
 
+
+
+### rhel10
+
+```
+dnf -y install vim tree zip unzip lrzsz tar git curl wget iftop
+```
+
+
+
+```
+dnf -y install traceroute dnsutils tcpdump nmap
+```
+
+
+
+```
+dnf -y install bash-c*
+```
+
+
+
+```
+dnf -y install dnsmasq
+```
+
+
+
+```
+vim /etc/sysctl.conf
+
+net.ipv4.ip_forward=1
+
+sysctl -p
+```
+
+
+
+
+
+```
+systemctl stop firewalld
+systemctl disable firewalld
+
+setenforce 0
+chang /etc/selinux/config disabled
+```
+
