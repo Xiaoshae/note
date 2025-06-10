@@ -168,6 +168,129 @@ Subject（主体）：证书持有者的标识。
 
 
 
+**Subject 字段详解**
+
+Subject 字段用于标识证书持有者（实体），包含与公钥关联的身份信息。**该字段必须为非空的 X.500 可分辨名称（DN）**，由多个**属性-值对（AVP）**组成，其 ASN.1 结构与 Issuer 字段保持一致。
+
+
+
+**必须支持的属性类型（Mandatory）**
+
+**国家（countryName，简称 C）**：表示证书持有者所在国家，如 `C=CN`。
+
+**组织（organizationName，简称 O）**：表示所属机构，如 `O=Example Inc.`。
+
+**组织单元（organizationalUnitName，简称 OU）**：表示机构内的部门，如 `OU=Security Team`。
+
+**可分辨名称限定符（dnQualifier）**：用于区分同名实体，通常为随机生成的值。
+
+**州/省（stateOrProvinceName，简称 ST）**：表示所在地区，如 `ST=Beijing`。
+
+**通用名称（commonName，简称 CN）**：通常为域名（如 `CN=www.example.com`）或个人姓名（如 `CN=张三`）。
+
+**序列号（serialNumber）**：作为唯一标识符，确保实体可被精准识别。
+
+
+
+**建议支持的属性类型（Recommended）**
+
+**地区/城市（localityName，简称 L）**：表示所在城市或地区，如 `L=Shanghai`。
+
+**职位（title）**：标识持有者的职位或头衔，如 `title=CTO`。
+
+**姓氏（surname，简称 SN）**：表示持有者的姓氏，如 `SN=Zhang`。
+
+**名字（givenName，简称 GN）**：表示持有者的名字，如 `GN=San`。
+
+**缩写（initials）**：用于姓名缩写，如 `initials=ZS`。
+
+**别名（pseudonym）**：提供匿名身份标识，适用于隐私保护场景。
+
+**代际限定符（generationQualifier）**：用于区分同名家族成员，如 `generationQualifier=Jr.`。
+
+
+
+**TLS DV 数字证书 subject 字段**
+
+```
+CN = grok.com
+```
+
+```
+CN = xiaoshae.cn
+```
+
+
+
+**TLS OV 数字证书 subject 字段**
+
+```
+CN = WR2
+O = Google Trust Services
+C = US
+```
+
+```
+CN = *.ccb.com
+O = China Construction Bank
+ST = 北京市
+C = CN
+```
+
+```
+CN = *.www.gov.cn
+O = 国务院办公厅秘书局
+L = 北京
+ST = 北京
+C = CN
+```
+
+```
+CN = qwen.ai
+O = 阿里巴巴（中国）网络技术有限公司
+L = 杭州市
+ST = 浙江省
+C = CN
+```
+
+```
+CN = *.shanghai.gov.cn
+O = 上海市大数据中心
+L = 上海市
+ST = 上海市
+C = CN
+```
+
+
+
+**TLS EV 数字证书 subject 字段**
+
+```
+CN = www.cmbchina.com
+O = China Merchants Bank Co., Ltd
+L = Shenzhen
+ST = Guangdong Province
+C = CN
+serialNumber = 9144030010001686XA
+businessCategory = Private Organization
+jurisdictionLocalityName = Futian District
+jurisdictionStateOrProvinceName = Guangdong Province
+jurisdictionCountryName = CN
+```
+
+```
+CN = www.boc.cn
+O = Bank of China Limited
+ST = Beijing
+C = CN
+serialNumber = 911000001000013428
+businessCategory = Private Organization
+jurisdictionStateOrProvinceName = Beijing
+jurisdictionCountryName = CN
+```
+
+
+
 **公钥部分**
 
 Subject Public Key Info 包含证书持有者的公钥信息，包括公钥算法和公钥本身。
@@ -377,26 +500,45 @@ openssl genpkey 是一个用于生成私钥或密钥对的通用命令，支持�
 
 
 
-**-config configfile**
-
-指定配置文件，覆盖默认的 **openssl.cnf**。
-
-配置文件可定义默认参数、算法选项等，详见 config(5)。
-
-```
-openssl genpkey -algorithm RSA -out key.pem -config custom.cnf
-```
 
 
+**-algorithm alg**
 
-**-outpubkey filename**
+指定使用的公钥算法。支持的算法：
 
-将公钥输出到指定文件。
-
-如果未指定，公钥不会单独输出。
+- 私钥生成：RSA、RSA-PSS、EC、X25519、X448、ED25519、ED448。
+- 参数生成（需配合 -genparam）：DH、DSA、EC。
 
 ```
-openssl genpkey -algorithm RSA -out key.pem -outpubkey pubkey.pem
+openssl genpkey -algorithm EC -out eckey.pem
+```
+
+必须在 -pkeyopt 之前指定。与 -paramfile 互斥。
+
+
+
+**-paramfile filename**
+
+指定参数文件，用于基于已有参数生成私钥。
+
+```
+openssl genpkey -paramfile dsaparam.pem -out dsakey.pem
+```
+
+与 -algorithm 互斥，参数文件决定算法类型。
+
+
+
+**-genparam**
+
+生成算法参数而非私钥。
+
+**支持的算法**：DH、DSA、EC。
+
+必须在 **-algorithm、-paramfile 或 -pkeyopt** 之前指定。生成的参数可用于后续密钥生成。
+
+```
+openssl genpkey -genparam -algorithm DH -out dhparam.pem
 ```
 
 
@@ -422,28 +564,6 @@ openssl genpkey -algorithm RSA -out key.pem
 ```
 openssl genpkey -algorithm RSA -out key.der -outform DER
 ```
-
-
-
-**-verbose**
-
-在生成密钥时显示“状态点”（progress dots），表示生成进度。
-
-```
-openssl genpkey -algorithm RSA -verbose -out key.pem
-```
-
-
-
-**-quiet**
-
-禁止显示“状态点”，保持输出简洁。
-
-```
-openssl genpkey -algorithm RSA -quiet -out key.pem
-```
-
-与 **-verbose** 互斥，适合脚本或自动化任务。
 
 
 
@@ -473,44 +593,25 @@ openssl genpkey -algorithm RSA -out key.pem -cipher aes256 -pass pass:secure123
 
 
 
-**-algorithm alg**
+**-verbose**
 
-指定使用的公钥算法。支持的算法：
-
-- 私钥生成：RSA、RSA-PSS、EC、X25519、X448、ED25519、ED448。
-- 参数生成（需配合 -genparam）：DH、DSA、EC。
+在生成密钥时显示“状态点”（progress dots），表示生成进度。
 
 ```
-openssl genpkey -algorithm EC -out eckey.pem
-```
-
-必须在 -pkeyopt 之前指定。与 -paramfile 互斥。
-
-
-
-**-genparam**
-
-生成算法参数而非私钥。
-
-**支持的算法**：DH、DSA、EC。
-
-必须在 **-algorithm、-paramfile 或 -pkeyopt** 之前指定。生成的参数可用于后续密钥生成。
-
-```
-openssl genpkey -genparam -algorithm DH -out dhparam.pem
+openssl genpkey -algorithm RSA -verbose -out key.pem
 ```
 
 
 
-**-paramfile filename**
+**-quiet**
 
-指定参数文件，用于基于已有参数生成私钥。
+禁止显示“状态点”，保持输出简洁。
 
 ```
-openssl genpkey -paramfile dsaparam.pem -out dsakey.pem
+openssl genpkey -algorithm RSA -quiet -out key.pem
 ```
 
-与 -algorithm 互斥，参数文件决定算法类型。
+与 **-verbose** 互斥，适合脚本或自动化任务。
 
 
 
@@ -523,6 +624,16 @@ openssl genpkey -algorithm RSA -out key.pem -text
 ```
 
 
+
+**-config configfile**
+
+指定配置文件，覆盖默认的 **openssl.cnf**。
+
+配置文件可定义默认参数、算法选项等，详见 config(5)。
+
+```
+openssl genpkey -algorithm RSA -out key.pem -config custom.cnf
+```
 
 
 
@@ -637,6 +748,14 @@ openssl genpkey -algorithm RSA -out key.pem \
 
 
 
+**-pubout**
+
+仅输出公钥部分（即使输入包含私钥）。与 **-text** 结合时，等效于 **-text_pub**。
+
+未指定 **-pubout** 参数则输出内容为私钥，如果指定 **-pubout** 参数则输出内容为公钥。无法同时输出公钥和私钥。
+
+
+
 **-passin arg**
 
 指定输入密钥的密码来源。格式见 **openssl-passphrase-options(1)**，常见格式包括：
@@ -697,14 +816,6 @@ PKCS#8 是更现代的格式，支持多种算法和加密。
 
 
 
-**-pubout**
-
-仅输出公钥部分（即使输入包含私钥）。与 **-text** 结合时，等效于 **-text_pub**。
-
-未指定 **-pubout** 参数则输出内容为私钥，如果指定 **-pubout** 参数则输出内容为公钥。无法同时输出公钥和私钥。
-
-
-
 **-text**
 
 以明文形式输出密钥的详细信息（如 RSA 的模数、指数或 EC 的参数）。可与编码输出结合，但不能与 DER 格式结合。
@@ -724,8 +835,6 @@ PKCS#8 是更现代的格式，支持多种算法和加密。
 - 仅使用 **-text**（未指定 **-noout**）：输出 PEM 格式密钥及明文信息。
 - 同时使用 **-text 和 -noout**：仅输出明文信息，不显示 PEM 格式密钥。
 - 单独使用 **-noout**（未指定 **-text** 或 **-text_pub**）：无任何输出。
-
-
 
 
 
@@ -760,6 +869,18 @@ openssl x509 是一个多功能的证书处理命令，用于显示、转换、�
 
 **输入、输出和通用选项**
 
+**-new**
+
+从头生成一个新证书，而不是基于现有证书或请求。需配合 -set_subject 指定主体名称，公钥可通过 -force_pubkey 指定，默认使用 -key 或 -signkey 提供的密钥（自签名）。
+
+**openssl 3.0 and latest**
+
+**-req**
+
+指定输入为PKCS#10证书请求（默认期望输入为证书）。请求需自签名，扩展默认不复制，可通过-extfile指定。
+
+
+
 **-in filename|uri**
 
 指定输入文件或 **URI**，读取证书或证书请求（与 **-req** 配合使用）。默认从标准输入读取。 
@@ -768,15 +889,15 @@ openssl x509 是一个多功能的证书处理命令，用于显示、转换、�
 
 
 
+**-inform DER|PEM**
+
+指定输入文件格式，默认为PEM。支持DER或PEM。
+
+
+
 **-passin arg**
 
 指定输入文件（如私钥或证书）的密码来源。
-
-
-
-**-new**
-
-从头生成一个新证书，而不是基于现有证书或请求。需配合 -set_subject 指定主体名称，公钥可通过 -force_pubkey 指定，默认使用 -key 或 -signkey 提供的密钥（自签名）。
 
 
 
@@ -788,24 +909,12 @@ openssl x509 是一个多功能的证书处理命令，用于显示、转换、�
 
 
 
-**-req**
-
-指定输入为PKCS#10证书请求（默认期望输入为证书）。请求需自签名，扩展默认不复制，可通过-extfile指定。
-
-
-
 **-copy_extensions arg**
 
 处理从证书到请求（-x509toreq）或从请求到证书（-req）的扩展复制行为：
 
 - none：忽略扩展（默认）。
 - copy 或 copyall：复制所有扩展（生成请求时不复制主体标识和颁发者密钥标识扩展）。可结合 -ext 进一步限制复制的扩展。
-
-
-
-**-inform DER|PEM**
-
-指定输入文件格式，默认为PEM。支持DER或PEM。
 
 
 
@@ -869,15 +978,28 @@ openssl x509 是一个多功能的证书处理命令，用于显示、转换、�
 
 
 
-**-not_before date**
+**-set_issuer arg**
 
-显式设置证书生效日期，格式为 **YYMMDDHHMMSSZ（ASN1 UTCTime）**或 **YYYYMMDDHHMMSSZ（ASN1 GeneralizedTime）**，或 **today**。不能与 **-preserve_dates** 一起使用。
+设置证书的颁发者名称，格式同 **-set_subject**。
+
+**openssl version 3.3 and latest**
 
 
 
-**-not_after date**
+**-set_subject arg / -subj arg**
+设置证书的主体名称，格式为`/type0=value0/type1=value1/...`，支持反斜杠转义特殊字符，空值允许，多值RDN用+分隔。
 
-显式设置证书到期日期，格式同上。不能与 **-preserve_dates** 一起使用，优先于 **-days**。
+例如：`/DC=org/DC=OpenSSL/DC=users/UID=123456+CN=John Doe`
+
+可与 **-new** 和 **-force_pubkey** 一起使用生成新证书。
+
+**openssl version 3.3 and latest**
+
+
+
+**-subj** 是 **-set_subject** 的别名。
+
+**openssl version 3.3 and latest**
 
 
 
@@ -889,26 +1011,25 @@ openssl x509 是一个多功能的证书处理命令，用于显示、转换、�
 
 
 
+**-not_before date**
+
+显式设置证书生效日期，格式为 **YYMMDDHHMMSSZ（ASN1 UTCTime）**或 **YYYYMMDDHHMMSSZ（ASN1 GeneralizedTime）**，或 **today**。不能与 **-preserve_dates** 一起使用。
+
+**openssl version 3.4 and latest**
+
+
+
+**-not_after date**
+
+显式设置证书到期日期，格式同上。不能与 **-preserve_dates** 一起使用，优先于 **-days**。
+
+**openssl version 3.4 and latest**
+
+
+
 **-preserve_dates**
 
 签名时保留输入证书的 **notBefore** 和 **notAfter** 日期，不能与 **-days、-not_before** 或 **-not_after** 一起使用。
-
-
-
-**-set_issuer arg**
-
-设置证书的颁发者名称，格式同 **-set_subject**。
-
-
-
-**-set_subject arg / -subj arg**
-设置证书的主体名称，格式为`/type0=value0/type1=value1/...`，支持反斜杠转义特殊字符，空值允许，多值RDN用+分隔。
-
-例如：`/DC=org/DC=OpenSSL/DC=users/UID=123456+CN=John Doe`
-
-可与 **-new** 和 **-force_pubkey** 一起使用生成新证书。
-
-**-subj** 是 **-set_subject** 的别名。
 
 
 
@@ -950,4 +1071,1028 @@ openssl x509 是一个多功能的证书处理命令，用于显示、转换、�
 
 **-digest**
 
-指定签名或指纹计算的摘要算法（如SHA1、SHA256），影响-fingerprint、-key、-CA等选项。默认指纹用SHA1，签名用算法默认摘要（通常SHA256）。
+`digest` 选项不是独立使用的，它通常与其他选项（如 `-fingerprint` 用于生成证书指纹）结合使用。
+
+用于指定计算证书指纹时使用的哈希算法。
+
+如果未指定，或仅指定 `-fingerprint` 未指定 `-digest`，则输出证书指纹时，默认使用 SHA1 算法进行计算。签名算法会使用默认的摘要算法（通常是 SHA256）。
+
+
+
+示例：
+
+```
+openssl x509 -in ca-cert.pem -text -noout -fingerprint
+```
+
+计算证书指纹时使用 SHA-1
+
+
+
+```
+openssl x509 -in ca-cert.pem -text -noout -fingerprint -sha512
+```
+
+计算证书指纹时使用 SHA-512
+
+
+
+```
+openssl x509 -new -key private.key -out cert.pem -days 3650 -subj "/C=CN"
+```
+
+数字签名时，计算证书指纹哈希算法为 SHA-256
+
+
+
+```
+openssl x509 -new -key private.key -out cert.pem -days 3650 -subj "/C=CN" -sha512
+```
+
+数字签名时，计算证书指纹哈希算法为 SHA-512
+
+
+
+微型 CA 选项
+
+**-CA filename|uri**
+
+指定 CA 证书，用于签名新证书。设置新证书的颁发者为 CA 的主题。
+
+
+
+**-CAkey filename|uri**
+
+指定 CA 私钥，用于签名。若未提供，私钥需包含在 -CA 输入中。
+
+
+
+**-CAform DER|PEM|P12**
+
+CA 证书的格式。
+
+
+
+**-CAkeyform DER|PEM|P12|ENGINE**
+
+CA 私钥的格式。
+
+
+
+**-CAserial filename**
+
+指定序列号文件，存储上次使用的序列号（十六进制）。默认文件名为 CA 证书文件名加 .srl。
+
+
+
+**-CAcreateserial**
+
+如果序列号文件不存在，创建并使用随机序列号。
+
+
+
+**证书检查选项**
+
+**-checkend arg**
+
+检查证书是否在未来 arg 秒内到期（返回非零表示即将到期）。
+
+
+
+**-checkhost host**
+
+验证证书是否匹配指定主机名。
+
+
+
+**-checkemail email**
+
+验证证书是否匹配指定电子邮件地址。
+
+
+
+**-checkip ipaddr**
+
+验证证书是否匹配指定 IP 地址。
+
+
+
+**证书打印选项**
+
+**-text**
+
+以文本形式打印证书的完整信息，包括公钥、签名算法、扩展等。
+
+
+
+**-certopt option**
+
+自定义 -text 的输出格式，支持多个选项（如 no_header、no_pubkey、no_extensions）。见“Text Printing Flags”部分。
+
+
+
+**-fingerprint**
+
+计算并打印证书的指纹（DER 编码的摘要，通常是 SHA1）。
+
+
+
+**-serial**
+
+打印证书序列号。
+
+
+
+**-subject**
+
+打印主题名称。
+
+
+
+**-issuer**
+
+打印颁发者名称。
+
+
+
+**-startdate / -enddate / -dates**
+
+分别打印证书的生效日期、到期日期或两者。
+
+
+
+**-nameopt option**
+
+控制主题或颁发者名称的显示格式（如 RFC2253、oneline）。见 openssl-namedisplay-options(1)。
+
+
+
+**-ext extensions**
+
+打印指定扩展（如 subjectAltName, keyUsage）。支持逗号分隔的扩展列表。
+
+
+
+**-purpose**
+
+测试证书扩展并输出其用途（如 SSL 客户端、服务器等）。
+
+
+
+**-pubkey**
+
+打印证书的公钥（PEM 格式）。
+
+
+
+**-modulus**
+
+打印公钥的模数（适用于 RSA 密钥）。
+
+
+
+#### req
+
+openssl req 是 OpenSSL 3.5 中的一个命令，主要用于创建和处理 PKCS#10 格式的证书请求（CSR），也可以生成自签名证书，例如用作根 CA。
+
+
+
+openssl req 命令用于：
+
+- **生成证书请求（CSR）**：创建 PKCS#10 格式的 CSR，包含公钥和主题信息，用于向证书颁发机构（CA）申请证书。
+- **生成自签名证书**：通过 -x509 选项生成自签名证书，常用于测试或作为根 CA。
+- **验证和查看 CSR**：检查 CSR 的内容或验证其自签名。
+
+
+
+**通用选项**
+
+**-help**
+
+显示命令的帮助信息，列出所有可用选项。
+
+
+
+**-verbose**
+
+打印操作的详细信息，适合调试。
+
+
+
+**-quiet**
+
+减少操作的输出信息，适合脚本或批量处理。
+
+
+
+**-batch**
+
+启用非交互模式，直接使用配置文件或命令行参数，不提示用户输入。
+
+
+
+**输入/输出选项**
+
+**-in filename**
+
+指定输入文件（CSR 或证书），默认从标准输入读取。如果使用 -x509 或 -CA，此选项非必需。
+
+
+
+**-inform DER|PEM**
+
+输入文件格式，默认为 PEM。
+
+
+
+**-out filename**
+
+指定输出文件（CSR 或证书），默认输出到标准输出。
+
+
+
+**-outform DER|PEM**
+
+输出文件格式，默认为 PEM。
+
+
+
+**-passin arg**
+
+输入私钥或证书的密码来源，详见 openssl-passphrase-options(1)。
+
+
+
+**-passout arg**
+
+输出文件的密码来源，详见 openssl-passphrase-options(1)。
+
+
+
+**证书请求生成选项**
+
+**-new**
+
+生成新的 CSR 证书请求，提示用户输入主题字段（由配置文件或命令行指定）。
+
+
+
+在 CSR（证书签名请求）中，可指定的字段分为**基础字段**和 **x509v3 扩展字段**两类。
+
+基础字段包括：version、serial number、Signature Algorithm、Issuer、Validity（有效时间）、Subject、Subject Public Key Info（公钥信息）。
+
+**CSR 证书请求中仅能自定义**的字段是 **Subject** 和 **Subject Public Key Info**，其余字段通常由 CA（证书颁发机构）在签发时填充。
+
+
+
+**x509v3 扩展字段**更为丰富，对于 **TLS 证书**，关键扩展包括：
+
+- **subjectAltName=DNS:example.com**（指定可用的域名）
+- **extendedKeyUsage=clientAuth**（定义证书用途，如客户端认证）
+
+
+
+在 CSR（证书签名请求）中，虽然可以指定**基础字段**和**扩展字段**，但最终生效与否完全取决于 **CA（证书颁发机构）的签发策略**。
+
+对于 **DV TLS 数字证书**（域名验证型证书），即使 CSR 中指定了 **O（Organization，组织）** 等字段，CA 通常**仅保留 CN（Common Name，证书所有者）** 字段，并且 **CN 必须是一个有效的域名**。如果 **CN 字段不在 subjectAltName（SAN）扩展中**，CA 通常会**忽略 CN**，转而从 **subjectAltName** 中选择一个域名作为证书主体。
+
+
+
+**-subj arg**
+
+直接指定 CSR 的主题（DN），格式为 /type0=value0/type1=value1/...（如 /C=CN/O=MyOrg/CN=example.com）。
+
+**注意**：OpenSSL 在生成证书时，会严格按照命令行中指定的字段顺序处理，不会自动调整或重排序。
+
+
+
+**-newkey arg**
+
+生成新私钥并用于 CSR 或证书。格式包括：
+
+- **rsa:nbits**：生成指定位数的 RSA 密钥（默认 2048 位）。
+- **algname[:file]**：使用指定算法（如 dsa、ec、gost2001）生成密钥，可指定参数文件。
+- **param:file**：从文件中读取算法参数生成密钥。
+
+
+
+**-keyout filename**
+
+指定新生成私钥的输出文件。如果未提供 -key，默认使用配置文件中的 default_keyfile。
+
+
+
+**-noenc**
+
+生成私钥时不加密（替代已废弃的 -nodes 选项）。
+
+
+
+**-cipher name**
+
+指定私钥加密的算法，默认使用 AES-256-CBC（OpenSSL 3.5 新增，默认从 3DES 改为 AES-256）。
+
+
+
+**-pkeyopt opt:value**
+
+设置公钥算法选项，例如设置 EC 曲线的参数，详见 openssl-genpkey(1)。
+
+
+
+**-key filename|uri**
+
+指定现有私钥文件。私钥用于签名（支持 PEM、DER、P12 格式）。
+
+**如果是生成 CSR 证书请求：**
+
+- 该私钥的**公钥**会被提取并包含在 CSR 中，作为未来证书的公钥。
+- 该私钥的**私钥**则用于对 CSR 的内容进行签名，证明请求者拥有该公钥所对应的私钥。
+
+**如果是生成新的数字证书（且没有指定 -CA 和 -CAkey）：**
+
+- 该私钥的**公钥**会被提取并作为新证书的公钥。
+- 该私钥的**私钥**则用于对新证书进行自签名。
+
+**如果是生成新的数字证书（且指定了 -CA 和 -CAkey）：**
+
+- 该私钥的**公钥**会被提取并作为新证书的公钥。
+- 该私钥的**私钥**不会用于对新证书进行签名，新证书的签名将由 `-CAkey` 指定的 CA 私钥来完成。
+
+
+
+
+
+**自签名证书选项**
+
+**-x509**
+
+生成自签名证书而非 CSR，默认使用 X.509 v3（除非指定 -x509v1）。
+
+
+
+**-x509v1**
+
+生成 X.509 v1 证书（不含扩展）。
+
+
+
+**-CA filename|uri**
+
+指定 CA 证书，用于签名新证书，模拟“微型 CA”模式。
+
+
+
+**-CAkey filename|uri**
+
+指定 CA 的私钥，与 -CA 配合使用。
+
+
+
+**-days n**
+
+设置证书有效期（天数），默认 30 天。如果指定 -not_after，则优先使用。
+
+
+
+**-not_before date**
+
+设置证书的起始时间，格式为 YYMMDDHHMMSSZ 或 YYYYMMDDHHMMSSZ，支持 today。
+
+
+
+**-not_after date**
+
+设置证书的到期时间，格式同上，支持 today。
+
+
+
+**-set_serial n**
+
+设置自签名证书的序列号（十进制或以 0x 开头的十六进制）。
+
+
+
+**扩展和配置选项**
+
+**-config filename**
+
+指定配置文件，覆盖默认配置文件（通常为 openssl.cnf）。
+
+
+
+**-section name**
+
+指定配置文件中的特定节（默认 req 节，OpenSSL 3.0 新增）。
+
+
+
+**-extensions section**
+
+指定证书扩展的配置文件节（用于 -x509）。
+
+
+
+**-reqexts section**
+
+指定 CSR 扩展的配置文件节（等同于 -extensions，OpenSSL 3.2 起为别名）。
+
+
+
+**-addext ext**
+
+添加特定扩展到 CSR 或证书，格式为 key=value（如 subjectAltName=DNS:example.com），可多次使用。
+
+指定多个域名：
+
+```
+-addext subjectAltName=DNS:*.xiaoshae.cn,DNS:xiaoshae.cn
+```
+
+
+
+**-copy_extensions arg**
+
+控制是否将 CSR 中的扩展复制到证书（none：忽略，copy 或 copyall：复制）。**无其他选项。**
+
+
+
+**-precert**
+
+生成带“毒性扩展”的预证书（用于证书透明度日志，RFC6962），需配合 -new。
+
+
+
+**签名和验证选项**
+
+**-digest**
+
+指定签名使用的摘要算法（默认由配置文件指定，某些算法如 Ed25519 忽略此选项）。
+
+
+
+**-sigopt nm:v**
+
+传递签名算法的选项（算法相关）。
+
+
+
+**-vfyopt nm:v**
+
+传递验证算法的选项（算法相关）。
+
+
+
+**-verify**
+
+验证 CSR 的自签名，如果失败，程序立即退出（OpenSSL 3.3 起返回退出码 1）。
+
+
+
+**输出和格式化选项**
+
+**-text**
+
+以文本形式打印 CSR 或证书内容。
+
+
+
+**-subject**
+
+打印 CSR 或证书（若使用 -x509）的主题。
+
+
+
+**-pubkey**
+
+打印公钥。
+
+
+
+**-modulus**
+
+打印公钥的模数（仅 RSA）。
+
+
+
+**-noout**
+
+不输出编码后的 CSR 或证书。
+
+
+
+**-nameopt option**
+
+自定义主题或颁发者名称的显示格式，详见 openssl-namedisplay-options(1)。
+
+
+
+**-reqopt option**
+
+自定义 -text 输出的格式，详见 openssl-x509(1)。
+
+
+
+**-utf8**
+
+将字段值解释为 UTF-8 字符串（默认 ASCII）。
+
+
+
+**-newhdr**
+
+在 PEM 输出中添加 NEW 标记（某些 CA 或软件要求）。
+
+
+
+
+
+#### ca
+
+**openssl ca** 命令是 OpenSSL 工具集中的一个功能，用于**模拟证书颁发机构（CA）的操作**。它可以用来**签署证书请求（CSR）、生成证书吊销列表（CRL），并维护一个记录已颁发证书及其状态的文本数据库。**尽管它是 OpenSSL 的一个示例性工具，但其功能足以支持基本的 CA 操作。
+
+
+
+openssl ca 是一个用于管理 CA 的命令行工具，主要功能包括：
+
+- **签署证书请求（CSR）**：根据提供的 CSR 文件生成证书。
+- **生成证书吊销列表（CRL）**：创建或更新 CRL，记录被吊销的证书。
+- **维护证书数据库**：记录已颁发的证书及其状态（如有效、吊销等）。
+- **处理 Netscape SPKAC**：签署 Netscape 格式的公钥和挑战请求。
+- **支持多种格式**：支持 PEM、DER 等格式的输入和输出。
+
+
+
+**命令语法**
+
+```
+openssl ca [选项] [证书请求文件...]
+```
+
+**选项**：控制 CA 操作的行为，如指定配置文件、输入输出文件、签名算法等。
+
+**证书请求文件**：可以指定单个 CSR 文件（通过 -in 选项）或多个 CSR 文件（通过 -infiles 或在命令末尾列出）。
+
+
+
+**指定多个 CSR 文件命令示例**
+
+```
+openssl ca ... -infiles csr1.pem csr2.pem csr3.pem
+```
+
+
+
+通用选项
+
+**-help**
+
+显示命令帮助信息。
+
+
+
+**-verbose**
+
+输出详细的操作信息，便于调试。
+
+
+
+**-config filename**
+
+指定配置文件路径，默认值参考 openssl(1) 的“COMMAND SUMMARY”部分。
+
+
+
+**-name section 或 -section section**
+
+指定配置文件中使用的 CA 部分，覆盖默认的 default_ca 设置。
+
+
+
+**-batch**
+
+启用批处理模式，自动签署证书而不提示用户确认。
+
+
+
+**输入输出选项**
+
+**-in filename**
+
+指定包含单个证书请求（CSR）的输入文件。
+
+
+
+**-inform DER|PEM**
+
+指定输入证书请求的格式，默认未指定（见 openssl-format-options(1)）。
+
+
+
+**-out filename**
+
+指定输出证书的文件，默认输出到标准输出（以 PEM 格式，除非使用 -spkac 则为 DER 格式）。
+
+
+
+**-outdir directory**
+
+指定输出证书的目录，证书文件名以十六进制序列号加 .pem 后缀命名。
+
+
+
+**-infiles**
+
+表示后续参数为多个证书请求文件的列表，需放在选项最后。**与 -in 参数冲突。**
+
+
+
+**-spkac filename**
+
+处理 Netscape 格式的 SPKAC 文件（包含公钥和挑战）。
+
+
+
+**-ss_cert filename**
+
+处理自签名证书的签署请求。
+
+
+
+**-notext**
+
+不输出证书的文本形式，仅输出编码格式（如 PEM 或 DER）。
+
+
+
+**证书相关选项**
+
+**-cert filename**
+
+指定 CA 证书文件，必须与 -keyfile 匹配。
+
+
+
+**-certform DER|PEM|P12**
+
+指定 CA 证书的格式，默认未指定。
+
+
+
+**-keyfile filename|uri**
+
+指定 CA 私钥文件或 URI，必须与 -cert 匹配。
+
+
+
+**-keyform DER|PEM|P12|ENGINE**
+
+指定私钥格式，默认未指定。
+
+
+
+**-key password**
+
+指定私钥加密密码，需谨慎使用（命令行参数可能在某些系统上可见，建议使用 -passin）。
+
+
+
+**-passin arg**
+
+指定私钥或证书的密码来源（见 openssl-passphrase-options(1)）。
+
+
+
+**-selfsign**
+
+使用 CSR 中的私钥进行自签名，忽略其他私钥（与 -spkac、-ss_cert 或 -gencrl 冲突）。
+
+
+
+**-startdate date**
+
+显式设置证书的生效时间，格式为 YYMMDDHHMMSSZ（UTCTime）或 YYYYMMDDHHMMSSZ（GeneralizedTime）。
+
+
+
+**-enddate date**
+
+显式设置证书的到期时间，格式同上。
+
+
+
+**-days arg**
+
+指定证书有效期（天数）。
+
+
+
+**-md alg**
+
+指定签名使用的消息摘要算法（如 sha256），支持 openssl-dgst(1) 中列出的算法。对于不支持摘要的算法（如 Ed25519、Ed448），此选项被忽略。
+
+
+
+**-policy arg**
+
+指定 CA 策略，定义证书 DN 字段的匹配规则（见“策略格式”部分）。
+
+
+
+**-extensions section**
+
+指定配置文件中定义的证书扩展部分，默认使用 x509_extensions（生成 V3 证书，否则为 V1 证书）。
+
+
+
+**-extfile file**
+
+指定额外的配置文件以读取证书扩展。
+
+
+
+**-subj arg**
+
+覆盖请求中的主题名称，格式为 /type0=value0/type1=value1/...（支持多值 RDN 和转义字符）。
+
+
+
+**-utf8**
+
+将字段值解释为 UTF-8 字符串，默认按 ASCII 解释。
+
+
+
+**-preserveDN**
+
+保留请求中的 DN 顺序，默认按策略部分定义的顺序。
+
+
+
+**-noemailDN**
+
+从证书主题中移除 EMAIL 字段，仅将其放入扩展（如 subjectAltName）。
+
+
+
+**-msie_hack**
+
+为兼容旧版 IE 证书注册控件，启用特殊处理（已废弃，不推荐使用）。
+
+
+
+**-sigopt nm:v**
+
+传递签名算法的特定选项（如 SM2 的 distid）。
+
+
+
+**-vfyopt nm:v**
+
+传递验证签名算法的特定选项（如验证 CSR 自签名时的选项）。
+
+
+
+**-create_serial**
+
+如果无法从序列号文件读取序列号，则生成新的随机序列号。
+
+
+
+**-rand_serial**
+
+使用大随机数作为序列号，优先于序列号文件。
+
+
+
+
+
+openssl ca 的行为很大程度上依赖于配置文件（通常为 openssl.cnf）。配置文件中与 CA 相关的部分由 -name 或 default_ca 指定。以下是配置文件中的关键选项：
+
+好的，这是对您提供的 OpenSSL 配置文件的完整中文翻译。翻译力求遵循“信、达、雅”的原则，既忠于原文的技术细节，又符合中文技术文档的语言习惯，同时保持了原有的格式和注释。
+
+```ini
+####################################################################
+[ ca ]
+default_ca	= CA_default		# 默认的 ca 节
+
+####################################################################
+[ CA_default ]
+
+dir				= ./demoCA			# 所有文件的存放目录
+certs			= $dir/certs		# 已签发证书的存放目录
+crl_dir			= $dir/crl			# 已签发 CRL 的存放目录
+database		= $dir/index.txt	# 数据库索引文件。
+#unique_subject	= no				# 设置为 'no' 以允许创建
+									# 多个具有相同主题（subject）的证书。
+new_certs_dir	= $dir/newcerts		# 新证书的默认存放位置。
+
+certificate		= $dir/cacert.pem 	# CA 证书
+serial			= $dir/serial 		# 当前的序列号文件
+crlnumber		= $dir/crlnumber	# 当前的 CRL 编号文件
+									# 若要生成 V1 版本的 CRL，必须注释掉此行
+crl				= $dir/crl.pem 		# 当前的 CRL 文件
+private_key		= $dir/private/cakey.pem	# CA 的私钥
+
+x509_extensions	= usr_cert			# 要添加到证书中的扩展项
+
+# 为了使用“传统”的（且极易出错的）格式，请注释掉以下两行。
+name_opt 		= ca_default		# 主题名称（Subject Name）选项
+cert_opt 		= ca_default		# 证书字段选项
+
+# 扩展复制选项：请谨慎使用。
+# copy_extensions = copy
+
+# 要添加到 CRL 的扩展。注意：Netscape Communicator 无法处理 V2 版本的 CRL，
+# 因此默认情况下此项被注释掉，以生成 V1 版本的 CRL。
+# 要生成 V1 版本的 CRL，crlnumber 项也必须被注释掉。
+# crl_extensions	= crl_ext
+
+default_days		= 365			# 证书有效期（天）
+default_crl_days	= 30			# 下一次 CRL 更新前的天数
+default_md			= default		# 使用公钥的默认消息摘要算法
+preserve			= no			# 是否保留传入的 DN（Distinguished Name）顺序
+
+# 几种不同的方式来规定请求的外观应如何相似
+# 对于 CA 类型，所列出的属性必须匹配，
+# 而 optional（可选）和 supplied（提供）字段则名副其实 :-)
+policy		= policy_match
+
+# 用于 CA 的策略
+[ policy_match ]
+countryName				= match		# 必须匹配
+stateOrProvinceName		= match		# 必须匹配
+organizationName		= match		# 必须匹配
+organizationalUnitName	= optional	# 可选
+commonName				= supplied	# 必须提供
+emailAddress			= optional	# 可选
+
+# "anything"（任何内容）策略
+# 在当前版本中，您必须列出所有可接受的“对象”类型。
+[ policy_anything ]
+countryName				= optional
+stateOrProvinceName		= optional
+localityName			= optional
+organizationName		= optional
+organizationalUnitName	= optional
+commonName				= supplied
+emailAddress			= optional
+
+####################################################################
+[ req ]
+default_bits		= 2048
+default_keyfile 	= privkey.pem
+distinguished_name	= req_distinguished_name
+attributes			= req_attributes
+x509_extensions		= v3_ca	# 添加到自签名证书的扩展
+
+# 私钥的密码，如果未提供，则会提示输入
+# input_password = secret
+# output_password = secret
+
+# 此项为允许的字符串类型设置一个掩码。有多种选项：
+# default: PrintableString, T61String, BMPString.
+# pkix	 : PrintableString, BMPString (PKIX 在 2004 年前的建议)
+# utf8only: 仅使用 UTF8Strings (PKIX 在 2004 年后的建议).
+# nombstr : PrintableString, T61String (不含 BMPStrings 或 UTF8Strings).
+# MASK:XXXX 一个字面的掩码值.
+# 警告：旧版本的 Netscape 会在遇到 BMPStrings 或 UTF8Strings 时崩溃。
+string_mask = utf8only
+
+# req_extensions = v3_req # 添加到证书请求的扩展
+
+[ req_distinguished_name ]
+countryName					= 国家名称 (2 字母代码)
+countryName_default			= AU
+countryName_min				= 2
+countryName_max				= 2
+
+stateOrProvinceName			= 州或省份名称 (全名)
+stateOrProvinceName_default	= Some-State
+
+localityName				= 地区名称 (例如：城市)
+
+0.organizationName			= 组织名称 (例如：公司)
+0.organizationName_default	= Internet Widgits Pty Ltd
+
+# 我们也可以这样做，但通常不需要 :-)
+#1.organizationName		= 第二个组织名称 (例如：公司)
+#1.organizationName_default	= World Wide Web Pty Ltd
+
+organizationalUnitName		= 组织单位名称 (例如：部门)
+#organizationalUnitName_default	=
+
+commonName					= 通用名称 (例如：服务器 FQDN 或您的姓名)
+commonName_max				= 64
+
+emailAddress				= 电子邮件地址
+emailAddress_max			= 64
+
+# SET-ex3			= SET 扩展编号 3
+
+[ req_attributes ]
+challengePassword			= 质询密码
+challengePassword_min		= 4
+challengePassword_max		= 20
+
+unstructuredName			= 一个可选的公司名称
+
+[ usr_cert ]
+
+# 当 'ca' 签署一个请求时，会添加这些扩展。
+
+# 此项设置有悖于 PKIX 指南，但某些 CA 如此操作，且部分软件需要此设置
+# 以避免将最终用户证书误解为 CA 证书。
+
+basicConstraints=CA:FALSE
+
+# 这对于客户端证书的密钥用法是典型的。
+# keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+
+# PKIX 的建议，包含在所有证书中均无害。
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid,issuer
+
+# 以下内容用于 subjectAltName 和 issuerAltname。
+# 导入电子邮件地址。
+# subjectAltName=email:copy
+# 另一种生成符合 PKIX 标准、未被弃用的证书的方式。
+# subjectAltName=email:move
+
+# 复制主题（subject）的详细信息
+# issuerAltName=issuer:copy
+
+# 此项为 TSA 证书所必需。
+# extendedKeyUsage = critical,timeStamping
+
+[ v3_req ]
+
+# 添加到证书请求的扩展
+
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+
+[ v3_ca ]
+
+
+# 一个典型 CA 的扩展
+
+
+# PKIX 建议。
+
+subjectKeyIdentifier=hash
+
+authorityKeyIdentifier=keyid:always,issuer
+
+basicConstraints = critical,CA:true
+
+# 密钥用法：这对于 CA 证书是典型的。但由于它会阻止
+# 该证书被用作测试性的自签名证书，因此默认情况下最好将其省略。
+# keyUsage = cRLSign, keyCertSign
+
+# 在主题备用名称中包含电子邮件地址：另一条 PKIX 建议
+# subjectAltName=email:copy
+# 复制颁发者（issuer）的详细信息
+# issuerAltName=issuer:copy
+
+# 一个扩展的 DER 十六进制编码：注意，仅限专家使用！
+# obj=DER:02:03
+# 其中 'obj' 是一个标准的或新增的对象
+# 你甚至可以覆盖一个受支持的扩展：
+# basicConstraints= critical, DER:30:03:01:01:FF
+
+[ crl_ext ]
+
+# CRL 扩展。
+# 在 CRL 中，只有 issuerAltName 和 authorityKeyIdentifier 有意义。
+
+# issuerAltName=issuer:copy
+authorityKeyIdentifier=keyid:always
+
+[ proxy_cert_ext ]
+# 创建代理证书时应添加这些扩展。
+
+# 此项设置有悖于 PKIX 指南，但某些 CA 如此操作，且部分软件需要此设置
+# 以避免将最终用户证书误解为 CA 证书。
+
+basicConstraints=CA:FALSE
+
+# 这对于客户端证书的密钥用法是典型的。
+# keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+
+# PKIX 的建议，包含在所有证书中均无害。
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid,issuer
+
+# 以下内容用于 subjectAltName 和 issuerAltname。
+# 导入电子邮件地址。
+# subjectAltName=email:copy
+# 另一种生成符合 PKIX 标准、未被弃用的证书的方式。
+# subjectAltName=email:move
+
+# 复制主题（subject）的详细信息
+# issuerAltName=issuer:copy
+
+# 要使其成为代理证书，此项确实需要设置。
+proxyCertInfo=critical,language:id-ppl-anyLanguage,pathlen:3,policy:foo
+```
