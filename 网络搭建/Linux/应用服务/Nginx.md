@@ -758,3 +758,210 @@ server {
 
 
 
+
+
+## 静态内容
+
+### 根目录
+
+**root 指令** 用于指定文件搜索的根目录。当 NGINX 处理请求时，它会将请求的 URI 追加到 `root` 指令所定义的路径之后，从而生成文件的完整访问路径。
+
+
+
+该指令可以在 `http {}`、`server {}` 或 `location {}` 上下文中灵活配置。如果在较高层级（如 `server {}`）定义了 `root`，那么所有未单独指定 `root` 的 `location {}` 块都会继承该设置。
+
+```nginx
+server {
+    root /www/data;
+
+    location / {
+    }
+
+    location /images/ {
+    }
+
+    location ~ \.(mp3|mp4) {
+        root /www/media;
+    }
+}
+```
+
+- 当请求的 **URI 以 `/images/` 开头** 时，NGINX 会默认在 `/www/data/images/` 目录下查找对应文件（继承 `server` 层级的 `root` 设置）。
+- 如果请求的 **URI 以 `.mp3` 或 `.mp4` 结尾**，NGINX 则会优先在 `/www/media/` 目录中搜索，因为该 `location` 块内通过 `root` 指令覆盖了默认配置。
+
+
+
+### alias
+
+alias 会将请求的 URI（或其一部分）替换为指定的路径，而不直接追加到根目录路径后。**alias 指令只能在 location 块中使用。**
+
+语法：
+
+```nginx
+alias path;
+```
+
+
+
+alias 指令直接用指定的路径替换 location 匹配的 URI 部分，剩余的 URI（如果有）会追加到 alias 路径后。**alias 指令会覆盖 root 指令。**
+
+```nginx
+server {
+    root /www/data;
+    
+    location /image/ {  # 注意：此处为 image						location 1
+    }
+
+    location /images/ { # 注意：此处为 images		image(s)		location 2
+        alias /img/;
+    }
+}
+```
+
+- 请求 URL `/image/photo.jpg`，匹配**第一个 location**，将请求的 URI ``/image/photo.jpg` 追加到 `root` 指令所定义的 `/www/data` 路径之后，文件完整访问路径为 `/www/data/iamge/photo.jpg`。
+- 请求 URL `/images/photo.jpg`，匹配**第二个 location**，将 location 匹配的 URL 部分（`/images/`）替换为 alias 指定的路径（`/img`），文件完整访问路径为 `/img/photo.jpg`。**alias 指令会覆盖 root 指令。**
+
+
+
+
+
+### 索引文件
+
+当请求的 URI 以斜杠（/）结尾时，NGINX 会将其视为目录请求，并尝试在该目录下查找索引文件。**索引文件的名称由 `index` 指令定义**，默认值为 `index.html`。
+
+例如，当请求的 URI 为 `/images/some/path/` 时，NGINX 会尝试返回 `/www/data/images/some/path/index.html`。如果该文件不存在，NGINX 默认返回 **HTTP 404（未找到）** 状态码。
+
+
+
+**`index` 指令支持多个文件名**，NGINX 会按顺序查找并返回第一个匹配的文件。例如：
+
+```nginx
+location / {
+    index index.$geo.html index.htm index.html;
+}
+```
+
+此处使用的 **$geo** 是一个通过 **geo** 指令设置的自定义变量，其值取决于客户端的 IP 地址。
+
+
+
+在 NGINX 处理索引文件时，**会先检查文件是否存在**，然后对追加了索引文件名的 URI 执行内部重定向。**内部重定向会触发新的 location 匹配**，可能导致请求进入不同的 location 块。以下是一个典型示例：
+
+```nginx
+location / {
+    root /data;
+    index index.html index.php;
+}
+
+location ~ \.php {
+    fastcgi_pass localhost:8000;
+    # ...
+}
+```
+
+以请求 URI `/` 为例，请求首先匹配 `location /` 块，因为 URI 不符合 `\.php$` 或 `\.phps$` 的正则表达式规则。
+
+- **root /data** 指令将文件搜索根目录设置为 `/data`。
+- **index 指令** 使 NGINX 按顺序检查索引文件：`index.html` 和 `index.php`
+
+
+
+**检查 /data/index.html**
+
+NGINX 首先尝试访问 `/data/index.html`。
+
+**若文件存在**：执行内部重定向（URI 修改为 `/index.html`），`/index.html` 仍然被 `location /` 匹配，返回该静态文件内容。
+
+**假设场景**：文件不存在，继续检查下一个索引文件。
+
+
+
+**检查 /data/index.php**
+
+NGINX 接着检查 `/data/index.php`。
+
+**若文件存在**：执行内部重定向，将 URI 修改为 `/index.php`。
+
+**重定向影响**：新的 URI `/index.php` 会匹配 `location ~ \.php` 块，触发 FastCGI 代理将请求转发至 `localhost:8000` 后端服务。
+
+
+
+若希望 NGINX 返回自动生成的目录列表，可在  `autoindex` 指令中设置参数为 `on` ：
+
+```nginx
+location /images/ {
+    autoindex on;
+}
+```
+
+
+
+### try_files
+
+`try_files` 指令用于检查指定的文件或目录是否存在。若存在，则直接提供服务或执行内部重定向；若均不存在，则返回指定的状态码或重定向到其他位置。
+
+上下文：可在 `server {}` 或 `location {}` 块中使用。
+
+
+
+语法
+
+```
+try_files file ... uri | =code;
+```
+
+- **`file ...`**：按顺序检查的文件或目录路径，支持绝对路径、相对路径或变量（如 `$uri`）。
+- **`uri`**：若所有文件或目录均不存在，则执行内部重定向到该 URI。
+- **`=code`**：若所有文件或目录均不存在，则返回指定的 HTTP 状态码（如 `=404`）。
+
+
+
+**示例 1：检查文件是否存在**
+
+```nginx
+server {
+    root /www/data;
+
+    location /images/ {
+        try_files $uri /images/default.gif;
+    }
+}
+```
+
+- 检查请求 URI（如 `/images/photo.jpg`）对应的文件 `/www/data/images/photo.jpg` 是否存在。
+- 若存在，返回该文件；若不存在，返回默认文件 `/www/data/images/default.gif`。
+
+
+
+**示例 2：检查文件、目录或返回 404**
+
+```nginx
+location / {
+    root /www/data;
+    try_files $uri $uri/ $uri.html =404;
+}
+```
+
+- 检查请求 URI（如 `/path`）对应的文件 `/www/data/path` 是否存在。
+- 若不存在，检查目录 `/www/data/path/` 是否存在（需配合 `index` 指令查找索引文件）。
+- 若仍不存在，检查文件 `/www/data/path.html` 是否存在。
+- 若均不存在，返回 HTTP 404 状态码。
+
+
+
+**示例 3：转发到后端**
+
+```nginx
+location / {
+    root /www/data;
+    try_files $uri $uri/ @backend;
+}
+
+location @backend {
+    proxy_pass http://backend.example.com;
+}
+```
+
+- 检查 `$uri` 和 `$uri/` 是否存在。
+- 若均不存在，重定向到命名 `location @backend`，并将请求代理至后端服务器 `http://backend.example.com`。
+
