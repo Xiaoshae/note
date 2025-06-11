@@ -2291,7 +2291,7 @@ openssl req -new -subj "/CN=*.lab.org/C=CN/ST=shanghai/L=shanghai/O=system/OU=sy
 现在，我们已经有了 CA 环境、CA 证书和私钥，以及证书请求（CSR）。最后一步是使用我们的 CA 对服务器的 CSR 进行签名，从而颁发一个正式的服务器证书。
 
 ```
-openssl ca -in lab.org.csr -batch
+openssl ca -in lab.org.csr -batch -days 1825
 ```
 
 
