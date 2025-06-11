@@ -2314,6 +2314,183 @@ demoCA/
 ├── serial
 └── serial.old
 
-4 directories, 12 files
+4 directories, 11 files
 ```
 
+
+
+### SM 证书颁发机构
+
+首先在 `/etc/pki/tls` 目录下创建 CA 环境所需的目录结构：
+
+```
+# 进入 TLS 证书目录
+cd /etc/pki/tls
+
+# 创建 demoCA 主目录
+mkdir demoCA
+
+# 进入 demoCA 目录并创建子目录
+cd demoCA
+mkdir certs crl newcerts private
+```
+
+- `certs/`: 存放已颁发的证书
+- `crl/`: 存放证书吊销列表
+- `newcerts/`: 存放新颁发的证书副本
+- `private/`: 存放 CA 的私钥文件
+
+
+
+初始化 CA 数据库文件
+
+```
+touch index.txt serial
+echo "1000" > serial
+```
+
+- `index.txt`: 证书数据库文件，记录所有颁发的证书信息
+- `serial`: 证书序列号文件，每次颁发证书后会自动递增
+
+
+
+编辑 /etc/pki/tls/openssl.cnf 文件，修改参数。
+
+将第 45 行的 `dir	= ./demoCA` 修改为 `dir = /etc/pki/tls/demoCA`
+
+```diff
+     38 ####################################################################
+     39 [ ca ]
+     40 default_ca      = CA_default            # The default ca section
+     41 
+     42 ####################################################################
+     43 [ CA_default ]
+     44 
+-    45 dir             = ./demoCA              # Where everything is kept
++    45 dir             = /etc/pki/tls/demoCA   # Where everything is kept
+     46 certs           = $dir/certs            # Where the issued certs are kept
+     47 crl_dir         = $dir/crl              # Where the issued crl are kept
+     48 database        = $dir/index.txt        # database index file.
+     49 unique_subject  = no                    # Set to 'no' to allow creation of
+     50                                         # several certs with same subject.
+     51 new_certs_dir   = $dir/newcerts         # default place for new certs.
+     52 
+     53 certificate     = $dir/cacert.pem       # The CA certificate
+     54 serial          = $dir/serial           # The current serial number
+     55 crlnumber       = $dir/crlnumber        # the current crl number
+     56                                         # must be commented out to leave a V1 CRL
+     57 crl             = $dir/crl.pem          # The current CRL
+     58 private_key     = $dir/private/cakey.pem# The private key
+```
+
+
+
+将第 77 行的 `default_md = default` 修改为 `default_md = sm3`。
+
+```diff
+     75 default_days    = 365                   # how long to certify for
+     76 default_crl_days= 30                    # how long before next CRL
+-    77 default_md      = default           	# use public key default MD
++    77 default_md      = sm3           		# use public key default MD
+     78 preserve        = no                    # keep passed DN ordering
+```
+
+`default_md = sm3`：这个参数指定了 CA 默认使用的消息摘要算法（哈希算法）。`sm3` 是国密算法套件中的哈希算法，用于生成证书的指纹和签名。
+
+
+
+取消第 68 行的 `copy_extensions = copy` 的注释
+
+```diff
+     67 # Extension copying option: use with caution.
+-    68 # copy_extensions = copy
++    68 copy_extensions = copy     # 取消注释
+```
+
+这个参数指示 OpenSSL 在为证书请求（CSR）签名时，将 CSR 中包含的扩展信息（如 Subject Alternative Name, SAN）复制到最终颁发的证书中。这对于生成包含 SAN 扩展的服务器证书至关重要，因为 SAN 允许一个证书保护多个域名（例如 `*.lab.org` 和 `lab.org`）。
+
+
+
+修改第 83 行的 `policy = policy_match` 为 `policy = policy_anything`
+
+```diff
+     80 # A few difference way of specifying how similar the request should look
+     81 # For type CA, the listed attributes must be the same, and the optional
+     82 # and supplied fields are just that :-)
+-    83 policy          = policy_match
++    83 policy          = policy_anything
+```
+
+- `policy = policy_match`：默认策略，要求证书请求中的国家（C）、省份（ST）、地区（L）和组织（O）字段必须与 CA 证书中的对应字段匹配。
+- `policy = policy_anything`：修改后的策略。这意味着 CA 在为证书请求签名时，不会强制要求证书请求中的字段（如国家、省份、组织等）必须与 CA 证书中的字段严格匹配。
+
+
+
+CA 私钥是 CA 的核心，用于对所有颁发的证书进行签名。这里我们将使用国密 SM2 算法生成私钥。
+
+```
+openssl genpkey -algorithm EC -out private/cakey.pem -pkeyopt ec_paramgen_curve:sm2
+```
+
+- `-algorithm EC`：指定生成椭圆曲线（Elliptic Curve）算法的私钥。SM2 密钥是基于椭圆曲线的。
+- `-out private/cakey.pem`：指定私钥的输出路径和文件名。`private/cakey.pem` 表示将私钥保存到 `demoCA/private/` 目录下，文件名为 `cakey.pem`。
+- `-pkeyopt ec_paramgen_curve:sm2`：这是关键参数，它指定了椭圆曲线的名称为 `sm2`，即使用国密 SM2 曲线。
+
+
+
+CA 证书是 CA 的公开部分，它包含了 CA 的公钥和身份信息。作为根 CA，它通常是自签名的，并使用 SM3 哈希算法进行签名。
+
+```
+openssl req -x509 -subj "/CN=ca-sm.lab.org" -days 3650 -out cacert.pem -key private/cakey.pem
+```
+
+- `-x509`：指定生成一个自签名证书，而不是证书请求。
+- `-subj "/CN=ca-sm.lab.org"`：指定证书的主题（Subject）。`CN` (Common Name) 通常用于标识证书的用途或所有者。这里我们将其设置为 `ca-sm.lab.org`，表示这是一个用于 `lab.org` 域的 SM 算法 CA 证书。
+- `-days 3650`：指定证书的有效期为 3650 天（约 10 年）。CA 证书的有效期通常设置得较长。
+- `-out cacert.pem`：指定自签名证书的输出路径和文件名。`cacert.pem` 将保存在 `demoCA/` 目录下。
+- `-key private/cakey.pem`：指定用于签名此证书的私钥文件。这里使用的是我们刚刚生成的 SM2 CA 私钥。由于 `openssl.cnf` 中已设置 `default_md = sm3`，所以此证书将使用 SM3 算法进行签名。
+
+
+
+接下来，我们将为 `*.lab.org` 域名生成一个服务器私钥，同样使用 SM2 算法。
+
+```
+openssl genpkey -algorithm EC -out lab.org.key -pkeyopt ec_paramgen_curve:sm2
+```
+
+- `-algorithm EC`：指定生成椭圆曲线算法的私钥。
+- `-out lab.org.key`：指定私钥的输出路径和文件名。`lab.org.key` 将保存在当前目录（即 `/etc/pki/tls/demoCA`）下。
+- `-pkeyopt ec_paramgen_curve:sm2`：指定椭圆曲线的名称为 `sm2`，确保生成的私钥是 SM2 私钥。
+
+
+
+证书请求（CSR）包含了身份信息和公钥，用于向 CA 申请颁发证书。
+
+```
+openssl req -new -subj "/CN=lab.org/C=CN/ST=shanghai/L=shanghai/O=system/OU=system" -addext subjectAltName="DNS:*.lab.org,DNS:lab.org" -out lab.org.csr -key lab.org.key
+```
+
+- `-new`：表示生成一个新的证书请求。`-subj "/CN=*.lab.org/C=CN/ST=shanghai/L=shanghai/O=system/OU=system"`
+  - `CN=*.lab.org`：通用名称，通常是服务器的主机名或域名。这里的 `*.lab.org` 表示这是一个通配符证书请求。
+  - `C=CN`：国家（Country）为中国。
+  - `ST=shanghai`：省份（State or Province）为上海。
+  - `L=shanghai`：地区（Locality）为上海。
+  - `O=system`：组织（Organization）为 system。
+  - `OU=system`：组织单位（Organizational Unit）为 system。
+- `-key lab.org.key`：指定用于生成此证书请求的私钥。这里使用的是我们刚刚生成的 `lab.org.key`。
+- `-addext subjectAltName="DNS:*.lab.org,DNS:lab.org"`添加主题备用名称（Subject Alternative Name, SAN）扩展。这是非常重要的一步，它允许一个证书保护多个域名。
+  - `DNS:*.lab.org`：表示证书将适用于 `lab.org` 域下的所有子域名（例如 `www.lab.org`, `mail.lab.org`）。
+  - `DNS:lab.org`：表示证书也将适用于 `lab.org` 根域名本身。
+- `-out lab.org.csr`：指定证书请求的输出路径和文件名。`lab.org.csr` 将保存在当前目录（即 `/etc/pki/tls/demoCA`）下。
+
+
+
+最后一步是使用我们的 SM CA 对服务器的 CSR 进行签名，从而颁发一个正式的服务器证书。CA 将使用 SM3 算法对证书进行签名。
+
+```
+openssl ca -in lab.org.csr -batch -days 1825
+```
+
+- `-in lab.org.csr`：指定输入的证书请求文件。
+- `-batch`：以非交互模式运行，跳过所有交互式提示。
+- `-days 1825`：指定新颁发证书的有效期为 1825 天（约 5 年）。
