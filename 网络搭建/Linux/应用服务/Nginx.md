@@ -965,3 +965,277 @@ location @backend {
 - 检查 `$uri` 和 `$uri/` 是否存在。
 - 若均不存在，重定向到命名 `location @backend`，并将请求代理至后端服务器 `http://backend.example.com`。
 
+
+
+### 性能优化
+
+优化内容服务性能的关键在于提升加载速度。通过对 NGINX 配置进行精细调整，可以显著提高效率，从而实现最佳性能。
+
+
+
+#### 启用 sendfile
+
+默认情况下，NGINX 在文件传输时会将文件内容先复制到缓冲区再发送。启用 `sendfile` 指令可以省去这一缓冲区复制步骤，实现数据从一个文件描述符到另一个的直接复制。为了避免单一快速连接完全占用工作进程，可以使用 `sendfile_max_chunk` 指令限制单次 `sendfile()` 调用传输的数据量，例如限制为 1MB：
+
+```nginx
+location /mp3 {
+    sendfile           on;
+    sendfile_max_chunk 1m;
+    # ...
+}
+```
+
+
+
+#### 启用 tcp_nopush
+
+当 `sendfile` 处于开启状态时，结合使用 `tcp_nopush` 指令，可以让 NGINX 在通过 `sendfile()` 获取数据块后，立即将 HTTP 响应头与数据打包发送：
+
+```nginx
+location /mp3 {
+    sendfile   on;
+    tcp_nopush on;
+    # ...
+}
+```
+
+
+
+#### 启用 tcp_nodelay
+
+`tcp_nodelay` 指令用于禁用 Nagle 算法。Nagle 算法最初是为了解决慢速网络中小数据包传输问题而设计的，它会将多个小数据包合并为一个较大包，并延迟 200 毫秒发送。然而，在服务大型静态文件时，数据可以立即发送，无需考虑包大小。此外，这种延迟也会影响在线应用，例如 SSH、在线游戏和在线交易等。默认情况下，`tcp_nodelay` 被设置为 `on`，即禁用 Nagle 算法。建议仅对保持连接（keepalive）使用此指令：
+
+```nginx
+location /mp3 {
+    tcp_nodelay       on;
+    keepalive_timeout 65;
+    # ...
+}
+```
+
+
+
+#### 优化 backlog 队列
+
+NGINX 处理传入连接的速度是一个关键因素。通常，连接建立后会被放入监听套接字的“监听”队列。在正常负载下，这个队列通常较小或不存在。然而，在高负载情况下，队列可能急剧增长，这会导致性能不均、连接断开或延迟增加。
+
+
+
+#### 显示监听队列
+
+运行 `netstat -Lan` 命令可以查看当前的监听队列。输出结果可能如下所示，其中显示端口 80 的监听队列中有 10 个未接受的连接，最大配置为 128 个，这属于正常情况：
+
+```
+Current listen queue sizes (qlen/incqlen/maxqlen)
+Listen         Local Address
+0/0/128        *.12345
+10/0/128       *.80
+0/0/128        *.8080
+```
+
+相反，如果未接受连接数（例如 192）超过了限制（128），则表明网站正在经历高流量。为了优化性能，需要在操作系统和 NGINX 配置中增加可排队的最大连接数：
+
+```
+Current listen queue sizes (qlen/incqlen/maxqlen)
+Listen         Local Address
+0/0/128        *.12345
+192/0/128      *.80
+0/0/128        *.8080	
+```
+
+
+
+#### 调整操作系统
+
+将 `net.core.somaxconn` 内核参数从默认值（128）增加到足以应对大流量突发的值，例如 4096。
+
+对于 FreeBSD 系统，可以运行：
+
+```
+sudo sysctl kern.ipc.somaxconn=4096
+```
+
+对于 Linux 系统，可以运行：
+
+```
+sudo sysctl -w net.core.somaxconn=4096
+```
+
+同时，将以下内容添加到 `/etc/sysctl.conf` 文件中：
+
+```
+net.core.somaxconn = 4096
+```
+
+
+
+#### 调整 NGINX
+
+如果 `somaxconn` 参数被设置为大于 512 的值，则需要调整 NGINX `listen` 指令的 `backlog` 参数以匹配：
+
+```nginx
+server {
+    listen 80 backlog=4096;
+    # ...
+}
+```
+
+
+
+## 反向代理
+
+**反向代理**是一种重要的服务器架构技术，主要用于实现**在多个服务器之间均衡负载**、**无缝整合不同网站的内容**，以及**将请求转发至支持非 HTTP 协议的应用服务器**（例如基于 PHP 或 Python 等特定框架开发的应用）。
+
+当 NGINX 作为反向代理处理请求时，其工作流程分为三个关键步骤：
+
+1. **将客户端请求转发至指定的代理服务器**；
+2. 2**接收并处理来自代理服务器的响应**；
+3. **将处理后的响应返回给客户端**。
+
+
+
+**NGINX 的代理功能**支持将请求转发至多种类型的服务器，包括 **HTTP 服务器**（如其他 NGINX 实例或任意 Web 服务器）和 **非 HTTP 服务器**（如运行 FastCGI、uwsgi、SCGI 或 memcached 协议的应用服务器）。这使得 NGINX 能够灵活适配不同的后端服务架构。
+
+要通过 NGINX 将请求代理到 HTTP 服务器，只需在 `location` 块中使用 `proxy_pass` 指令。例如：
+
+```nginx
+location /some/path/ {
+    proxy_pass http://www.example.com/link/;
+}
+```
+
+如果 `proxy_pass` 指令的**目标地址中指定了 URI 路径**（如 `/link/`），NGINX 会将该路径替换掉**客户端请求 URI 中与 `location` 匹配的部分。**在这里示例中将会使用 `/link/` 替换 `/some/path/`
+
+- **客户端请求**：`/some/path/page.html`
+- **代理后的目标地址**：`http://www.example.com/link/page.html`
+- **客户端请求**：`/some/path/sub_path/page.html`
+- **代理后的目标地址**：`http://www.example.com/link/sub_path/page.html`
+
+
+
+此配置会将所有匹配该路径的请求转发至指定的代理服务器地址。目标地址可以是 **域名** 或 **IP 地址**，并支持指定端口号：
+
+```nginx
+location ~ \.php {
+    proxy_pass http://127.0.0.1:8000;
+}
+```
+
+如果地址未指定URI，或者无法确定要替换的URI部分，则会传递完整的请求URI（可能会稍作修改）。
+
+
+
+要将请求代理到 **非 HTTP 服务器**（如 FastCGI、uWSGI 等），需使用对应的 `*_pass` 指令：
+
+- **`fastcgi_pass`**：转发至 FastCGI 服务器（如 PHP-FPM）
+- **`uwsgi_pass`**：转发至 uWSGI 服务器（常用于 Python 应用）
+- **`scgi_pass`**：转发至 SCGI 服务器
+- **`memcached_pass`**：转发至 memcached 服务器
+
+非 HTTP 代理的地址规则可能与 HTTP 代理不同，需参考具体协议文档。通常需要额外传递参数（如 `fastcgi_param`），确保后端服务器正确处理请求。
+
+`proxy_pass` 还支持将请求转发至 **预定义的服务器组**（如 `upstream` 块定义的集群），此时请求会按配置的负载均衡策略（轮询、最少连接等）在组内分发。
+
+
+
+### 传递请求头
+
+默认情况下，NGINX 会修改代理请求中的两个头部字段：**"Host"** 和 **"Connection"**，并删除值为空字符串的头部字段。其中，**"Host"** 被设置为 **$proxy_host** 变量的值，**"Connection"** 被设置为 **close**。
+
+要更改这些设置或修改其他头部字段，可使用 **proxy_set_header** 指令。该指令可在 location 块、特定 server 上下文或 http 块中指定。例如：
+
+```nginx
+location /some/path/ {
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_pass http://localhost:8000;
+}
+```
+
+在此配置中，**"Host"** 字段被设置为 **$host** 变量的值。
+
+
+
+要阻止某个头部字段传递到被代理服务器，可将其**设置为空字符串**，如下所示：
+
+```nginx
+location /some/path/ {
+    proxy_set_header Accept-Encoding "";
+    proxy_pass http://localhost:8000;
+}
+```
+
+
+
+### 配置缓冲
+
+默认情况下，NGINX 会缓冲来自被代理服务器的响应，将其存储在内部缓冲区中，直到整个响应接收完毕才发送给客户端。这种缓冲机制有助于优化与慢速客户端的性能；如果响应直接同步传递给客户端，可能会浪费被代理服务器的处理时间。启用缓冲时，NGINX 允许被代理服务器快速处理响应，同时根据客户端的下载速度存储这些数据。
+
+负责启用或禁用缓冲的关键指令是 **proxy_buffering**，其默认设置为 **on**，表示启用状态。
+
+**proxy_buffers** 和 **proxy_buffer_size** 指令共同控制 NGINX 存储和缓冲数据的方式。
+
+
+
+**proxy_buffers** 定义了为请求分配的缓冲区数量和大小；
+
+响应的第一部分（通常包含较小的响应头部）则存储在由 **proxy_buffer_size** 设置的单独缓冲区中，该部分可以配置为比其他缓冲区更小。
+
+以下示例增加了默认缓冲区数量，并将响应的第一部分的缓冲区大小设置为比默认值更小：
+
+```nginx
+location /some/path/ {
+    proxy_buffers 16 4k;
+    proxy_buffer_size 2k;
+    proxy_pass http://localhost:8000;
+}
+```
+
+
+
+如果禁用缓冲，响应会在从被代理服务器接收时同步发送给客户端，这种行为适合需要尽快接收响应的快速交互客户端。要在特定 location 中禁用缓冲，可将 **proxy_buffering** 指令设置为 **off**。
+
+```nginx
+location /some/path/ {
+    proxy_buffering off;
+    proxy_pass http://localhost:8000;
+}
+```
+
+在此情况下，NGINX 仅使用 **proxy_buffer_size** 配置的缓冲区存储响应当前部分。
+
+反向代理常用于负载均衡场景；若需深入了解如何通过快速部署提升应用性能、能力和专注度，可参阅免费电子书《选择软件负载均衡器的五大理由》。
+
+
+
+### 选择出站IP地址
+
+如果您的代理服务器具有多个网络接口，有时可能需要**选择特定的源IP地址**来连接到被代理服务器或上游服务器。当 NGINX 后面的被代理服务器配置为只接受来自特定 IP 网络或 IP 地址范围的连接时，这尤其有用。
+
+在这种情况下，可以使用 **proxy_bind** 指令指定所需的网络接口 IP 地址。以下是一个配置示例：
+
+```nginx
+location /app1/ {
+    proxy_bind 127.0.0.1;
+    proxy_pass http://example.com/app1/;
+}
+
+location /app2/ {
+    proxy_bind 127.0.0.2;
+    proxy_pass http://example.com/app2/;
+}
+```
+
+
+
+此外，IP 地址也可以通过变量来指定。例如，**$server_addr** 变量用于传递接受请求的网络接口的 IP 地址：
+
+```nginx
+location /app3/ {
+    proxy_bind $server_addr;
+    proxy_pass http://example.com/app3/;
+}
+```
+
+
+
