@@ -1241,6 +1241,8 @@ location /app3/ {
 
 ## SSL
 
+### 服务端证书
+
 要在 NGINX 上配置 HTTPS 服务器，需要在 nginx.conf 文件的 server 块中为 **listen** 指令添加 **ssl** 参数，并指定服务器证书和私钥文件的路径。例如：
 
 ```nginx
@@ -1282,87 +1284,6 @@ ssl_ciphers HIGH:!aNULL:!MD5;
 **CBC 模式加密算法易受攻击**（如 CVE-2011-3389 中的 BEAST 攻击），并且 **SSLv3 不建议使用**，因为它容易受到 POODLE 攻击，除非必须支持旧版客户端。
 
 
-
-### OCSP 验证
-
-NGINX 能够通过在线证书状态协议（OCSP）验证 X.509 客户端证书的有效性。NGINX 会向 OCSP 响应者发送请求，以检查证书状态，并返回以下三种结果之一：
-
-- **有效**：证书未被吊销。
-- **已吊销**：证书已被吊销。
-- **未知**：无客户端证书的相关信息。
-
-
-
-要启用客户端证书的 OCSP 验证，需要结合使用 **ssl_verify_client** 指令和 **ssl_ocsp** 指令。以下配置示例展示了如何实现这一功能：
-
-```nginx
-server {
-    listen 443 ssl;
-
-    ssl_certificate     /etc/ssl/foo.example.com.crt;
-    ssl_certificate_key /etc/ssl/foo.example.com.key;
-
-    ssl_verify_client       on;
-    ssl_trusted_certificate /etc/ssl/cachain.pem;
-    ssl_ocsp                on; # 启用 OCSP 验证
-
-    #...
-}
-```
-
-
-
-默认情况下，NGINX 会使用客户端证书中嵌入的 OCSP URI 发送请求。如果需要指定其他 OCSP 响应者 URI，可以通过 **ssl_ocsp_responder** 指令来定义。注意，仅支持 http:// 协议的响应者：
-
-```nginx
-#...
-ssl_ocsp_responder http://ocsp.example.com/;
-#...
-```
-
-
-
-为了在所有工作进程之间共享缓存的 OCSP 响应，可以使用 **ssl_ocsp_cache** 指令来定义缓存的名称和大小。默认情况下，响应缓存的有效期为 1 小时，除非 OCSP 响应的 nextUpdate 字段指定了其他时间：
-
-```nginx
-#...
-ssl_ocsp_cache shared:one:10m;
-#...
-```
-
-
-
-### 优化
-
-SSL 操作会消耗额外的 CPU 资源，其中 **SSL 握手是最消耗资源的操作**。减少每个客户端的 SSL 握手次数的有效方法包括：
-
-1. **启用 keepalive 连接**：通过单一连接发送多个请求。
-2. **重用 SSL 会话参数**：避免并行或后续连接的 SSL 握手。
-
-
-
-会话参数存储在所有工作进程共享的 SSL 会话缓存中，可通过 **ssl_session_cache** 指令配置。1 MB 缓存可存储约 4000 个会话。默认缓存超时为 5 分钟，可通过 **ssl_session_timeout** 指令调整。以下配置示例针对多核系统优化，设定了 10 MB 共享会话缓存和 10 分钟超时：
-
-```nginx
-worker_processes auto;
-
-http {
-    ssl_session_cache   shared:SSL:10m;
-    ssl_session_timeout 10m;
-
-    server {
-        listen              443 ssl;
-        server_name         www.example.com;
-        keepalive_timeout   70;
-
-        ssl_certificate     www.example.com.crt;
-        ssl_certificate_key www.example.com.key;
-        ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
-        ssl_ciphers         HIGH:!aNULL:!MD5;
-        #...
-    }
-}
-```
 
 
 
@@ -1446,7 +1367,9 @@ Certificate chain
 
 
 
-### SNI
+
+
+#### SNI
 
 **服务器名称指示（SNI）** 是一种在 **SSL/TLS 握手** 期间，允许浏览器传递其请求的服务器名称的机制。这使得服务器能够识别客户端要访问的具体域名，并据此提供正确的 SSL 证书。
 
@@ -1506,4 +1429,303 @@ server {
 ```
 
 
+
+
+
+
+
+### 客户端证书
+
+要在 NGINX 上启用客户端证书验证，您需要在 `nginx.conf` 文件的 `server` 块中配置相关指令。这包括**开启客户端证书验证**，并**指定验证客户端所提供证书的信任方式**。以下是一个配置示例，展示了如何启用客户端证书验证：
+
+```nginx
+server {
+    listen              443 ssl;
+    server_name         www.example.com;
+    # ...
+    
+    ssl_verify_client   optional;
+    ssl_client_certificate /path/to/trusted_ca.pem;
+    ssl_verify_depth    2;
+    ssl_crl             /path/to/revoked_certs.crl;
+    
+    #...
+}
+```
+
+**ssl_verify_client** 指令用于控制是否启用**客户端证书验证**，它支持以下几种选项：
+
+- **on**：此设置会强制要求客户端提供一个有效的证书，如果客户端未能提供或证书无效，连接将被拒绝。
+- **off**：这是默认设置，表示不要求客户端提供证书。
+- **optional**（0.8.7+ 版本开始支持）：该选项会请求客户端提供证书，但即使客户端不提供证书，连接也不会被拒绝。证书的验证结果将存储在 `$ssl_client_verify` 变量中，方便后续处理。
+- **optional_no_ca**（1.3.8+ 或 1.2.5+ 版本开始支持）：选择此项后，Nginx 会请求客户端证书，但**不强制要求**该证书必须由受信任的 CA 签名。这种模式特别适用于将证书验证工作外包给外部服务的情况。客户端证书的具体内容可以通过 `$ssl_client_cert` 变量进行访问。
+
+
+
+**ssl_client_certificate** 指令指定包含受信任 CA 证书的文件（PEM 格式），用于验证客户端证书。如果启用了 OCSP 响应验证（例如通过 **ssl_stapling**），这些 CA 证书也会用于验证 OCSP 响应。
+
+注意，指定的 CA 证书列表会发送给客户端以提示其选择合适的证书。如果不希望将 CA 证书列表发送给客户端，可以使用 **ssl_trusted_certificate** 指令代替。
+
+
+
+**ssl_crl** 指令指定**撤销证书列表 (CRL)**，指向包含已撤销证书的文件（PEM 格式）。这确保 NGINX 拒绝使用已撤销的客户端证书，增强安全性。
+
+
+
+### 保护 NGINX 与上游服务器的 HTTP 流量
+
+本文主要介绍如何对 NGINX 与其**上游服务器组**或**代理服务器**之间的 HTTP 流量进行加密，以增强数据传输的安全性。
+
+
+
+首先，将上游服务器组的 URL 更改为支持 SSL 连接。在 NGINX 配置文件中，通过 `proxy_pass` 指令指定 `https` 协议：
+
+```nginx
+location /upstream {
+    proxy_pass https://backend.example.com;
+}
+```
+
+
+
+添加用于在上游服务器上验证 NGINX 身份的客户端证书和私钥，使用 `proxy_ssl_certificate` 和 `proxy_ssl_certificate_key` 指令：
+
+```nginx
+location /upstream {
+    proxy_pass                https://backend.example.com;
+    proxy_ssl_certificate     /etc/nginx/client.pem;
+    proxy_ssl_certificate_key /etc/nginx/client.key;
+}
+```
+
+
+
+如果上游服务器使用自签名证书或自定义 CA，需通过 `proxy_ssl_trusted_certificate` 指定受信任的 CA 证书（PEM 格式）。
+
+可选地，使用 `proxy_ssl_verify` 和 `proxy_ssl_verify_depth` 指令让 NGINX 验证安全证书的有效性：
+
+```nginx
+location /upstream {
+    #...
+    proxy_ssl_trusted_certificate /etc/nginx/trusted_ca_cert.crt;
+    proxy_ssl_verify       on;
+    proxy_ssl_verify_depth 2;
+    #...
+}
+```
+
+
+
+每次建立新的 SSL 连接时，客户端与服务器之间需进行完整的 SSL 握手，这会消耗较多 CPU 资源。为让 NGINX 复用之前协商的连接参数并使用简化的握手，可使用 `proxy_ssl_session_reuse` 指令：
+
+```nginx
+location /upstream {
+    #...
+    proxy_ssl_session_reuse on;
+    #...
+}
+```
+
+
+
+可选地，您可以指定使用的 SSL 协议和加密算法：
+
+```nginx
+location /upstream {
+    #...
+    proxy_ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    proxy_ssl_ciphers   HIGH:!aNULL:!MD5;
+}
+```
+
+
+
+#### 配置上游服务器
+
+每个上游服务器应配置为接受**HTTPS**连接。为每个上游服务器指定服务器证书和私钥的路径，使用 `ssl_certificate` 和 `ssl_certificate_key` 指令：
+
+```nginx
+server {
+    listen              443 ssl;
+    server_name         backend1.example.com;
+
+    ssl_certificate     /etc/ssl/certs/server.crt;
+    ssl_certificate_key /etc/ssl/certs/server.key;
+    #...
+    location /yourapp {
+        proxy_pass https://url_to_app.com;
+        #...
+    }
+}
+```
+
+
+
+通过 `ssl_client_certificate` 指令指定客户端证书的路径：
+
+```nginx
+server {
+    #...
+    ssl_client_certificate /etc/ssl/certs/ca.crt;
+    ssl_verify_client      optional;
+    #...
+}
+```
+
+
+
+#### 完整示例
+
+```nginx
+http {
+    #...
+    upstream backend.example.com {
+        server backend1.example.com:443;
+        server backend2.example.com:443;
+    }
+
+    server {
+        listen      80;
+        server_name www.example.com;
+        #...
+
+        location /upstream {
+            proxy_pass                    https://backend.example.com;
+            proxy_ssl_certificate         /etc/nginx/client.pem;
+            proxy_ssl_certificate_key     /etc/nginx/client.key;
+            proxy_ssl_protocols           TLSv1 TLSv1.1 TLSv1.2;
+            proxy_ssl_ciphers             HIGH:!aNULL:!MD5;
+            proxy_ssl_trusted_certificate /etc/nginx/trusted_ca_cert.crt;
+
+            proxy_ssl_verify        on;
+            proxy_ssl_verify_depth  2;
+            proxy_ssl_session_reuse on;
+        }
+    }
+
+    server {
+        listen      443 ssl;
+        server_name backend1.example.com;
+
+        ssl_certificate        /etc/ssl/certs/server.crt;
+        ssl_certificate_key    /etc/ssl/certs/server.key;
+        ssl_client_certificate /etc/ssl/certs/ca.crt;
+        ssl_verify_client      optional;
+
+        location /yourapp {
+            proxy_pass https://url_to_app.com;
+            #...
+        }
+    }
+
+    server {
+        listen      443 ssl;
+        server_name backend2.example.com;
+
+        ssl_certificate        /etc/ssl/certs/server.crt;
+        ssl_certificate_key    /etc/ssl/certs/server.key;
+        ssl_client_certificate /etc/ssl/certs/ca.crt;
+        ssl_verify_client      optional;
+
+        location /yourapp {
+            proxy_pass https://url_to_app.com;
+            #...
+        }
+    }
+}
+```
+
+在此示例中，**proxy_pass 指令**中的 **https 协议**指定 NGINX 转发到上游服务器的流量需加密传输。
+
+当 NGINX 首次与上游服务器建立安全连接时，会执行完整的 **TLS 握手**过程：
+
+- **proxy_ssl_certificate** 指令用于指定上游服务器所需的 **PEM 格式证书**的路径。
+- **proxy_ssl_certificate_key** 指令用于定义证书对应的**私钥文件**路径。
+- **proxy_ssl_protocols** 和 **proxy_ssl_ciphers** 指令分别控制使用的**协议版本**和**加密算法**。
+- 如果启用了 **proxy_ssl_session_reuse** 指令，NGINX 在后续连接中会复用会话参数，从而**加速 TLS 握手**，提高性能。
+
+此外，**proxy_ssl_trusted_certificate** 指令用于指定**受信任的 CA 证书**文件，以验证上游服务器的证书合法性。**proxy_ssl_verify_depth** 指令设置证书链的验证深度（默认为两级），而 **proxy_ssl_verify** 指令则用于**启用或禁用证书验证**，确保连接的安全性。
+
+
+
+### OCSP 验证
+
+NGINX 能够通过在线证书状态协议（OCSP）验证 X.509 客户端证书的有效性。NGINX 会向 OCSP 响应者发送请求，以检查证书状态，并返回以下三种结果之一：
+
+- **有效**：证书未被吊销。
+- **已吊销**：证书已被吊销。
+- **未知**：无客户端证书的相关信息。
+
+
+
+要启用客户端证书的 OCSP 验证，需要结合使用 **ssl_verify_client** 指令和 **ssl_ocsp** 指令。以下配置示例展示了如何实现这一功能：
+
+```nginx
+server {
+    listen 443 ssl;
+
+    ssl_certificate     /etc/ssl/foo.example.com.crt;
+    ssl_certificate_key /etc/ssl/foo.example.com.key;
+
+    ssl_verify_client       on;
+    ssl_trusted_certificate /etc/ssl/cachain.pem;
+    ssl_ocsp                on; # 启用 OCSP 验证
+
+    #...
+}
+```
+
+
+
+默认情况下，NGINX 会使用客户端证书中嵌入的 OCSP URI 发送请求。如果需要指定其他 OCSP 响应者 URI，可以通过 **ssl_ocsp_responder** 指令来定义。注意，仅支持 http:// 协议的响应者：
+
+```nginx
+#...
+ssl_ocsp_responder http://ocsp.example.com/;
+#...
+```
+
+
+
+为了在所有工作进程之间共享缓存的 OCSP 响应，可以使用 **ssl_ocsp_cache** 指令来定义缓存的名称和大小。默认情况下，响应缓存的有效期为 1 小时，除非 OCSP 响应的 nextUpdate 字段指定了其他时间：
+
+```nginx
+#...
+ssl_ocsp_cache shared:one:10m;
+#...
+```
+
+
+
+### 优化
+
+SSL 操作会消耗额外的 CPU 资源，其中 **SSL 握手是最消耗资源的操作**。减少每个客户端的 SSL 握手次数的有效方法包括：
+
+1. **启用 keepalive 连接**：通过单一连接发送多个请求。
+2. **重用 SSL 会话参数**：避免并行或后续连接的 SSL 握手。
+
+
+
+会话参数存储在所有工作进程共享的 SSL 会话缓存中，可通过 **ssl_session_cache** 指令配置。1 MB 缓存可存储约 4000 个会话。默认缓存超时为 5 分钟，可通过 **ssl_session_timeout** 指令调整。以下配置示例针对多核系统优化，设定了 10 MB 共享会话缓存和 10 分钟超时：
+
+```nginx
+worker_processes auto;
+
+http {
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    server {
+        listen              443 ssl;
+        server_name         www.example.com;
+        keepalive_timeout   70;
+
+        ssl_certificate     www.example.com.crt;
+        ssl_certificate_key www.example.com.key;
+        ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+        ssl_ciphers         HIGH:!aNULL:!MD5;
+        #...
+    }
+}
+```
 
