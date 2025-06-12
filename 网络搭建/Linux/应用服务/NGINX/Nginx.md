@@ -626,6 +626,7 @@ NGINX 立即返回 302 或 301 重定向响应，请求处理终止。
 
 - **无标志或 last**：重写 URI 后，NGINX 重新开始 location 匹配，基于新 URI 寻找最合适的 location 块。这可能导致进入新的 location 上下文并执行其中的 rewrite 指令。
 - **break**：重写 URI 后，停止当前 location 上下文的 rewrite 指令处理，且不触发新的 location 匹配。NGINX 直接执行当前 location 块中的其他指令（如 proxy_pass 或 root）。
+
 - **redirect 或 permanent**：返回 302 或 301 重定向，请求处理终止，客户端收到重定向响应。
 
 
@@ -1728,4 +1729,3 @@ http {
     }
 }
 ```
-
