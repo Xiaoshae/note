@@ -1239,3 +1239,271 @@ location /app3/ {
 
 
 
+## SSL
+
+要在 NGINX 上配置 HTTPS 服务器，需要在 nginx.conf 文件的 server 块中为 **listen** 指令添加 **ssl** 参数，并指定服务器证书和私钥文件的路径。例如：
+
+```nginx
+server {
+    listen              443 ssl;
+    server_name         www.example.com;
+    ssl_certificate     www.example.com.crt;
+    ssl_certificate_key www.example.com.key;
+    ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    #...
+}
+```
+
+
+
+**服务器证书**是公开的，会发送给每个连接到 NGINX 服务器的客户端。**私钥是敏感信息**，必须存储在访问受限的文件中，同时确保 NGINX 主进程能够读取它。或者，私钥可以与证书存储在同一个文件中：
+
+```nginx
+ssl_certificate     www.example.com.cert;
+ssl_certificate_key www.example.com.cert;
+```
+
+在这种情况下，必须严格限制对文件的访问权限。请注意，即使证书和私钥存储在同一文件中，发送给客户端的只有证书。
+
+
+
+通过 **ssl_protocols** 和 **ssl_ciphers** 指令，可以强制客户端仅使用安全的 SSL/TLS 版本和加密算法建立连接。
+
+自 NGINX 1.9.1 版本起，默认配置如下：
+
+```nginx
+ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+ssl_ciphers HIGH:!aNULL:!MD5;
+```
+
+由于旧版加密算法可能存在设计漏洞，**建议在现代 NGINX 配置中禁用这些算法**（NGINX 默认配置因向后兼容性而不易更改）。
+
+**CBC 模式加密算法易受攻击**（如 CVE-2011-3389 中的 BEAST 攻击），并且 **SSLv3 不建议使用**，因为它容易受到 POODLE 攻击，除非必须支持旧版客户端。
+
+
+
+### OCSP 验证
+
+NGINX 能够通过在线证书状态协议（OCSP）验证 X.509 客户端证书的有效性。NGINX 会向 OCSP 响应者发送请求，以检查证书状态，并返回以下三种结果之一：
+
+- **有效**：证书未被吊销。
+- **已吊销**：证书已被吊销。
+- **未知**：无客户端证书的相关信息。
+
+
+
+要启用客户端证书的 OCSP 验证，需要结合使用 **ssl_verify_client** 指令和 **ssl_ocsp** 指令。以下配置示例展示了如何实现这一功能：
+
+```nginx
+server {
+    listen 443 ssl;
+
+    ssl_certificate     /etc/ssl/foo.example.com.crt;
+    ssl_certificate_key /etc/ssl/foo.example.com.key;
+
+    ssl_verify_client       on;
+    ssl_trusted_certificate /etc/ssl/cachain.pem;
+    ssl_ocsp                on; # 启用 OCSP 验证
+
+    #...
+}
+```
+
+
+
+默认情况下，NGINX 会使用客户端证书中嵌入的 OCSP URI 发送请求。如果需要指定其他 OCSP 响应者 URI，可以通过 **ssl_ocsp_responder** 指令来定义。注意，仅支持 http:// 协议的响应者：
+
+```nginx
+#...
+ssl_ocsp_responder http://ocsp.example.com/;
+#...
+```
+
+
+
+为了在所有工作进程之间共享缓存的 OCSP 响应，可以使用 **ssl_ocsp_cache** 指令来定义缓存的名称和大小。默认情况下，响应缓存的有效期为 1 小时，除非 OCSP 响应的 nextUpdate 字段指定了其他时间：
+
+```nginx
+#...
+ssl_ocsp_cache shared:one:10m;
+#...
+```
+
+
+
+### 优化
+
+SSL 操作会消耗额外的 CPU 资源，其中 **SSL 握手是最消耗资源的操作**。减少每个客户端的 SSL 握手次数的有效方法包括：
+
+1. **启用 keepalive 连接**：通过单一连接发送多个请求。
+2. **重用 SSL 会话参数**：避免并行或后续连接的 SSL 握手。
+
+
+
+会话参数存储在所有工作进程共享的 SSL 会话缓存中，可通过 **ssl_session_cache** 指令配置。1 MB 缓存可存储约 4000 个会话。默认缓存超时为 5 分钟，可通过 **ssl_session_timeout** 指令调整。以下配置示例针对多核系统优化，设定了 10 MB 共享会话缓存和 10 分钟超时：
+
+```nginx
+worker_processes auto;
+
+http {
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    server {
+        listen              443 ssl;
+        server_name         www.example.com;
+        keepalive_timeout   70;
+
+        ssl_certificate     www.example.com.crt;
+        ssl_certificate_key www.example.com.key;
+        ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+        ssl_ciphers         HIGH:!aNULL:!MD5;
+        #...
+    }
+}
+```
+
+
+
+#### 证书链
+
+某些浏览器可能**对证书颁发机构签发的证书提出警告**，而其他浏览器则正常接受。这是因为颁发机构使用了中间证书进行签名，但该中间证书**未包含在某些浏览器的可信证书库中**，导致证书链验证失败。
+
+为解决此问题，颁发机构通常会提供一个证书链束文件。需将其与服务器证书拼接在一起，并确保**服务器证书位于拼接文件的首位**。例如，使用命令行工具拼接：
+
+```bash
+cat www.example.com.crt bundle.crt > www.example.com.chained.crt
+```
+
+
+
+拼接后的文件应在 NGINX 的 `ssl_certificate` 指令中引用，配置示例如下：
+
+```nginx
+server {
+    listen              443 ssl;
+    server_name         www.example.com;
+    ssl_certificate     www.example.com.chained.crt;
+    ssl_certificate_key www.example.com.key;
+    #...
+}
+```
+
+
+
+如果证书和链束拼接顺序错误（例如，链束在前），NGINX 将无法启动，并显示类似错误：
+
+```nginx
+SSL_CTX_use_PrivateKey_file(" ... /www.example.com.key") failed
+   (SSL: error:0B080074:x509 certificate routines:
+    X509_check_private_key:key values mismatch)
+```
+
+此错误表明 NGINX 尝试将私钥与链束中的第一个证书（而非服务器证书）配对，导致密钥不匹配。
+
+
+
+值得注意的是，常用浏览器（如 Chrome 或 Firefox）通常已存储由可信机构签名的中间证书，因此可能不会因缺少链束而报错。但为确保服务器发送完整的证书链，建议使用 openssl 命令行工具验证：
+
+```bash
+openssl s_client -connect www.godaddy.com:443
+...
+Certificate chain
+ 0 s:/C=US/ST=Arizona/L=Scottsdale/1.3.6.1.4.1.311.60.2.1.3=US
+     /1.3.6.1.4.1.311.60.2.1.2=AZ/O=GoDaddy.com, Inc
+     /OU=MIS Department/CN=www.GoDaddy.com
+     /serialNumber=0796928-7/2.5.4.15=V1.0, Clause 5.(b)
+   i:/C=US/ST=Arizona/L=Scottsdale/O=GoDaddy.com, Inc.
+     /OU=http://certificates.godaddy.com/repository
+     /CN=Go Daddy Secure Certification Authority
+     /serialNumber=07969287
+ 1 s:/C=US/ST=Arizona/L=Scottsdale/O=GoDaddy.com, Inc.
+     /OU=http://certificates.godaddy.com/repository
+     /CN=Go Daddy Secure Certification Authority
+     /serialNumber=07969287
+   i:/C=US/O=The Go Daddy Group, Inc.
+     /OU=Go Daddy Class 2 Certification Authority
+ 2 s:/C=US/O=The Go Daddy Group, Inc.
+     /OU=Go Daddy Class 2 Certification Authority
+   i:/L=ValiCert Validation Network/O=ValiCert, Inc.
+     /OU=ValiCert Class 2 Policy Validation Authority
+     /CN=http://www.valicert.com//emailAddress=info@valicert.com
+...
+```
+
+在此示例中，服务器证书（#0）的颁发者是证书 #1 的主体，证书 #1 的颁发者是证书 #2 的主体，而证书 #2 由知名机构 ValiCert, Inc. 签名，其证书已内置于浏览器中。如果未添加证书链束，仅发送服务器证书（#0），可能导致验证问题。
+
+
+
+在 HTTPS 通信中，服务器发送的证书链通常**只包含终端证书和中间证书**，而**不包含根 CA 证书**。这主要是因为根 CA 证书的信任机制和分发方式与中间证书及终端证书有所不同。
+
+几乎所有的根 CA 证书都已**预装在操作系统和浏览器中**，存储于客户端的信任区。这种信任机制是在硬件制造或软件开发时，通过严格的实体手段建立的，它与中间证书和终端证书那种基于上级证书签名验证的信任方式是不同的。
+
+由于根 CA 证书已预装在客户端的信任存储中，服务器**无需在证书链中包含它**。客户端会从本地信任存储中查找相应的根证书，以完成信任链的验证。
+
+如果根 CA 证书未预装在客户端，即便服务器在证书链中包含了根证书，客户端的操作系统或浏览器也**不会信任它**，因为其信任模型依赖于预装的根证书，而非服务器提供的证书。
+
+
+
+### SNI
+
+**服务器名称指示（SNI）** 是一种在 **SSL/TLS 握手** 期间，允许浏览器传递其请求的服务器名称的机制。这使得服务器能够识别客户端要访问的具体域名，并据此提供正确的 SSL 证书。
+
+
+
+在早期的 SSL 协议中，当多个 HTTPS 服务器被配置为监听同一 IP 地址时，通常会遇到一个问题。例如，在以下 NGINX 配置中：
+
+```nginx
+server {
+    listen          443 ssl;
+    server_name     www.example.com;
+    ssl_certificate www.example.com.crt;
+    #...
+}
+
+server {
+    listen          443 ssl;
+    server_name     www.example.org;
+    ssl_certificate www.example.org.crt;
+    #...
+}
+```
+
+在这种配置下，无论浏览器实际请求的是 `www.example.com` 还是 `www.example.org`，它都将收到默认服务器块（`server block`）的证书，例如 `www.example.com` 的证书。这主要是由于 **SSL 协议的固有行为** 导致的：SSL 连接是在浏览器发送 HTTP 请求之前建立的。因此，NGINX 在 SSL 握手阶段无法得知客户端请求的具体服务器名称，只能提供其配置的默认服务器证书。
+
+然而，在 **现代 TLS 协议** 中，SNI 的引入解决了这一难题。它允许浏览器在 SSL 握手过程中，提前告知服务器其希望连接的服务器名称，从而使服务器能够 **根据该名称选择并提供正确的 SSL 证书**。
+
+
+
+#### 包含多个名称的 SSL 证书
+
+在单个 IP 地址上运行多个 HTTPS 服务器，除了使用 **SNI（Server Name Indication）** 外，还有其他几种方法。其中一种是使用 **包含多个名称的 SSL 证书**。这类证书通常在 **SubjectAltName (SAN) 字段** 中包含多个域名，例如 `www.example.com` 和 `www.example.org`。然而，需要注意的是，SAN 字段的长度是有限的。
+
+另一种常见方法是使用 **通配符证书**，例如 `*.example.org`。通配符证书能够保护指定域名的所有 **一级子域名**（如 `a.example.org`, `b.example.org`），但 **不适用于根域名**（如 `example.org`）或 **多级子域名**（如 `www.sub.example.org`）。
+
+这两种方法也可以结合使用。例如，证书的 SubjectAltName 字段可以同时包含 **精确名称和通配符名称**，如 `example.org` 和 `*.example.org`。
+
+为了优化性能并有效利用内存，建议将包含多个名称的证书及其私钥文件配置在 **http 级别**。这样做可以确保在所有服务器之间共享单一的内存副本，避免重复加载，从而提升效率。
+
+以下是相应的 NGINX 配置示例：
+
+```nginx
+ssl_certificate     common.crt;
+ssl_certificate_key common.key;
+
+server {
+    listen          443 ssl;
+    server_name     www.example.com;
+    #...
+}
+
+server {
+    listen          443 ssl;
+    server_name     www.example.org;
+    #...
+}
+```
+
+
+
