@@ -371,7 +371,7 @@ MS Name/IP address         Stratum Poll Reach LastRx Last sample
   - *****：当前正在使用的同步源。
   - **+**：备用同步源。
   - **-**：未使用的源。
-- **Stratum**：NTP 服务器的层级（越低越接近高精度时间源）。
+- **Stratum**：NTP 服务器的层级（越低越接近高精度时间源）。**Stratum 为 0 是未同步或参考时钟不可达的层级。**
 - **Poll**：查询间隔（秒）。
 - **Reach**：连接成功率（八进制，377 表示 100% 成功）。
 - **LastRx**：最后一次接收数据的时间。
