@@ -32,7 +32,7 @@
 
 
 
-## DNS 基础知识
+## 基础知识
 
 **域名系统( DNS )** 是一种分层**分布式**名称服务，最突出的是，**它将**易于记忆的**域名转换为**使用底层网络协议定位和识别计算机服务和设备所需的数字**IP地址**。
 
@@ -53,7 +53,7 @@
 
 
 
-### 根服务器知识扩展
+### 根服务器
 
 #### 为什么只有 13 个 DNS 根服务器地址？
 
@@ -98,16 +98,34 @@
 
 
 
-值得一提的是，在查询对象为子域（例如 foo.example.com 或 blog.cloudflare.com）的情况下，将向权威性域名服务器之后的序列添加一个附加域名服务器（添加ns），其负责存储该子域的记录。
+当域名解析器查询诸如 foo.example.com 或 blog.cloudflare.com 这样的子域时，它会首先向该子域的**父域权威域名服务器**发起迭代查询。在此过程中，父域权威服务器会根据其配置提供两种响应：
+
+如果父域权威服务器直接托管并存储了该子域的所有资源记录 (RR)，它将直接返回这些记录。
+
+如果父域已将该子域的解析权限委派给其他域名服务器，它会返回一个包含委派信息的**名称服务器 (NS) 记录集**，并可能包含可选的粘附记录 (A/AAAA 记录)。这些 NS 记录明确指向了负责该子域的权威域名服务器。
+
+随后，解析器将继续向这些被委派的权威域名服务器发送递归查询，以最终获取子域的目标资源记录。
+
+
+
+**Glue Record**
+
+Glue Record（粘连记录）是 DNS 系统中用于解决循环依赖问题的一种特殊 **A 记录（或 AAAA 记录）**。它由 **上级 DNS 服务器**（如 .com TLD 服务器）提供，直接包含权威服务器主机名（如 ns1.example.com）的 **IP 地址**。Glue Record **不是存储在域名自身的权威服务器中**，而是存储在 **上级服务器**（如 TLD 服务器或父域服务器）的区域文件中。
+
+当递归解析器查询 example.com 的 NS 记录时，.com TLD 服务器不仅返回 NS 记录（如 ns1.example.com），还会附带相关的 Glue Record，提供该主机名（如 ns1.example.com）对应的 **IP 地址**（如 192.0.2.1）。
+
+Glue Record 通常由 **域名注册商或 DNS 托管服务商** 在注册或管理域名时配置。当你在注册商（如 GoDaddy、Namecheap）注册域名（例如 example.com）时，需要指定权威服务器（如 ns1.example.com 和 ns2.example.com），并**提供这些服务器的 IP 地址**。注册商会将这些 **IP 地址** 提交给相应的 **TLD 服务器**（如 .com TLD 服务器），作为 Glue Record 存储在 **上级 DNS 服务器** 的区域文件中。
+
+
 
 
 
 **Linux 中使用 dig 进行 试验**
 
-跟踪（+trace）域名`xiaoshae.com`的A记录（IPv4地址记录）的解析过程。
+跟踪（+trace）域名`xiaoshae.cn`的A记录（IPv4地址记录）的解析过程。
 
 ```
-dig xiaoshae.com a +trace
+dig xiaoshae.cn a +trace
 ```
 
 
@@ -115,39 +133,48 @@ dig xiaoshae.com a +trace
 1. **根服务器查询** - 查询开始于本地DNS服务器，它返回了根DNS服务器的地址列表。
 
 ```
-.            3500    IN      NS      m.root-servers.net.
-.            3500    IN      NS      i.root-servers.net.
-.            3500    IN      NS      d.root-servers.net.
+.			5	IN	NS	d.root-servers.net.
+.			5	IN	NS	k.root-servers.net.
+.			5	IN	NS	c.root-servers.net.
+.			5	IN	NS	j.root-servers.net.
+.			5	IN	NS	i.root-servers.net.
 ...
+;; Received 525 bytes from 192.168.200.2#53(192.168.200.2) in 32 ms
 ```
 
 
 
-2. 查询得到 **TLD 服务器** - `dig`选择了其中一个根服务器（例如 `d.root-servers.net.`）查询 `xiaoshae.com` 得到 **`.com` TLD 服务器**
+2. 查询得到 **TLD 服务器** - `dig`选择了其中一个根服务器（`c.root-servers.net`）查询 `xiaoshae.cn` 得到 **`.com` TLD 服务器**
 
 ```
-com.            172800  IN      NS      a.gtld-servers.net.
-com.            172800  IN      NS      b.gtld-servers.net.
-com.            172800  IN      NS      c.gtld-servers.net.
+cn.			172800	IN	NS	a.dns.cn.
+cn.			172800	IN	NS	b.dns.cn.
+cn.			172800	IN	NS	c.dns.cn.
+cn.			172800	IN	NS	d.dns.cn.
+cn.			172800	IN	NS	e.dns.cn.
+cn.			172800	IN	NS	ns.cernet.net.
 ...
+;; Received 775 bytes from 198.97.190.53#53(h.root-servers.net) in 129 ms
 ```
 
 
 
-3. 查询得到**权威服务器** - `dig`选择了其中一个`.com`的 TLD 服务器（例如 `a.gtld-servers.net.`）查询`xiaoshae.com`得到`xiaoshae.com.`权威服务器
+3. 查询得到**权威服务器** - `dig`选择了其中一个`.com`的 TLD 服务器（例如 `a.gtld-servers.net.`）查询`xiaoshae.cn`得到`xiaoshae.cn.`权威服务器
 
 ```
-xiaoshae.com.        172800  IN      NS      ns1.alidns.com.
-xiaoshae.com.        172800  IN      NS      ns2.alidns.com.
+xiaoshae.cn.		86400	IN	NS	dns30.hichina.com.
+xiaoshae.cn.		86400	IN	NS	dns29.hichina.com.
+..
+;; Received 621 bytes from 203.119.25.1#53(a.dns.cn) in 24 ms
 ```
 
 
 
-4. 通过权威服务器得到记录**结果** - `dig`选择了其中一个`xiaoshae.com.`的权威服务器，获得具体的A记录。
+4. 通过权威服务器得到记录**结果** - `dig`选择了其中一个`xiaoshae.cn.`的权威服务器，获得具体的A记录。
 
 ```
-xiaoshae.com.        600     IN      A       47.238.6.27
-;; Received 57 bytes from 120.76.107.45#53(ns1.alidns.com) in 23 ms
+xiaoshae.cn.	600	IN	A	47.121.135.145
+;; Received 61 bytes from 47.118.199.219#53(dns29.hichina.com) in 20 ms
 ```
 
 
@@ -155,128 +182,48 @@ xiaoshae.com.        600     IN      A       47.238.6.27
 **完整 dig 输出结果**
 
 ```
-; <<>> DiG 9.18.28-0ubuntu0.22.04.1-Ubuntu <<>> 193.0.14.129 xiaoshae.com a +trace
+[root@Server1 ~]# dig +trace a xiaoshae.cn 
+
+; <<>> DiG 9.16.23 <<>> +trace a xiaoshae.cn
 ;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 59606
-;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+.			5	IN	NS	d.root-servers.net.
+.			5	IN	NS	k.root-servers.net.
+.			5	IN	NS	c.root-servers.net.
+.			5	IN	NS	j.root-servers.net.
+.			5	IN	NS	i.root-servers.net.
+.			5	IN	NS	g.root-servers.net.
+.			5	IN	NS	f.root-servers.net.
+.			5	IN	NS	h.root-servers.net.
+.			5	IN	NS	m.root-servers.net.
+.			5	IN	NS	a.root-servers.net.
+.			5	IN	NS	l.root-servers.net.
+.			5	IN	NS	e.root-servers.net.
+.			5	IN	NS	b.root-servers.net.
+.			5	IN	RRSIG	NS 8 0 518400 20250627170000 20250614160000 53148 . EDJWOX8IkT/bwlkF8XyX7zDfseKT0ZwAAAAF3xgCAu+lq40bd0DqTvl8 MVqQrj8KXT5W2wvmsRk2btDIdr4yuLs+KIWPhxMW1ls5OHwbmCc2jKIS c7lj09cub4fFyHucZRmgtTnv6uYdcQeAF6uRSnjHptvtpJe0/mCbrqjK D7x76nnX/t+r+GZ2o3/B8T6KT4uLXXNQKAKtUpHUMmYJSzxNH+CowYrI ngG/Z3m0sCVDsjpnqZsOyNH0CMZ52/C0v2exGE85MUlEfzbLEI09F6M0 rI0wlT/xYFRQiRYqLG7SmurGSkDNwQ+tiCW5rBuLh3BL5GrianToIyLt Lvapeg==
+;; Received 525 bytes from 192.168.200.2#53(192.168.200.2) in 32 ms
 
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 65494
-;; QUESTION SECTION:
-;193.0.14.129.			IN	A
+cn.			172800	IN	NS	a.dns.cn.
+cn.			172800	IN	NS	b.dns.cn.
+cn.			172800	IN	NS	c.dns.cn.
+cn.			172800	IN	NS	d.dns.cn.
+cn.			172800	IN	NS	e.dns.cn.
+cn.			172800	IN	NS	ns.cernet.net.
+cn.			86400	IN	DS	33094 8 2 CCCF13ED73A83244F7D2936F0B6C3507D85C3EBC5E1BE4FB644064BC 5B5FE3B2
+cn.			86400	IN	DS	57724 8 2 5D0423633EB24A499BE78AA22D1C0C9BA36218FF49FD95A4CDF1A4AD 97C67044
+cn.			86400	IN	RRSIG	DS 8 1 86400 20250627170000 20250614160000 53148 . lfjG08gS+Pz/UWX90pgWP4y8xg2tkZw/qMTTftIHp7YyKuoptby/R0An v25CNzKUi1hG3imbYCpXSNWOsucT5dWZH60Saa8BCbFzyqQEg6d7o0OQ 0t/L3M0lhZmBoBUZGHKt+sFw+AINJBtowxYIE3Yw655l1G/GR/hnXscT jwOStdXSl3ahMr4wLtuA0ZArgXG1J5+diZO6qZ3bXXb8ueolKSHTUpN2 xcSEyecHOhFBfPfSNve0necADy4KubvqrZSJUhXPLYiZ3I4pBgOdgqir BfflGVf/XusX8gSAqubzyyuF+vJtxtG9/ptvUzFoA+gPXXBi8XVRvDBY Xand5g==
+;; Received 775 bytes from 198.97.190.53#53(h.root-servers.net) in 129 ms
 
-;; AUTHORITY SECTION:
-.			600	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. 2024092101 1800 900 604800 86400
+xiaoshae.cn.		86400	IN	NS	dns30.hichina.com.
+xiaoshae.cn.		86400	IN	NS	dns29.hichina.com.
+3QDAQA092EE5BELP64A74EBNB8J53D7E.cn. 21600 IN NSEC3 1 1 10 AEF123AB 3QM14FQ32F1CJFTP8D3J5BCTNP5BIELO NS SOA RRSIG DNSKEY NSEC3PARAM TYPE65534
+3QDAQA092EE5BELP64A74EBNB8J53D7E.cn. 21600 IN RRSIG NSEC3 8 2 21600 20250704141021 20250604131214 38388 cn. TtEkWrP60icuDH+stkcNzpfdAw45NxCk6JI7UmskKCYU6MbkkduQ9bRG wBbRKBDnCcAY3B+gUwLSoVS7OJJ2aXgQHh1Kp9LMbFOn+mC9aaMmrQD2 FgVF6zXX7Brmx3pf+rhT4ZR8V9vLayWrqUnWZ8RltjbnlOCVAy0SsNMp rAM=
+LNBLH5TMC0ANJ5K9MB3I76K65L35C1GO.cn. 21600 IN NSEC3 1 1 10 AEF123AB LNKL4TN4JS6T6MRIH5RCQK6SM69G18VR NS DS RRSIG
+LNBLH5TMC0ANJ5K9MB3I76K65L35C1GO.cn. 21600 IN RRSIG NSEC3 8 2 21600 20250710102649 20250610094109 38388 cn. VPATh8HCJyxOzyLniUg/AM4iHqCDAV4284+BhGbOcWASraH6zd4UWtqa JY6k6H7rYhttHyfboW2P5zn/pI+l8IiGsgk/1OcNS2K3zYxnqRcjdGs/ fRNgfsW7GcOoj2Kjo1u8B5zvGJr37PqgEXrZ/TEoojIxv0xJvPs/EK0I 89Q=
+;; Received 621 bytes from 203.119.25.1#53(a.dns.cn) in 24 ms
 
-;; Query time: 187 msec
-;; SERVER: 127.0.0.53#53(127.0.0.53) (UDP)
-;; WHEN: Sun Sep 22 13:06:46 CST 2024
-;; MSG SIZE  rcvd: 116
+xiaoshae.cn.	600	IN	A	47.121.135.145
+;; Received 61 bytes from 47.118.199.219#53(dns29.hichina.com) in 20 ms
 
-.			3525	IN	NS	g.root-servers.net.
-.			3525	IN	NS	j.root-servers.net.
-.			3525	IN	NS	f.root-servers.net.
-.			3525	IN	NS	a.root-servers.net.
-.			3525	IN	NS	c.root-servers.net.
-.			3525	IN	NS	h.root-servers.net.
-.			3525	IN	NS	m.root-servers.net.
-.			3525	IN	NS	k.root-servers.net.
-.			3525	IN	NS	e.root-servers.net.
-.			3525	IN	NS	b.root-servers.net.
-.			3525	IN	NS	i.root-servers.net.
-.			3525	IN	NS	l.root-servers.net.
-.			3525	IN	NS	d.root-servers.net.
-;; Received 239 bytes from 127.0.0.53#53(127.0.0.53) in 0 ms
-
-com.			172800	IN	NS	f.gtld-servers.net.
-com.			172800	IN	NS	i.gtld-servers.net.
-com.			172800	IN	NS	c.gtld-servers.net.
-com.			172800	IN	NS	e.gtld-servers.net.
-com.			172800	IN	NS	a.gtld-servers.net.
-com.			172800	IN	NS	m.gtld-servers.net.
-com.			172800	IN	NS	d.gtld-servers.net.
-com.			172800	IN	NS	b.gtld-servers.net.
-com.			172800	IN	NS	j.gtld-servers.net.
-com.			172800	IN	NS	g.gtld-servers.net.
-com.			172800	IN	NS	l.gtld-servers.net.
-com.			172800	IN	NS	h.gtld-servers.net.
-com.			172800	IN	NS	k.gtld-servers.net.
-com.			86400	IN	DS	19718 13 2 8ACBB0CD28F41250A80A491389424D341522D946B0DA0C0291F2D3D7 71D7805A
-com.			86400	IN	RRSIG	DS 8 1 86400 20241004170000 20240921160000 20038 . sIbpCIWhO3z46OUuBYczDw90DDN0NU3pZWif8yAUTVt11XJHlMJs+pge BO9mgaUFrTm2B/QcT+rOou9t9lhqmSt/KCmUvAy39a9kGjH4WabruyTu APCAfvWD48ng72sHfvYz1cwLQJrf6fPftDI/+S+EEGgwx67PKtAPVtvA o/KmNiO7dDbybI5smB3aGPD2+/wh+5Lh1ul/VAF1dN4pVCJQuTOQYNrh UxG48ucyKjqYnpZXcknAnpoSLxW9ZqIouuf1z2KJoxH6kYXjpnytoIVS dlAQq/n5RYgT7eIEzT7167jbRzMVRUMxq3S+RlgIIocI06AdG9YaT7ko l2HlUg==
-;; Received 1200 bytes from 192.33.4.12#53(c.root-servers.net) in 191 ms
-
-;; UDP setup with 2001:503:d414::30#53(2001:503:d414::30) for xiaoshae.com failed: network unreachable.
-;; no servers could be reached
-
-;; UDP setup with 2001:503:d414::30#53(2001:503:d414::30) for xiaoshae.com failed: network unreachable.
-;; no servers could be reached
-
-;; UDP setup with 2001:503:d414::30#53(2001:503:d414::30) for xiaoshae.com failed: network unreachable.
-xiaoshae.com.		172800	IN	NS	ns1.alidns.com.
-xiaoshae.com.		172800	IN	NS	ns2.alidns.com.
-CK0POJMG874LJREF7EFN8430QVIT8BSM.com. 86400 IN NSEC3 1 1 0 - CK0Q3UDG8CEKKAE7RUKPGCT1DVSSH8LL NS SOA RRSIG DNSKEY NSEC3PARAM
-CK0POJMG874LJREF7EFN8430QVIT8BSM.com. 86400 IN RRSIG NSEC3 13 2 86400 20240929021348 20240922010348 59354 com. 1gUdp/I6vwqqKKIouY8vu5OwX/W2x7CPvEYYeoCtfI+JmRvp1yOKZfZz gtyZHq5PLjRdOwLvy6S/zrIWoA/MZw==
-VJHLB8PF91J106E901DM8NENLCOJA07O.com. 86400 IN NSEC3 1 1 0 - VJHLG0TBRFNV8IST04JN8CEUE191ESAP NS DS RRSIG
-VJHLB8PF91J106E901DM8NENLCOJA07O.com. 86400 IN RRSIG NSEC3 13 2 86400 20240926021357 20240919010357 59354 com. 8sV/BOrftHVnNMo/rJ/dCgF+Yml/wfObFffaMS4dMSFpdZTVK0dJ9KYs F9oxWtq36ZtosiiEWjvy9/EkEPpHAA==
-;; Received 753 bytes from 192.52.178.30#53(k.gtld-servers.net) in 187 ms
-
-xiaoshae.com.		600	IN	A	47.238.6.27
-;; Received 57 bytes from 120.76.107.55#53(ns1.alidns.com) in 27 ms
-
-root@Xiaoshae:~# dig xiaoshae.com a +trace
-
-; <<>> DiG 9.18.28-0ubuntu0.22.04.1-Ubuntu <<>> xiaoshae.com a +trace
-;; global options: +cmd
-.			3500	IN	NS	m.root-servers.net.
-.			3500	IN	NS	i.root-servers.net.
-.			3500	IN	NS	d.root-servers.net.
-.			3500	IN	NS	h.root-servers.net.
-.			3500	IN	NS	k.root-servers.net.
-.			3500	IN	NS	a.root-servers.net.
-.			3500	IN	NS	b.root-servers.net.
-.			3500	IN	NS	j.root-servers.net.
-.			3500	IN	NS	c.root-servers.net.
-.			3500	IN	NS	g.root-servers.net.
-.			3500	IN	NS	e.root-servers.net.
-.			3500	IN	NS	f.root-servers.net.
-.			3500	IN	NS	l.root-servers.net.
-;; Received 239 bytes from 127.0.0.53#53(127.0.0.53) in 3 ms
-
-com.			172800	IN	NS	a.gtld-servers.net.
-com.			172800	IN	NS	b.gtld-servers.net.
-com.			172800	IN	NS	c.gtld-servers.net.
-com.			172800	IN	NS	d.gtld-servers.net.
-com.			172800	IN	NS	e.gtld-servers.net.
-com.			172800	IN	NS	f.gtld-servers.net.
-com.			172800	IN	NS	g.gtld-servers.net.
-com.			172800	IN	NS	h.gtld-servers.net.
-com.			172800	IN	NS	i.gtld-servers.net.
-com.			172800	IN	NS	j.gtld-servers.net.
-com.			172800	IN	NS	k.gtld-servers.net.
-com.			172800	IN	NS	l.gtld-servers.net.
-com.			172800	IN	NS	m.gtld-servers.net.
-com.			86400	IN	DS	19718 13 2 8ACBB0CD28F41250A80A491389424D341522D946B0DA0C0291F2D3D7 71D7805A
-com.			86400	IN	RRSIG	DS 8 1 86400 20241004170000 20240921160000 20038 . sIbpCIWhO3z46OUuBYczDw90DDN0NU3pZWif8yAUTVt11XJHlMJs+pge BO9mgaUFrTm2B/QcT+rOou9t9lhqmSt/KCmUvAy39a9kGjH4WabruyTu APCAfvWD48ng72sHfvYz1cwLQJrf6fPftDI/+S+EEGgwx67PKtAPVtvA o/KmNiO7dDbybI5smB3aGPD2+/wh+5Lh1ul/VAF1dN4pVCJQuTOQYNrh UxG48ucyKjqYnpZXcknAnpoSLxW9ZqIouuf1z2KJoxH6kYXjpnytoIVS dlAQq/n5RYgT7eIEzT7167jbRzMVRUMxq3S+RlgIIocI06AdG9YaT7ko l2HlUg==
-;; Received 1172 bytes from 199.7.91.13#53(d.root-servers.net) in 243 ms
-
-;; UDP setup with 2001:503:eea3::30#53(2001:503:eea3::30) for xiaoshae.com failed: network unreachable.
-;; no servers could be reached
-
-;; UDP setup with 2001:503:eea3::30#53(2001:503:eea3::30) for xiaoshae.com failed: network unreachable.
-;; no servers could be reached
-
-;; UDP setup with 2001:503:eea3::30#53(2001:503:eea3::30) for xiaoshae.com failed: network unreachable.
-xiaoshae.com.		172800	IN	NS	ns1.alidns.com.
-xiaoshae.com.		172800	IN	NS	ns2.alidns.com.
-CK0POJMG874LJREF7EFN8430QVIT8BSM.com. 86400 IN NSEC3 1 1 0 - CK0Q3UDG8CEKKAE7RUKPGCT1DVSSH8LL NS SOA RRSIG DNSKEY NSEC3PARAM
-CK0POJMG874LJREF7EFN8430QVIT8BSM.com. 86400 IN RRSIG NSEC3 13 2 86400 20240929021348 20240922010348 59354 com. 1gUdp/I6vwqqKKIouY8vu5OwX/W2x7CPvEYYeoCtfI+JmRvp1yOKZfZz gtyZHq5PLjRdOwLvy6S/zrIWoA/MZw==
-VJHLB8PF91J106E901DM8NENLCOJA07O.com. 86400 IN NSEC3 1 1 0 - VJHLG0TBRFNV8IST04JN8CEUE191ESAP NS DS RRSIG
-VJHLB8PF91J106E901DM8NENLCOJA07O.com. 86400 IN RRSIG NSEC3 13 2 86400 20240926021357 20240919010357 59354 com. 8sV/BOrftHVnNMo/rJ/dCgF+Yml/wfObFffaMS4dMSFpdZTVK0dJ9KYs F9oxWtq36ZtosiiEWjvy9/EkEPpHAA==
-;; Received 753 bytes from 192.5.6.30#53(a.gtld-servers.net) in 27 ms
-
-xiaoshae.com.		600	IN	A	47.238.6.27
-;; Received 57 bytes from 120.76.107.45#53(ns1.alidns.com) in 23 ms
 ```
 
 
@@ -358,17 +305,19 @@ NS 记录告诉互联网可从哪里找到域的 IP 地址，一个**域**通常
 
 所有 DNS 区域都需要一个 SOA 记录，以符合 IETF 标准。SOA 记录对区域传输也很重要。
 
-| Name     | TYPE | MNAME        | RNAME          | serial | refresh | retry | expire | minimum |
-| -------- | ---- | ------------ | -------------- | ------ | ------- | ----- | ------ | ------- |
-| exp.com. | SOA  | ns1.exp.com. | admin.exp.com. | 0      | 86400   | 3600  | 604800 | 10800   |
+| 字段             | 描述                                                         | 示例值                  |
+| ---------------- | ------------------------------------------------------------ | ----------------------- |
+| **域名**         | 区域的名称。                                                 | `@` (或 `example.com.`) |
+| **记录类型**     | 记录的类型标识。                                             | `SOA`                   |
+| **主名称服务器** | 负责此 DNS 区域的主要名称服务器的域名。                      | `ns1.exp.com.`          |
+| **管理员邮箱**   | 负责此 DNS 区域的管理员的邮件地址（`@` 替换为 `.`）。        | `admin.exp.com.`        |
+| **序列号**       | DNS 区域文件的版本或修订次数。                               | `0`                     |
+| **刷新间隔**     | 辅助名称服务器检查主服务器是否有更新的频率（秒）。           | `86400`                 |
+| **重试间隔**     | 如果辅助服务器未能成功从主服务器获取更新，再次尝试的时间（秒）。 | `3600`                  |
+| **过期时间**     | 如果在指定时间内辅助服务器仍未能从主服务器获得更新，认为主服务器失效的时间（秒）。 | `604800`                |
+| **最小TTL**      | 如果某条记录没有自己的 TTL 值，则使用的默认 TTL 值（秒）。   | `10800`                 |
 
-- **MNAME**：指定负责此DNS区域的主要名称服务器的域名。
-- **RNAME**：指定负责此DNS区域的管理员的邮件地址，“@”符号会被替换为 "." ，admin.ex.com 等效于 admin@ex.com。
-- **serial**：标识DNS区域文件的版本或修订次数。
-- **refresh**：辅助名称服务器检查主服务器是否有更新的频率。
-- **retry**：如果辅助服务器未能成功从主服务器获取更新，它将在多长时间后再次尝试。
-- **expire**：如果在指定的时间段内辅助服务器仍未能从主服务器获得更新，它将认为主服务器已失效。
-- **minimum**：如果某条记录没有自己的TTL值，那么这条记录将会使用SOA记录中定义的 `minimum` 值
+
 
 #### SRV
 
@@ -380,23 +329,31 @@ DNS“服务” (SRV) 记录为特定的服务（如 IP语音 (VoIP)）、即时
 
 某些互联网协议，如 IMAP、SIP 和 XMPP，除了与特定的服务器连接外，还需要连接到一个特定的端口。SRV 记录是在 DNS 中指定端口的方式。
 
-| 服务         | XMPP               |
-| ------------ | ------------------ |
-| 原型*        | TCP                |
-| 名称**       | example.com        |
-| TTL          | 86400              |
-| class        | IN                 |
-| 在提示下键入 | SRV                |
-| 优先级       | 10                 |
-| 权重         | 5                  |
-| 端口         | 5223               |
-| 目标         | server.example.com |
+| 字段         | 描述                                                         | 示例值                 |
+| ------------ | ------------------------------------------------------------ | ---------------------- |
+| **服务名称** | 服务名称（例如：`_xmpp-client`）。                           | `_xmpp-client`         |
+| **协议类型** | 服务使用的传输协议（例如：`_tcp`, `_udp`）。                 | `_tcp`                 |
+| **域名**     | 关联此记录的域名或子域名。                                   | `@` (或 `example.com`) |
+| **TTL**      | 记录在缓存中保留的秒数（生存时间）。                         | `86400`                |
+| **类别**     | 记录类别，通常为 `IN` (Internet)。                           | `IN`                   |
+| **记录类型** | 记录的类型标识。                                             | `SRV`                  |
+| **优先级**   | 目标主机的优先级（值越小优先级越高）。                       | `10`                   |
+| **权重**     | 在优先级相同的情况下，负载均衡的权重（值越大被选中的概率越高）。 | `5`                    |
+| **端口**     | 服务运行的端口号。                                           | `5223`                 |
+| **目标主机** | 提供服务的主机名。                                           | `server.example.com`   |
 
 
 
 #### RTP
 
 DNS 指针记录（简称 PTR）提供与 IP 地址关联的域名，DNS PTR 记录用于反向 DNS 查找，以 IP 地址开始并查找域名的查询。
+
+| 字段         | 描述                                 | 示例值                         |
+| ------------ | ------------------------------------ | ------------------------------ |
+| **域名**     | 反向解析的 IP 地址对应的反转域名。   | `255.2.0.192.in-addr.arpa`     |
+| **记录类型** | 记录的类型标识。                     | `PTR`                          |
+| **值**       | 与 IP 地址关联的域名。               | `example.com`                  |
+| **TTL**      | 记录在缓存中保留的秒数（生存时间）。 | `86400` (示例，实际值可能不同) |
 
 
 
@@ -428,23 +385,33 @@ DNS 指针记录（简称 PTR）提供与 IP 地址关联的域名，DNS PTR 记
 
 
 
-## DNS 部署与配置
-
-### BIND9 安装
+## BIND9
 
 BIND 9 是 DNS 协议的完整实现的服务器软件。
+
+
+
+### 安装
 
 CentOS 中安装BIND9
 
 ```
 sudo yum/dnf install bind bind-utils # -y
-sudo yum -y install bind bind-utils
+```
+
+```
 sudo dnf -y install bind bind-utils
+```
+
+```
+sudo yum -y install bind bind-utils
 ```
 
 
 
-### BIND9 配置文件
+
+
+### 主配置文件
 
 named的主要配置文件是/etc/named.conf ，其中包含named的设置和区域的顶级定义。
 
@@ -577,19 +544,93 @@ masters
 
 
 
-#### zone 区域文件
-
-**基本格式：**
+### 区域配置文件
 
 ```
-<host name> <TTL> <class> <record type> <record data>
+$TTL 1D
+@	IN SOA	@ rname.invalid. (
+					0	; serial
+					1D	; refresh
+					1H	; retry
+					1W	; expire
+					3H )	; minimum
+	NS	@
+	A	127.0.0.1
+	AAAA	::1
 ```
 
-- `<host name>` 是记录的名字，可以是完全限定的域名（FQDN），也可以相对区域的名称。
-- `<TTL>` 是生存时间，表示该记录可以被缓存多久。
-- `<class>` 通常是 `IN` 表示 Internet。
-- `<record type>` 是记录的类型。
-- `<record data>` 是记录的数据，根据记录类型的不同而变化。
+
+
+#### TTL
+
+```
+$TTL default-ttl [comment]
+```
+
+`default-ttl`：这是一个整数值，表示默认的生存时间，单位是秒。
+
+- 有效 TTL 值的范围：0 - 2147483647 秒。
+- **默认时间单位是秒**，可手动指定其他时间单位：
+  - `s` 或**不带后缀**：秒 (seconds)
+  - `m`: 分钟 (minutes)
+  - `h`: 小时 (hours)
+  - `d`: 天 (days)
+  - `w`: 周 (weeks)
+- 示例：`$TTL 2d` 表示默认 TTL 为 2 天。`$TTL 1h30m` 表示默认 TTL 为 1 小时 30 分钟。
+
+`[comment]`: 这是可选的注释，以分号（`;`）开头，直到行尾。
+
+
+
+#### ORIGIN
+
+```
+$ORIGIN domain-name [comment]
+```
+
+`domain-name`: 这是一个域名，可以是完全限定域名（以点结尾），也可以是非完全限定域名。
+
+`comment`: 可选，用于添加注释，通常会被忽略。
+
+
+
+**默认值**：当 `named`（BIND 服务器进程）加载区域文件时，会**自动设置隐式 `$ORIGIN`**，其值为该区域的名称（以点 `.` 结尾）。例如，若区域定义为 `zone "example.com"`，则默认 `$ORIGIN` 为 `example.com.`。
+
+**作用域**：可在区域文件中**多次使用 `$ORIGIN`**，每次使用后，后续记录的默认基准域名会更新，直到遇到下一个 `$ORIGIN` 或文件结束。
+
+**RR 简写**：在区域文件中，若资源记录的**所有者名称 (owner name)** 不以点 `.` 结尾，`named` 会**自动附加当前 `$ORIGIN`**，使其成为完全限定域名。这一机制避免了重复书写完整域名，提升文件可读性。
+
+**@ 符号**：代表当前 `$ORIGIN` 值，常用于 **SOA 记录** 和 **NS 记录**，因其通常针对整个区域。
+
+
+
+**资源记录格式**：
+
+```
+[name] [TTL] [class] [type] [rdata] [comment]
+```
+
+**name (所有者名称)**：资源记录所属的域名。
+
+- **省略**：如果一行以空白开头，则表示该记录的所有者与上一条记录相同。
+- **@ 符号**：表示当前区域的 `$ORIGIN`，通常是区域的根域名。
+- **非完全限定名**：如果名称不以 `.` 结尾，它将被 `$ORIGIN` 指令定义的前缀所追加。
+
+**TTL (生存时间)**：资源记录在缓存中可以保留的时间（秒）。这是一个 32 位整数。
+
+- **省略**：如果未指定，将使用 `$TTL` 指令定义的默认值。
+- **单位**：可以显式指定单位，与  `$TTL` 指令格式相同。
+
+**class (类别)**：资源记录所属的协议族或实例。
+
+- 最常用的是 `IN` (Internet)，其他包括 `CH` (Chaosnet) 和 `HS` (Hesiod)，但现在很少用于其原始目的。
+- **省略**：如果不指定 class，默认值为 **IN（Internet）**
+
+**type (类型)**：资源记录的类型，指定了 `RDATA` 字段的格式和含义。
+
+**rdata (资源数据)**：资源记录的具体数据。其格式取决于 `type`。
+
+**comment (注释)**：以 `;` 开头，直到行尾。用于解释记录或提供额外信息。
 
 
 
@@ -631,7 +672,7 @@ www.example.com.       3600      IN      A       192.0.2.1
 
 
 
-### 部署实验
+## 部署实验
 
 1. DNS 递归 解析服务器（1台）
 2. DNS 根 服务器（1台）
@@ -661,7 +702,7 @@ DNS服务**关闭dnssec验证**。
 
 
 
-#### 1. 递归服务器
+### 1. 递归服务器
 
 **基础配置**
 
@@ -757,7 +798,7 @@ root@xiashae:/docker# dig @10.12.0.201 .
 
 
 
-#### 2. 根服务器
+### 2. 根服务器
 
 **基础配置**
 
@@ -847,7 +888,7 @@ root@xiashae:/docker# dig @10.12.0.201 com ns
 
 
 
-#### 3. TLD 服务器
+### 3. TLD 服务器
 
 **基础配置**
 
@@ -937,7 +978,7 @@ root@xiashae:/docker# dig @10.12.0.201 xiaoshae.com
 
 
 
-#### 4. 权威服务器
+### 4. 权威服务器
 
 **基础配置**
 
