@@ -243,7 +243,7 @@ firewalld 使用 **netfilter** 框架（Linux 内核的防火墙模块）来实�
   - **trusted** 区域的默认动作为 **ACCEPT**，允许所有流量。
   - **public** 区域的默认动作为 **REJECT**，拒绝未明确允许的流量。
   - **drop** 区域的默认动作为 **DROP**，丢弃所有流量。
-- **优先级**：默认动作的优先级最低，仅在没有其他规则匹配时生效。
+  - **优先级**：默认动作的优先级最低，仅在没有其他规则匹配时生效。
 
 
 
@@ -272,6 +272,14 @@ firewalld 使用 **netfilter** 框架（Linux 内核的防火墙模块）来实�
 
 ```
 firewall-cmd --add-service=http
+```
+
+```
+firewall-cmd --add-service={http,https,ssh}
+```
+
+```
+firewall-cmd --add-service=http --add-service=ssh
 ```
 
 
@@ -360,6 +368,14 @@ firewall-cmd --add-port=8080/tcp
 firewall-cmd --add-port=3000-4000/udp
 ```
 
+```
+firewall-cmd --add-port=8080/tcp --add-port=9090/tcp
+```
+
+```
+firewall-cmd --add-port={8080/tcp,8443/tcp,3306/tcp}
+```
+
 
 
 **--remove-port=portid[-portid]/protocol**：移除端口。
@@ -377,6 +393,16 @@ firewall-cmd --list-ports
 ```
 
 
+
+**服务选项和端口选项可同时使用**：
+
+```
+firewall-cmd --add-service={http,https,ssh} --add-port={8080/tcp,8443/tcp,3306/tcp}
+```
+
+```
+firewall-cmd --add-service=http --add-service=ssh --add-port=8080/tcp --add-port=9090/tcp
+```
 
 
 
