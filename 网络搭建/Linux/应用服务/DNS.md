@@ -598,9 +598,48 @@ $ORIGIN domain-name [comment]
 
 **作用域**：可在区域文件中**多次使用 `$ORIGIN`**，每次使用后，后续记录的默认基准域名会更新，直到遇到下一个 `$ORIGIN` 或文件结束。
 
-**RR 简写**：在区域文件中，若资源记录的**所有者名称 (owner name)** 不以点 `.` 结尾，`named` 会**自动附加当前 `$ORIGIN`**，使其成为完全限定域名。这一机制避免了重复书写完整域名，提升文件可读性。
+**RR 简写**：在区域文件中，若资源记录的**所有者名称 (owner name)** 和**记录值(record)**不以点 `.` 结尾，`named` 会**自动附加当前 `$ORIGIN`**，使其成为完全限定域名。这一机制避免了重复书写完整域名，提升文件可读性。
 
-**@ 符号**：代表当前 `$ORIGIN` 值，常用于 **SOA 记录** 和 **NS 记录**，因其通常针对整个区域。
+**@ 符号**：代表当前 `$ORIGIN` 值，**可用于所有者名称(owner name) 和记录值(record)**，常用于 **SOA 记录** 和 **NS 记录**，因其通常针对整个区域。
+
+
+
+以下命令等价：
+
+```
+$ORIGIN lab.org.
+lab.org.	IN SOA	ns1.lab.org. admin.email.lab.org ( 
+					0	; serial
+					1D	; refresh
+					1H	; retry
+					1W	; expire
+					3H )	; minimum
+
+@	IN SOA	ns1 admin.email ( ;简写版本
+					0	; serial
+					1D	; refresh
+					1H	; retry
+					1W	; expire
+					3H )	; minimum
+```
+
+```
+$ORIGIN lab.org.
+lab.org.	IN	NS	ns1.lab.org.
+lab.org.	IN	NS	ns2.lab.org.
+
+@	IN	NS	ns1 ;简写版本
+@	IN	NS	ns2 ;简写版本
+```
+
+```
+$ORIGIN lab.org.
+ns1.lab.org.	IN	A	10.0.0.101
+ns2.lab.org.	IN	A	10.0.0.102
+
+ns1	IN	A	10.0.0.101 ;简写版本
+ns2	IN	A	10.0.0.102 ;简写版本
+```
 
 
 
