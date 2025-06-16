@@ -231,6 +231,10 @@ firewalld 使用 **netfilter** 框架（Linux 内核的防火墙模块）来实�
 - DROP：
   - 丢弃数据包，不发送任何响应。
   - 适用于需要隐藏服务器存在的场景（如防止探测）。
+- default：
+  - 阻止所有未明确允许的传入连接
+  - 允许系统正常地进行传出通信和对已建立连接的响应
+  
 - %%REJECT%%：
   - 内部目标，等同于 REJECT，但用于某些特殊场景（通常不直接设置）。
 
@@ -241,28 +245,23 @@ firewalld 使用 **netfilter** 框架（Linux 内核的防火墙模块）来实�
 - **兜底处理**：当数据包不匹配区域内的富规则、服务、端口、ICMP 阻止、伪装或端口转发等规则时，默认动作决定其处理方式。
 - **区域特性**：默认动作反映了区域的信任级别。例如：
   - **trusted** 区域的默认动作为 **ACCEPT**，允许所有流量。
-  - **public** 区域的默认动作为 **REJECT**，拒绝未明确允许的流量。
+  - **public** 区域的默认动作为 **default**，阻止所有未明确允许的传入连接。
   - **drop** 区域的默认动作为 **DROP**，丢弃所有流量。
   - **优先级**：默认动作的优先级最低，仅在没有其他规则匹配时生效。
 
 
 
-与区域默认动作相关的参数主要通过 firewall-cmd 命令设置或查询。以下是主要参数：
+与区域默认动作相关的参数主要通过 firewall-cmd 命令设置或查询，**且必须携带 --permanent 参数**。以下是主要参数：
 
 **--get-target**：
 
 - 查询区域的默认动作。
-- 示例：firewall-cmd --zone=public --get-target
+- 示例：`firewall-cmd --permanent --zone=public --get-target`
 
 **--set-target=target**：
 
-- 设置区域的默认动作（目标），支持 ACCEPT、REJECT、DROP。
-- 示例：firewall-cmd --zone=public --set-target=DROP
-
-**--permanent**：
-
-- 指定操作应用于永久配置（不带 --permanent 时为运行时配置）。
-- 示例：firewall-cmd --permanent --zone=public --set-target=DROP
+- 设置区域的默认动作（目标），支持 default、ACCEPT、REJECT、DROP。
+- 示例：`firewall-cmd --permanent --zone=public --set-target=DROP`
 
 
 
@@ -275,7 +274,7 @@ firewall-cmd --add-service=http
 ```
 
 ```
-firewall-cmd --add-service={http,https,ssh}
+    firewall-cmd --add-service={http,https,ssh}
 ```
 
 ```
