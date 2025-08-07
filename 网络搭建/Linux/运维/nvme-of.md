@@ -14,6 +14,8 @@
 
 
 
+## nvme-of over tcp
+
 识别并加载模块
 
 根据你使用的 NVMe-oF 传输类型，你需要加载相应的内核模块。最常见的两种传输类型是 TCP 和 RDMA。
@@ -39,13 +41,20 @@ pacman -S nvmetcli
 首先，我们需要加载 NVMe-oF 所需的内核模块
 
 ```
-modprobe nvme-fabrics
-modprobe nvmet
 modprobe nvmet-tcp
+modprobe nvmet
 modprobe nvme-tcp
+modprobe nvme-fabrics
 ```
 
 
+
+### target
+
+```
+modprobe nvmet
+modprobe nvmet-tcp
+```
 
 使用 `brd`（块设备 RAM 磁盘）模块创建一个 2GB 的内存块设备。
 
@@ -58,6 +67,14 @@ modprobe brd rd_nr=1 rd_size=2097152
 `rd_size=2097152` 表示设备大小为 2097152 KB，即 2 GB。
 
 加载成功后，您应该会看到 `/dev/ram0` 设备。
+
+
+
+创建 10GB 设备
+
+```
+modprobe brd rd_nr=1 rd_size=10485760
+```
 
 
 
@@ -115,6 +132,13 @@ exit
 ```
 
 
+
+### client
+
+```
+modprobe nvme-tcp
+modprobe nvme-fabrics
+```
 
 配置 NVMe-oF 连接端
 
@@ -176,6 +200,8 @@ df -h
 到此，您已经成功地在 Arch Linux 上使用 `brd` 模块创建的内存块设备，通过 NVMe-oF TCP 将其作为目标端共享，并在本机作为连接端连接、格式化和挂载。
 
 
+
+### 断开
 
  nvme-of 客户端断开连接，目标端清除所有配置，删除 ram0 设备。 
 
@@ -263,3 +289,149 @@ sudo modprobe -r nvme-fabrics
 ```
 
 完成这些步骤后，你的系统就会恢复到初始状态，之前创建的 NVMe-oF 连接、目标配置和内存块设备都将被完全清除。
+
+
+
+## nvme-of over Soft-RoCEv2
+
+### target
+
+```
+modprobe nvmet_rdma
+modprobe nvmet
+modprobe nvmet-tcp
+modprobe brd
+```
+
+
+
+创建一个 10GB 的内存块设备
+
+```
+modprobe brd rd_nr=1 rd_size=10485760
+```
+
+
+
+接下来，你需要配置 Soft-RoCE 网络接口。RoCEv2 需要支持 `netdev` 的 `rdma` 驱动，并配置相应的 IP 地址。
+
+```
+# 激活 Soft-RoCE 设备
+rdma link add rxei0 type rxe netdev ens192
+```
+
+注意：将 ens192 替换为你的实际网卡名称
+
+
+
+确认设备状态
+
+```
+rdma link show
+```
+
+
+
+NVMe-oF Target
+
+现在，使用 `nvmetcli` 交互模式来创建和配置 NVMe-oF Target。
+
+```
+nvmetcli
+
+# 进入 subsystems 目录
+cd /subsystems
+
+# 创建一个 NVMe Qualified Name (NQN) 子系统
+create nqn.2025-08.com.example:test
+
+# 进入新创建的子系统
+cd nqn.2025-08.com.example:test
+
+# 允许任意主机连接（如果需要更严格的控制，可以设置为 0）
+set attr allow_any_host=1
+
+# 进入 namespaces 目录
+cd namespaces
+
+# 创建一个 namespace，分配一个 ID
+create 1
+
+# 进入新的 namespace
+cd 1
+
+# 将内存块设备 `/dev/brd0` 绑定到 namespace
+set device path=/dev/brd0
+
+# 启用 namespace
+enable
+
+# 返回到根目录
+cd /
+
+# 进入 ports 目录
+cd /ports
+
+# 创建一个 port
+create 1
+
+# 进入 port
+cd 1
+
+# 设置传输类型为 rdma
+set addr trtype=rdma
+
+# 设置地址族为 ipv4
+set addr adrfam=ipv4
+
+# 设置 target 的 IP 地址
+set addr traddr=192.168.1.1
+
+# 设置服务 ID，NVMe-oF over RoCE 默认端口是 4420
+set addr trsvcid=4420
+
+# 进入 subsystems 目录并绑定刚刚创建的子系统
+cd subsystems
+
+# 将子系统绑定到 port
+create nqn.2025-08.com.example:test
+
+# 保存配置以备将来使用
+saveconfig roce_config.json
+
+# 退出 nvmetcli
+exit
+```
+
+
+
+### Client
+
+首先，加载客户端所需的内核模块。
+
+```
+modprobe nvme-rdma
+modprobe nvme-tcp
+modprobe nvme-fabrics
+```
+
+
+
+使用 `nvme-cli` 工具来发现和连接目标。
+
+使用 nvme-cli 发现 target
+
+```
+nvme discover --transport=rdma --traddr=192.168.1.1 --trsvcid=4420
+```
+
+
+
+连接到 target
+
+```
+nvme connect --transport=rdma --traddr=192.168.1.1 --trsvcid=4420 --subnqn=nqn.2025-08.com.example:test
+```
+
+连接成功后，你的客户端机器上应该会出现一个新的 NVMe 设备，通常命名为 `/dev/nvmeXnY`，你可以像使用本地块设备一样使用它。你可以使用 `nvme list` 命令来验证连接是否成功。
+
