@@ -94,6 +94,15 @@ ls rpcapd/rpcapd
 
 
 
+如果 rpcapd/rpcapd 文件不存在，则切换到 rpcapd 路径下执行 make
+
+```
+cd rpcapd
+make
+```
+
+
+
 运行 **rpcapd** 已测试是否成功
 
 ```
