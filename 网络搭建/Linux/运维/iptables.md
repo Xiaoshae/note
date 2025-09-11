@@ -595,3 +595,124 @@ iptables -A FORWARD -j DROP
 sudo iptables -t nat -A PREROUTING -p udp --dport 40000:50000 -j REDIRECT --to-ports 443
 ```
 
+
+
+## 开机自启
+
+### CentOS
+
+第 1 步：安装 iptables-services
+
+```
+sudo dnf install iptables-services
+```
+
+
+
+第 2 步：创建和保存 iptables 规则
+
+安装完成后，你可以像往常一样添加 `iptables` 规则。例如，你可以添加一个允许 SSH 连接的规则：
+
+```
+sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+```
+
+
+
+当你添加完所有规则后，需要保存它们，这样 `iptables-services` 才能在系统启动时加载它们。
+
+保存 IPv4 规则：
+
+```
+sudo iptables-save > /etc/sysconfig/iptables
+```
+
+保存 IPv6 规则：
+
+```
+sudo ip6tables-save > /etc/sysconfig/ip6tables
+```
+
+这些命令会将当前运行的规则保存到 `/etc/sysconfig/iptables` 和 `/etc/sysconfig/ip6tables` 文件中。
+
+
+
+第 3 步：启用 iptables 服务
+
+接下来，你需要启用 iptables 和 ip6tables 服务，并设置它们在系统启动时自动运行。
+
+启用 IPv4 服务：
+
+```
+sudo systemctl enable iptables
+```
+
+启用 IPv6 服务：
+
+```
+sudo systemctl enable ip6tables
+```
+
+
+
+### ubuntu
+
+`iptables-persistent` 软件包是专为持久化 `iptables` 规则而设计的，它主要用于基于 Debian 的系统（如 Debian 和 Ubuntu）。
+
+
+
+第 1 步：安装软件包
+
+```
+sudo apt update
+sudo apt install iptables-persistent
+```
+
+安装过程中会弹出一个交互式界面，询问你是否要保存当前系统中的 IPv4 和 IPv6 规则。
+
+- **问题 1：** "Do you want to save the current IPv4 rules?"
+  - **选项：** `Yes` / `No`
+  - **建议：** 如果你已经通过 `iptables` 命令设置了临时规则，选择 **Yes**，它会将这些规则保存到 `/etc/iptables/rules.v4` 文件中。如果你还没有设置任何规则，选择 `No`。
+- **问题 2：** "Do you want to save the current IPv6 rules?"
+  - **选项：** `Yes` / `No`
+  - **建议：** 同上，根据你是否设置了 IPv6 规则来选择。
+
+
+
+第 2 步：创建和编辑规则文件
+
+软件包会将规则保存到以下文件：
+
+- **IPv4 规则文件：** `/etc/iptables/rules.v4`
+- **IPv6 规则文件：** `/etc/iptables/rules.v6`
+
+你可以直接编辑这些文件来添加、修改或删除规则。这些文件的格式与 `iptables-save` 和 `ip6tables-save` 命令的输出格式完全相同。
+
+**注意：** 如果你手动编辑了这些文件，需要**重新加载规则**才能让它们生效。
+
+
+
+第 3 步：手动保存和加载规则
+
+`iptables-persistent` 提供了两个命令来手动保存和加载规则，这在每次修改规则文件后都非常有用。
+
+**保存规则：** 如果你通过 `iptables` 命令添加了新规则，可以使用以下命令将它们保存到规则文件中：
+
+```
+sudo netfilter-persistent save
+```
+
+这个命令会执行 `iptables-save > /etc/iptables/rules.v4` 和 `ip6tables-save > /etc/iptables/rules.v6` 的操作。
+
+
+
+**加载规则：** 如果你手动编辑了规则文件，可以使用以下命令立即加载它们，而无需重启系统：
+
+```
+sudo netfilter-persistent reload
+```
+
+这个命令会执行 `iptables-restore < /etc/iptables/rules.v4` 和 `ip6tables-restore < /etc/iptables/rules.v6` 的操作。
+
+
+
