@@ -1414,6 +1414,555 @@ origin
 
 
 
+### 打标签
+
+Git 可以给仓库历史中的某一个提交打上标签，以示重要。 比较有代表性的是人们会使用这个功能来标记发布结点（ `v1.0` 、 `v2.0` 等等）。
+
+
+
+#### 列出标签
+
+`git tag` （可带上可选的 `-l` 选项 `--list`）命令用于列出已有的标签：
+
+```
+$ git tag
+v1.0
+v2.0
+```
+
+这个命令以字母顺序列出标签，但是它们显示的顺序并不重要。
+
+
+
+你也可以按照特定的模式查找标签。 例如，Git 自身的源代码仓库包含标签的数量超过 500 个。 如果只对 1.8.5 系列感兴趣，可以运行：
+
+```
+$ git tag -l "v1.8.5*"
+v1.8.5
+v1.8.5-rc0
+v1.8.5-rc1
+v1.8.5-rc2
+v1.8.5-rc3
+v1.8.5.1
+v1.8.5.2
+v1.8.5.3
+v1.8.5.4
+v1.8.5.5
+```
+
+*按照通配符列出标签需要 `-l` 或 `--list` 选项。*
+
+*如果你只想要完整的标签列表，那么运行 `git tag` 就会默认假定你想要一个列表，它会直接给你列出来， 此时的 `-l` 或 `--list` 是可选的。*
+
+*然而，如果你提供了一个匹配标签名的通配模式，那么 `-l` 或 `--list` 就是强制使用的。*
+
+
+
+#### 创建标签
+
+Git 支持两种标签：轻量标签（lightweight）与附注标签（annotated）。
+
+轻量标签很像一个不会改变的分支——它只是某个特定提交的引用。
+
+附注标签是存储在 Git 数据库中的一个完整对象， 它们是可以被校验的，其中包含打标签者的名字、电子邮件地址、日期时间， 此外还有一个标签信息，并且可以使用 GNU Privacy Guard （GPG）签名并验证。
+
+通常会建议创建附注标签，这样你可以拥有以上所有信息。但是如果你只是想用一个临时的标签， 或者因为某些原因不想要保存这些信息，那么也可以用轻量标签。
+
+
+
+#### 附注标签
+
+在 Git 中创建附注标签十分简单。 最简单的方式是当你在运行 `tag` 命令时指定 `-a` 选项：
+
+```
+$ git tag -a v1.4 -m "my version 1.4"
+$ git tag
+v0.1
+v1.3
+v1.4
+```
+
+`-m` 选项指定了一条将会存储在标签中的信息。 如果没有为附注标签指定一条信息，Git 会启动编辑器要求你输入信息。
+
+**无论是轻量标签还是附注标签，标签仅会指向最近的一次提交 (HEAD)。**
+
+
+
+通过使用 `git show` 命令可以看到标签信息和与之对应的提交信息：
+
+```
+$ git show v1.4
+tag v1.4
+Tagger: Ben Straub <ben@straub.cc>
+Date:   Sat May 3 20:19:12 2014 -0700
+
+my version 1.4
+
+commit ca82a6dff817ec66f44342007202690a93763949
+Author: Scott Chacon <schacon@gee-mail.com>
+Date:   Mon Mar 17 21:52:11 2008 -0700
+
+    changed the version number
+```
+
+*输出显示了打标签者的信息、打标签的日期时间、附注信息，然后显示具体的提交信息。*
+
+
+
+#### 轻量标签
+
+轻量标签本质上是将提交校验和存储到一个文件中——没有保存任何其他信息。 创建轻量标签，不需要使用 `-a`、`-s` 或 `-m` 选项，只需要提供标签名字：
+
+```
+$ git tag v1.4-lw
+$ git tag
+v0.1
+v1.3
+v1.4
+v1.4-lw
+v1.5
+```
+
+
+
+这时，如果在标签上运行 `git show`，你不会看到额外的标签信息。 命令只会显示出提交信息：
+
+```console
+$ git show v1.4-lw
+commit ca82a6dff817ec66f44342007202690a93763949
+Author: Scott Chacon <schacon@gee-mail.com>
+Date:   Mon Mar 17 21:52:11 2008 -0700
+
+    changed the version number
+```
+
+
+
+#### 后期打标签
+
+你也可以对过去的提交打标签。 假设提交历史是这样的：
+
+```console
+$ git log --pretty=oneline
+15027957951b64cf874c3557a0f3547bd83b3ff6 Merge branch 'experiment'
+a6b4c97498bd301d84096da251c98a07c7723e65 beginning write support
+0d52aaab4479697da7686c15f77a3d64d9165190 one more thing
+6d52a271eda8725415634dd79daabbc4d9b6008e Merge branch 'experiment'
+0b7434d86859cc7b8c3d5e1dddfed66ff742fcbc added a commit function
+4682c3261057305bdd616e23b64b0857d832627b added a todo file
+166ae0c4d3f420721acbb115cc33848dfcc2121a started write support
+9fceb02d0ae598e95dc970b74767f19372d61af8 updated rakefile
+964f16d36dfccde844893cac5b347e7b3d44abbc commit the todo
+8a5cbc430f1a9c3d00faaeffd07798508422908a updated readme
+```
+
+
+
+现在，假设在 v1.2 时你忘记给项目打标签，也就是在 “updated rakefile” 提交。 你可以在之后补上标签。 要在那个提交上打标签，你需要在命令的末尾指定提交的校验和（或部分校验和）：
+
+```
+# git tag [标签名] [提交哈希值]
+$ git tag -a v1.2 9fceb02
+```
+
+***此处为轻量标签***
+
+
+
+可以看到你已经在那次提交上打上标签了：
+
+```
+$ git tag
+v0.1
+v1.2
+v1.3
+v1.4
+v1.4-lw
+v1.5
+
+$ git show v1.2
+tag v1.2
+Tagger: Scott Chacon <schacon@gee-mail.com>
+Date:   Mon Feb 9 15:32:16 2009 -0800
+
+version 1.2
+commit 9fceb02d0ae598e95dc970b74767f19372d61af8
+Author: Magnus Chacon <mchacon@gee-mail.com>
+Date:   Sun Apr 27 20:43:35 2008 -0700
+
+    updated rakefile
+...
+```
+
+
+
+后期打**附注标签**示例：
+
+```
+# git tag -a [标签名] [提交哈希值] -m "[标签信息]" 打标签
+$ git tag -a v1.0.0 2a1d3f9 -m "正式发布 v1.0.0 版本"
+```
+
+
+
+#### 共享标签
+
+默认情况下，`git push` 命令并不会传送标签到远程仓库服务器上。 在创建完标签后你必须显式地推送标签到共享服务器上。
+
+
+
+这个过程就像共享远程分支一样——你可以运行 `git push origin <tagname>`。
+
+```
+$ git push origin v1.5
+Counting objects: 14, done.
+Delta compression using up to 8 threads.
+Compressing objects: 100% (12/12), done.
+Writing objects: 100% (14/14), 2.05 KiB | 0 bytes/s, done.
+Total 14 (delta 3), reused 0 (delta 0)
+To git@github.com:schacon/simplegit.git
+ * [new tag]         v1.5 -> v1.5
+```
+
+
+
+如果想要一次性推送很多标签，也可以使用带有 `--tags` 选项的 `git push` 命令。 这将会把所有不在远程仓库服务器上的标签全部传送到那里。
+
+```
+$ git push origin --tags
+Counting objects: 1, done.
+Writing objects: 100% (1/1), 160 bytes | 0 bytes/s, done.
+Total 1 (delta 0), reused 0 (delta 0)
+To git@github.com:schacon/simplegit.git
+ * [new tag]         v1.4 -> v1.4
+ * [new tag]         v1.4-lw -> v1.4-lw
+```
+
+*现在，当其他人从仓库中克隆或拉取，他们也能到你的那些标签。*
+
+*使用 `git push <remote> --tags` 会推送两种标签，不会区分轻量标签和附注标签， 没有简单的选项能够让你只选择推送一种标签。*
+
+
+
+#### 删除标签
+
+`git tag -d <tagname>` 命令用于删除本地仓库上的标签，以下命令删除一个轻量标签：
+
+```
+$ git tag -d v1.4-lw
+Deleted tag 'v1.4-lw' (was e7d5add)
+```
+
+***上述命令并不会从任何远程仓库中移除这个标签。***
+
+
+
+使用 `git push <remote> :refs/tags/<tagname>` 命令更新远程仓库（删除标签信息）
+
+```
+$ git push origin :refs/tags/v1.4-lw
+To /git@github.com:schacon/simplegit.git
+ - [deleted]         v1.4-lw
+```
+
+*上面这种操作的含义是，将冒号前面的空值推送到远程标签名，从而高效地删除它。*
+
+
+
+更直观的方式删除远程标签的命令：
+
+```
+$ git push origin --delete <tagname>
+```
+
+
+
+#### 检出标签
+
+`git checkout` 命令检出到某个标签，用于查看某个标签所指向的文件版本。虽然这会使你的仓库处于“分离头指针（detached HEAD）”的状态，
+
+```
+$ git checkout 2.0.0
+Note: checking out '2.0.0'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by performing another checkout.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -b with the checkout command again. Example:
+
+  git checkout -b <new-branch>
+
+HEAD is now at 99ada87... Merge pull request #89 from schacon/appendix-final
+
+$ git checkout 2.0-beta-0.1
+Previous HEAD position was 99ada87... Merge pull request #89 from schacon/appendix-final
+HEAD is now at df3f601... add atlas.json and cover image
+```
+
+在“分离头指针”状态下，如果你做了某些更改然后提交它们，标签不会发生变化， 但你的新提交将不属于任何分支，并且将无法访问，除非通过确切的提交哈希才能访问。
+
+
+
+如果你需要进行更改，比如你要修复旧版本中的错误，那么通常需要创建一个新分支：
+
+```
+$ git checkout -b version2 v2.0.0
+Switched to a new branch 'version2'
+```
+
+如果在这之后又进行了一次提交，`version2` 分支就会因为这个改动向前移动， 此时它就会和 `v2.0.0` 标签稍微有些不同。
+
+
+
+### 命令别名
+
+`git config` 命令用于修改配置文件，可以用于为每一个命令设置一个别名。
+
+
+
+一些好用的例子：
+
+```
+$ git config --global alias.co checkout
+$ git config --global alias.br branch
+$ git config --global alias.ci commit
+$ git config --global alias.st status
+```
+
+*当要输入 `git commit` 时，只需要输入 `git ci`。*
+
+*随着你继续不断地使用 Git，可能也会经常使用其他命令，所以创建别名时不要犹豫。*
+
+
+
+在创建你认为应该存在的命令时这个技术会很有用。
+
+例如，为了解决取消暂存文件的易用性问题，可以向 Git 中添加你自己的取消暂存别名：
+
+```
+$ git config --global alias.unstage 'reset HEAD --'
+```
+
+这会使下面的两个命令等价：
+
+```
+$ git unstage fileA
+$ git reset HEAD -- fileA
+```
+
+这样看起来更清楚一些。
+
+
+
+通常也会添加一个 `last` 命令，像这样：
+
+```console
+$ git config --global alias.last 'log -1 HEAD'
+```
+
+这样，可以轻松地看到最后一次提交：
+
+```
+$ git last
+commit 66938dae3329c7aebe598c2246a8e6af90d04646
+Author: Josh Goebel <dreamer3@example.com>
+Date:   Tue Aug 26 19:48:51 2008 +0800
+
+    test for current head
+
+    Signed-off-by: Scott Chacon <schacon@example.com>
+```
+
+
+
+## 分支
+
+### 分支的本质
+
+**回顾 Git 保存文件的方式**
+
+Git 保存的不是文件的变化或者差异，而是一系列不同时刻的**快照** 。虽然你可以使用 `git diff` 等命令来比较不同提交之间的变化，这其实是 Git 在后台为你计算出来的，它通过比对不同快照的内容来呈现差异。
+
+
+
+在进行提交操作时，Git 会保存一个提交对象（commit object），该提交对象会包含一个指向<u>暂存内容快照的指针、作者的姓名和邮箱、提交时输入的信息、**指向它的父对象的指针**</u>。
+
+根据提交类型，提交对象所包含的父对象指针数量也有所不同：
+
+- **首次提交**：没有父对象。
+- **普通提交**：有一个父对象。
+- **合并提交**：有多个父对象。
+
+
+
+为了更加形象地说明，我们假设现在有一个工作目录，里面包含了三个将要被暂存和提交的文件。
+
+当你执行暂存操作时，Git 会为每一个文件计算校验和（SHA-1 哈希算法）然后会把当前版本的文件快照保存到 Git 仓库中 （Git 使用 *blob* 对象来保存它们），最终将校验和加入到暂存区域等待提交。
+
+
+
+使用 `git commit` 命令将暂存区的文件提交。
+
+```
+$ git add README test.rb LICENSE
+$ git commit -m 'The initial commit of my project'
+```
+
+当使用 `git commit` 进行提交操作时，Git 会先计算每一个子目录（本例中只有项目根目录）的校验和， 然后在 Git 仓库中这些校验和保存为树对象（tree object）。
+
+随后，Git 便会创建一个提交对象， 它除了包含上面提到的那些信息外，还包含指向这个树对象（项目根目录）的指针。 如此一来，Git 就可以在需要的时候重现此次保存的快照。
+
+
+
+现在，Git 仓库中有五个对象：三个 *blob* 对象（保存着文件快照）、一个 **树** 对象 （记录着目录结构和 blob 对象索引）以及一个 **提交** 对象（包含着指向前述树对象的指针和所有提交信息）。
+
+![image-20250926105617653](./images/Git%20new.assets/image-20250926105617653.png)
+
+
+
+做些修改后再次提交，那么这次产生的提交对象会包含一个指向上次提交对象（父对象）的指针。
+
+![image-20250926110013925](./images/Git%20new.assets/image-20250926110013925-1758855614727-1-1758855617514-3.png)
+
+
+
+Git 的分支本质上是一个**指向特定提交对象的可变指针**。虽然在查看某个分支时，你可以浏览其当前和历史提交，但分支本身并不包含任何提交历史信息，也不“拥有”任何提交。
+
+分支的历史提交是通过 Git 工具，根据该分支当前指向的**提交对象（commit object）** 中的父提交指针，逐层追溯计算出来的。从技术角度看，一个分支只是一个简单的引用文件，内部存储着一个提交对象的**SHA-1 哈希值**。
+
+
+
+Git 的默认分支名字是 `master`。 在多次提交操作之后，你其实已经有一个指向最后那个提交对象的 `master` 分支。 `master` 分支会在每次提交时自动向前移动。
+
+![image-20250926110610179](./images/Git%20new.assets/image-20250926110610179.png)
+
+*Git 的 `master` 分支并不是一个特殊分支。 它就跟其它分支完全没有区别。 之所以几乎每一个仓库都有 master 分支，是因为 `git init` 命令默认创建它，并且大多数人都懒得去改动它。*
+
+
+
+### 基本操作
+
+#### 分支创建
+
+Git 工具创建分支，它只是为你创建了一个可以移动的新的指针。使用 `git branch` 命令实现：
+
+```console
+$ git branch testing
+```
+
+*这会在当前所在的提交对象上创建一个指针。*
+
+![image-20250926110902036](./images/Git%20new.assets/image-20250926110902036-1758856143531-5.png)
+
+
+
+
+
+Git 中存在一个名为 `HEAD` 的特殊指针，正常情况下 HEAD 会指向一个分支，即指向当前所在的本地分支（译注：将 `HEAD` 想象为当前分支的别名）。
+
+如果使用 `checkout` 命令直接检出到一个特定的提交、一个标签（`tag`）或一个远程分支的提交时，`HEAD` 会直接指向那个**提交对象**（该对象的哈希值）。此时 HEAD 不位于任何一个分支上，HEAD 处于**分离头状态 (Detached HEAD)**。在这种状态下，如果你进行新的提交，这个提交将不会属于任何分支。
+
+在本例中，你仍然在 `master` 分支上。 因为 `git branch` 命令仅仅 **创建** 一个新分支，并不会自动切换到新分支中去。
+
+![image-20250926111031392](./images/Git%20new.assets/image-20250926111031392.png)
+
+
+
+你可以简单地使用 `git log` 命令，并使用 `--decorate` 参数，查看**指向当前提交（也就是 `HEAD` 所指向的提交）的所有分支**。
+
+```
+$ git log --oneline --decorate
+f30ab (HEAD -> master, testing) add feature #32 - ability to add new formats to the central interface
+34ac2 Fixed bug #1328 - stack overflow under certain conditions
+98ca9 The initial commit of my project
+```
+
+*当前 `master` 和 `testing` 分支均指向校验和以 `f30ab` 开头的提交对象。*
+
+
+
+#### 分支切换
+
+`git checkout` 命令用于切换到一个已存在的分支，现在切换到新创建的 `testing` 分支去：
+
+```
+$ git checkout testing
+```
+
+这样 `HEAD` 就指向 `testing` 分支了。
+
+![image-20250926111749065](./images/Git%20new.assets/image-20250926111749065.png)
+
+
+
+再提交一次，HEAD 分支（即 HEAD 指向的分支）会随着提交操作自动向前移动：
+
+```
+$ vim test.rb
+$ git commit -a -m 'made a change'
+```
+
+虽然 `testing` 分支向前移动了，但是 `master` 分支却没有，它仍然指向原来的提交（`f30ab`）。
+
+![image-20250926111936553](./images/Git%20new.assets/image-20250926111936553.png)
+
+现在切换回 `master` 分支，一是使 HEAD 指回 `master` 分支，二是将工作目录恢复成 `master` 分支所指向的快照内容。
+
+当你切换回 `master` 分支时，工作目录的内容会恢复到 `master` 指向的那个较旧的版本。这相当于暂时忽略了 `testing` 分支上的修改，让你能从 `master` 分支的当前状态出发，向一个全新的方向进行开发。
+
+![image-20250926122409576](./images/Git%20new.assets/image-20250926122409576.png)
+
+在切换分支时，一定要注意你工作目录里的文件会被改变。 如果是切换到一个较旧的分支，你的工作目录会恢复到该分支最后一次提交时的样子。 **如果 Git 不能干净利落地完成这个任务，它将禁止切换分支。**
+
+**工作目录中存在已修改、但未暂存的文件**
+
+假设你在 `master` 分支上修改了 `main.py` 文件，但未将其添加到暂存区（未执行 `git add`）。此时，如果你尝试切换到 `dev` 分支，且 `dev` 分支上的 `main.py` 文件与你本地未修改的版本（即 `master` 分支上最后一次提交的版本）存在差异，Git 将拒绝切换。这是为了防止 `dev` 分支的文件覆盖你未暂存的修改，导致数据丢失。Git 会报错并中止操作以保护你的工作成果。
+
+**工作目录中已修改的文件全部添加到了暂存区**
+
+当你执行 `git add` 后，这些修改的“快照”已被安全地记录在暂存区（Staging Area）中。Git 认为这些工作已妥善保存，即使它们尚未提交。因此，在这种情况下，切换分支不会导致已暂存的修改丢失。
+
+你会成功切换到新分支。执行 `git status` 时，你会发现这些已暂存的文件在新分支上依然处于暂存状态，等待你的后续提交。
+
+
+
+对项目中的文件内容进行修改并提交：
+
+```
+$ vim test.rb
+$ git commit -a -m 'made other changes'
+```
+
+现在，这个项目的提交历史已经产生了分叉。因为刚才你创建了一个新分支，并切换过去进行了一些工作，随后又切换回 master 分支进行了另外一些工作。 上述两次改动针对的是不同分支：你可以在不同分支间不断地来回切换和工作，并在时机成熟时将它们合并起来。
+
+![image-20250926122947162](./images/Git%20new.assets/image-20250926122947162.png)
+
+
+
+你可以简单地使用 `git log` 命令查看分叉历史。 运行 `git log --oneline --decorate --graph --all` ，它会输出你的提交历史、各个分支的指向以及项目的分支分叉情况。
+
+```
+$ git log --oneline --decorate --graph --all
+* c2b9e (HEAD, master) made other changes
+| * 87ab2 (testing) made a change
+|/
+* f30ab add feature #32 - ability to add new formats to the
+* 34ac2 fixed bug #1328 - stack overflow under certain conditions
+* 98ca9 initial commit of my project
+```
+
+
+
+由于 Git 的分支实质上仅是包含所指对象校验和（长度为 40 的 SHA-1 值字符串）的文件，所以它的创建和销毁都异常高效。 创建一个新分支就相当于往一个文件中写入 41 个字节（40 个字符和 1 个换行符）。
+
+
+
+#### 创建分支并切换
+
+创建一个新分支后立即切换过去，可以使用 `git checkout -b <newbranchname>` 一条命令搞定。
+
 
 
 ## 常见问题
