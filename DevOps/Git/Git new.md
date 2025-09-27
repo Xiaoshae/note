@@ -2844,9 +2844,9 @@ Git 会应用源自提交 `C` 的补丁（通过比较 `C` 和其原始父提交
 `master` 分支保持不变，`feature` 分支的历史被改写，形成了一条干净的线性历史。
 
 ```
-                 A'--B'--C'  <-- feature
-                /
-D---E---F---G---             <-- master
+               A'--B'--C'  <-- feature
+             /
+D---E---F---G              <-- master
 ```
 
 
@@ -3004,6 +3004,356 @@ $ git branch -d server
 此时，Git 的补丁应用机制会发现，补丁所要修改的区域（`app.js` 的第 10 行）的当前内容与补丁生成时所基于的上下文（即 C1 提交时的文件状态）不匹配。Git 无法自动判断您的意图是应该用 C4 的函数体覆盖 C4' 的函数体，还是保留 C4' 中已有的注释并进行合并。
 
 因为无法自动做出决策，Git 会暂停变基过程，并报告一个合并冲突，需要您手动介入来解决。
+
+
+
+## 工具
+
+### 贮藏与清理
+
+有时，当你在项目的一部分上已经工作一段时间后，所有东西都进入了混乱的状态， 而这时你想要切换到另一个分支做一点别的事情。
+
+问题是，你不想仅仅因为过会儿回到这一点而为做了一半的工作创建一次提交。 针对这个问题的答案是 `git stash` 命令。
+
+贮藏（stash）会处理工作目录的脏的状态——即跟踪文件的修改与暂存的改动——然后将未完成的修改保存到一个栈上， 而你可以在任何时候重新应用这些改动（甚至在不同的分支上）。
+
+
+
+#### 贮藏工作
+
+为了演示贮藏，你需要进入项目并改动几个文件，然后可以暂存其中的一个改动。 如果运行 `git status`，可以看到有改动的状态：
+
+```
+$ git status
+Changes to be committed:
+  (use "git reset HEAD <file>..." to unstage)
+
+	modified:   index.html
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git checkout -- <file>..." to discard changes in working directory)
+
+	modified:   lib/simplegit.rb
+```
+
+
+
+现在想要切换分支，但是还不想要提交之前的工作；所以贮藏修改。 将新的贮藏推送到栈上，运行 `git stash` 或 `git stash push`：
+
+```
+$ git stash
+Saved working directory and index state \
+  "WIP on master: 049d078 added the index file"
+HEAD is now at 049d078 added the index file
+(To restore them type "git stash apply")
+```
+
+
+
+可以看到工作目录是干净的了：
+
+```
+$ git status
+# On branch master
+nothing to commit, working directory clean
+```
+
+
+
+此时，你可以切换分支并在其他地方工作；你的修改被存储在栈上。 要查看贮藏的东西，可以使用 `git stash list`：
+
+```
+$ git stash list
+stash@{0}: WIP on master: 049d078 added the index file
+stash@{1}: WIP on master: c264051 Revert "added file_size"
+stash@{2}: WIP on master: 21d80a5 added number to log
+```
+
+在本例中，有两个之前**已经存在的贮藏**，所以你看到了三个不同的贮藏。
+
+
+
+#### 应用贮藏
+
+`git stash apply` 命令用于将贮藏的工作重新应用
+
+```
+$ git stash apply
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git checkout -- <file>..." to discard changes in working directory)
+
+	modified:   index.html
+	modified:   lib/simplegit.rb
+
+no changes added to commit (use "git add" and/or "git commit -a")
+```
+
+在此处，应用贮藏时有一个干净的工作目录，并且尝试将它应用在保存它时所在的分支。
+
+在应用储藏时，可以应用在不干净的工作目录，也可以应用在其他分支中。
+
+可以在一个分支上保存一个贮藏，切换到另一个分支，然后尝试重新应用这些修改。
+
+当应用贮藏时工作目录中有**修改过或未提交的文件**，如果有任何东西不能干净地应用，Git 会产生合并冲突。
+
+
+
+#### 应用时指定名称
+
+如果想要应用其中一个更旧的贮藏，可以通过名字指定它：
+
+```
+$ git stash apply stash@{2}
+```
+
+如果不指定一个贮藏，Git 认为指定的是最近的贮藏。
+
+
+
+当您运行 `git stash` 时，Git 会将两部分内容打包储藏起来，**已暂存的修改**（您已经使用 `git add` 命令放入暂存区的变更），**未暂存的修改**（您已经修改但尚未使用 `add` 添加到暂存区的变更）。
+
+如果只使用 `git stash apply`，Git 会将上述两部分修改全部恢复到您的“工作目录”中，但所有文件变更都会变为“未暂存的修改”，即使它们在储藏前是已暂存状态。需要重新 `add`。
+
+如果使用 `git stash apply --index`，它会将在储藏前**已暂存**的修改，重新应用为**已暂存**状态，在储藏前**未暂存**的修改，重新应用为**未暂存**状态。
+
+```
+$ git stash apply --index
+On branch master
+Changes to be committed:
+  (use "git reset HEAD <file>..." to unstage)
+
+	modified:   index.html
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git checkout -- <file>..." to discard changes in working directory)
+
+	modified:   lib/simplegit.rb
+```
+
+
+
+应用选项只会尝试应用贮藏的工作——在堆栈上还有它。 可以运行 `git stash drop` 加上将要移除的贮藏的名字来移除它：
+
+```
+$ git stash list
+stash@{0}: WIP on master: 049d078 added the index file
+stash@{1}: WIP on master: c264051 Revert "added file_size"
+stash@{2}: WIP on master: 21d80a5 added number to log
+$ git stash drop stash@{0}
+Dropped stash@{0} (364e91f3f268f0900bc3ee613f9f733e82aaed43)
+```
+
+如果不设置名字，则默认移除最近的贮藏。
+
+
+
+#### 应用贮藏并移除
+
+运行 `git stash pop` 会应用贮藏然后立即从栈上移除：
+
+```
+$ git stash pop
+```
+
+如果在应用的时候与当前工作目录中的文件产生了冲突，则不会自动移除，仍然需要使用 drop 手动移除。
+
+
+
+
+
+#### 贮藏时留暂存区内容
+
+`git stash` 命令会打包所有修改（暂存区 + 工作目录），默认情况下会将你的工作区和暂存区都恢复到干净的状态（即 `HEAD` 提交时的状态）。
+
+如果使用 `--keep-index` 参数，就只会重置工作目录，保留已经通过 `git add` 添加到暂存区中的内容。
+
+```
+$ git status -s
+M  index.html
+ M lib/simplegit.rb
+
+$ git stash --keep-index
+Saved working directory and index state WIP on master: 1b65b17 added the index file
+HEAD is now at 1b65b17 added the index file
+
+$ git status -s
+M  index.html
+```
+
+
+
+####  贮藏未跟踪文件
+
+默认情况下，`git stash` 只会贮藏已修改和暂存的**已跟踪**文件。未跟踪（新增）的文件不会保存，任然存在工作目录中。
+
+```
+$ git status
+On branch master
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        test.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+$ git stash push
+No local changes to save
+
+$ git status
+On branch master
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        test.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
+```
+
+
+
+如果指定 `--include-untracked` 或 `-u` 选项，Git 也会贮藏任何未跟踪文件。
+
+```
+$ git status
+On branch master
+Untracked files:
+      (use "git add <file>..." to include in what will be committed)
+        test.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+$ git stash push -u
+Saved working directory and index state WIP on master: d9e2d32 aa
+
+$ git status
+On branch master
+nothing to commit, working tree clean
+```
+
+
+
+#### 贮藏所有文件
+
+在贮藏中包含未跟踪的文件仍然不会包含明确**忽略**的文件.要额外包含忽略的文件，请使用 `--all` 或 `-a` 选项（包含 `-u` 的功能）。
+
+```
+$ git stash push -a
+```
+
+
+
+#### 创建分支并应用贮藏
+
+**为你最近一次贮藏的修改创建一个全新的、独立的分支，并将这些修改恢复到这个新分支上。**
+
+```
+git stash branch <新分支名>
+```
+
+
+
+Git 首先会找到你执行 `git stash` 命令时所在的那个提交（commit）。每个贮藏 (`stash`) 都记录了它是在哪个提交的基础上创建的。
+
+它会以上一步找到的那**原始提交**为起点，创建一个新的分支。
+
+创建分支后，立即切换到这个新分支上。在这个新分支上，它会执行 `git stash apply`，并且智能地恢复暂存区（Staging Area）的状态，就像使用了 `--index` 选项一样。
+
+如果上一步应用成功（由于是在原始提交上操作，所以通常不会有冲突），它会自动删除刚刚应用掉的那个贮藏。
+
+
+
+#### 清理工作目录
+
+对于工作目录中一些工作或文件，你想做的也许不是贮藏而是移除。 `git clean` 命令就是用来干这个的。
+
+清理工作目录有一些常见的原因，比如说为了外部工具生成的东西， 或是为了运行一个干净的构建而移除之前构建的残留。
+
+你需要谨慎地使用这个命令，因为它被设计为从工作目录中移除未被追踪的文件。 如果你改变主意了，你也不一定能找回来那些文件的内容。
+
+
+
+一个更安全的选项是运行 `git stash --all` 来移除每一样东西并存放在栈中。
+
+```
+$ git stash --all
+```
+
+
+
+默认情况下，`git clean` 命令只会移除**没有忽略的未跟踪文件**。
+
+```
+$ git clean
+```
+
+准确来说，你需要加上 `-f` 参数表示“强制（force）”或“确定要移除”，或者将 Git 配置变量 `clean.requireForce` 显式设置为 `false`（默认为 `true` )。
+
+`clean.requireForce`  为 `true` 时表示**“除非用户非常明确地使用 `-f` 或 `--force` 参数来表示‘我确定要删除’，否则不要执行 `git clean` 命令。”**
+
+```
+$ git clean -f
+$ git config clean.requireForce false
+```
+
+
+
+使用 `git clean -f -d` 命令来**递归地进入目录清理未跟踪的文件（不包括被忽略的文件）**以及**空的子目录**。 `-f` 意味着“强制（force）”或“确定要移除”，使用它需要 Git 配置变量 `clean.requireForce` 没有显式设置为 `false`。
+
+```
+$ git clean -f -d
+```
+
+
+
+如果只是想要看看它会做什么，可以使用 `--dry-run` 或 `-n` 选项来运行命令， 这意味着“做一次演习然后告诉你 **将要** 移除什么”。
+
+```
+$ git clean -d -n
+Would remove test.o
+Would remove tmp/
+```
+
+
+
+任何与 `.gitignore` 或其他忽略文件中的模式匹配的文件都不会被移除。
+
+如果你也想要**移除那些被忽略的文件**，例如为了做一次完全干净的构建而移除所有由构建生成的 `.o` 文件， 可以给 clean 命令增加一个 `-x` 选项。
+
+```
+$ git status -s
+ M lib/simplegit.rb
+?? build.TMP
+?? tmp/
+
+$ git clean -n -d
+Would remove build.TMP
+Would remove tmp/
+
+$ git clean -n -d -x
+Would remove build.TMP
+Would remove test.o
+Would remove tmp/
+```
+
+如果不知道 `git clean` 命令将会做什么，在将 `-n` 改为 `-f` 来真正做之前总是先用 `-n` 来运行它做双重检查。
+
+
+
+另一个小心处理过程的方式是使用 `-i` 或 “interactive” 标记来运行它。这种方式下可以分别地检查每一个文件或者交互地指定删除的模式。
+
+```
+$ git clean -x -i
+Would remove the following items:
+  build.TMP  test.o
+*** Commands ***
+    1: clean                2: filter by pattern    3: select by numbers    4: ask each             5: quit
+    6: help
+What now>
+```
+
+
 
 
 
