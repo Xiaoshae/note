@@ -3049,6 +3049,8 @@ HEAD is now at 049d078 added the index file
 (To restore them type "git stash apply")
 ```
 
+Git 会将两部分内容打包储藏起来，**已暂存的修改**（您已经使用 `git add` 命令放入暂存区的变更），**未暂存的修改**（您已经修改但尚未使用 `add` 添加到暂存区的变更）。
+
 
 
 可以看到工作目录是干净的了：
@@ -3352,6 +3354,255 @@ Would remove the following items:
     6: help
 What now>
 ```
+
+
+
+## 命令参考
+
+### switch
+
+`git switch` 是一个相对较新的 Git 命令（在 Git 2.23 版本中引入），它的设计目标是**专门负责分支的切换和创建**。
+
+在以前，这些功能都由 `git checkout` 命令承担，但 `git checkout` 功能过于庞杂（还能撤销文件修改），容易引起混淆。因此，Git 将其功能拆分，用 `git switch` 负责分支操作，`git restore` 负责文件恢复。
+
+
+
+`git switch` 命令的核心功能
+
+1. **切换到**一个已经存在的分支。
+2. **创建并切换到**一个新的分支。
+
+
+
+语法：
+
+```
+git switch [<options>] [<branch>]
+```
+
+
+
+#### 切换分支
+
+最基本的用法，后面跟一个已经存在的分支名，用于切换到该分支。
+
+```
+git switch <branch> 
+```
+
+```
+git switch main
+```
+
+
+
+#### -c
+
+参数：
+
+```
+-c, --create <branch>
+```
+
+
+
+**创建（Create）**并切换到一个新的分支。这是最常用的参数之一。
+
+```
+git switch -c new-feature
+```
+
+创建一个名为 `new-feature` 的新分支，并立即切换过去。这等价于旧命令 `git checkout -b new-feature`。
+
+
+
+#### -C
+
+参数：
+
+```
+-C, --force-create <branch>
+```
+
+
+
+**强制创建（Force-Create）**并切换分支。如果分支已经存在，这个命令会先将该分支**重置（reset）**到当前 `HEAD` 指向的提交，然后再切换过去。
+
+```
+git switch -C existing-feature
+```
+
+如果 `existing-feature` 分支已存在，它会被重置并指向当前提交，然后切换过去。这是一个有风险的操作，因为它会丢弃掉原分支上独有的提交。
+
+
+
+#### --guess
+
+参数：
+
+```
+--guess
+```
+
+
+
+这是一个智能**猜测**功能（默认开启）。如果你尝试切换到一个本地不存在但远程仓库中恰好有一个同名分支（如 `origin/feature-x`），Git 会自动为你创建一个本地分支 `feature-x` 并设置它跟踪 `origin/feature-x`。
+
+```
+git switch --guess feature-x
+```
+
+如果本地没有 `feature-x` 但远程有 `origin/feature-x`，会自动执行 `git switch -c feature-x --track origin/feature-x`。
+
+
+
+#### --discard-changes 
+
+参数：
+
+```
+--discard-changes 
+```
+
+```
+-f, --force
+```
+
+这两个参数的作用是完全等价的。它们都会强制切换分支，并丢弃所有本地的修改（包括已暂存和未暂存的）。
+
+
+
+**丢弃本地修改**并强制切换分支。如果你当前工作区有未提交的修改，并且这些修改与你要切换到的分支有冲突，Git 默认会阻止你切换以防数据丢失。
+
+使用此参数会强制 Git 丢弃这些本地修改，然后完成切换。**这是一个危险操作，请谨慎使用！**
+
+```
+git switch --discard-changes main
+```
+
+```
+git switch -f main 
+```
+
+
+
+#### -d
+
+参数：
+
+```
+-d, --detach
+```
+
+
+
+切换时不是指向一个分支，而是直接指向一个特定的提交（commit），HEAD 进入“**分离头指针（Detached HEAD）**”状态。
+
+这通常用于查看历史代码状态，不建议在此状态下进行新的提交，因为这些提交不属于任何分支，容易丢失。
+
+```
+git switch --detach v1.0.1 
+```
+
+```
+git switch --detach f83dee
+```
+
+
+
+#### -t
+
+参数：
+
+```
+-t, --track
+```
+
+
+
+在创建新分支时，为其设置**跟踪（Track）**一个上游（通常是远程）分支。这使得 `git pull` 和 `git push` 可以省略分支名。
+
+```
+git switch -c feature-y -t origin/feature-y
+```
+
+创建本地分支 `feature-y` 并使其跟踪远程的 `origin/feature-y` 分支。
+
+
+
+#### --orphan
+
+参数：
+
+```
+--orphan <new-branch>
+```
+
+
+
+创建一个**孤儿（Orphan）**分支。这是一个全新的、没有任何历史提交记录的分支。它的第一个提交将成为根提交。
+
+这在创建完全独立于项目主历史的分支时很有用（例如，`gh-pages` 分支用于存放网站文档）。
+
+```
+git switch --orphan project-docs
+```
+
+创建一个全新的 `project-docs` 分支，它与 `main` 或其他分支没有任何历史关联。
+
+
+
+#### --ignore-other-worktrees
+
+参数：
+
+```
+--ignore-other-worktrees
+```
+
+
+
+忽略其他**工作树（Worktrees）**的检查。Git 的 `worktree` 功能允许你将同一个仓库的不同分支检出到不同的目录。
+
+默认情况下，`git switch` 会检查你要切换的分支是否已被其他工作树使用，以防冲突。此参数会跳过这个安全检查。
+
+
+
+#### --overwrite-ignore
+
+参数：
+
+```
+--overwrite-ignore
+```
+
+允许 Git 在切换分支时用跟踪的文件**覆盖（Overwrite）**被 `.gitignore` **忽略（Ignore）**的文件。
+
+默认情况下，如果一个被忽略的文件与目标分支中的某个文件路径相同，切换会失败。
+
+
+
+### worktree
+
+
+
+### restore
+
+
+
+### rebase
+
+
+
+### reset
+
+
+
+
+
+
+
+## 典型示例
 
 
 
