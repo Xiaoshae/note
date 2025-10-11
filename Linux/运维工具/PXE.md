@@ -145,9 +145,40 @@ NBP 文件通常使用非常底层的编程语言编写，主要是 **C 语言**
 
 
 
-## 实操
+## 构建 PXE 环境
 
-ubuntu 24.04 server live
+操作系统版本（来源于 /etc/os-release 文件和 uname -a 命令，省略部分内容）：
+
+```
+root@xiaoshae:~# cat 
+PRETTY_NAME="Ubuntu 24.04.1 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.1 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+```
+
+```
+Linux xiaoshae 6.8.0-47-generic #47-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep 27 21:40:26 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+```
+
+
+
+网络信息（其他网卡与 PXE 服务无关，不展示）：
+
+```
+4: ens38: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 00:0c:29:24:d9:8e brd ff:ff:ff:ff:ff:ff
+    altname enp2s6
+    inet 10.33.1.1/16 brd 10.33.255.255 scope global noprefixroute ens38
+       valid_lft forever preferred_lft forever
+    inet6 fe80::4447:e0cb:20bb:1db1/64 scope link tentative noprefixroute 
+       valid_lft forever preferred_lft forever
+```
 
 
 
@@ -158,8 +189,16 @@ ubuntu 24.04 server live
 更新系统软件包列表，安装 tftpd-hpa 软件包，这是一个功能增强的 TFTP 服务器。
 
 ```
-sudo apt update
+sudo apt-get update
 sudo apt install tftpd-hpa
+```
+
+
+
+备份配置文件：
+
+```
+mv /etc/default/tftpd-hpa /etc/default/tftpd-hpa.back
 ```
 
 
@@ -172,20 +211,20 @@ vim /etc/default/tftpd-hpa
 
 
 
-将文件内容修改为如下所示。这些设置将使 TFTP 服务器监听所有网络接口的连接，并允许上传新文件。
+将文件内容修改为如下所示。这些设置将使 TFTP 服务器监听所有网络接口的连接，并**允许上传新文件（可选）**。
 
 ```
 # /etc/default/tftpd-hpa
 
 TFTP_USERNAME="tftp"
-TFTP_DIRECTORY="/srv/tftp"
+TFTP_DIRECTORY="/pxe/tftp"
 TFTP_ADDRESS=":69"
 TFTP_OPTIONS="--secure --create --verbose"
 ```
 
 配置文件参数详解：
 
-    
+​    
 
 **TFTP_USERNAME**: TFTP 服务运行时使用的用户名。
 
@@ -200,10 +239,10 @@ TFTP_OPTIONS="--secure --create --verbose"
 
 
 
-安装 tftpd-hpa 后，如果 /srv/tftp 目录不存在，则创建该目录。
+安装 tftpd-hpa 后，如果 /pxe/tftp 目录不存在，则创建该目录。
 
 ```
-mkdir -p /srv/tftp
+mkdir -p /pxe/tftp
 ```
 
 
@@ -212,10 +251,10 @@ mkdir -p /srv/tftp
 
 ```
 # 更改目录所有者
-sudo chown -R tftp:tftp /srv/tftp
+sudo chown -R tftp:tftp /pxe/tftp
 
 # 设置目录权限，755 允许所有者读写，其他用户只读
-sudo chmod -R 755 /srv/tftp
+sudo chmod -R 755 /pxe/tftp
 ```
 
 **注意**：有些教程建议使用 777 权限，这会允许任何用户写入，可能带来安全风险。对于大多数应用场景，755 是一个更安全的选择。
@@ -230,11 +269,21 @@ systemctl start tftpd-hpa
 
 
 
+**安装 tftpd-hpa 成功后，服务会自动启动。若修改了配置文件，应手动重启 tftpd-hpa 服务，而非再次启动。**
+
+```
+systemctl restart tftpd-hpa
+```
+
+
+
 如果需要服务器在系统重启后自动运行，请启用该服务
 
 ```
 systemctl enable tftpd-hpa
 ```
+
+**tftpd-hpa 服务默认为开机自启动。**
 
 
 
@@ -251,7 +300,7 @@ apt install tftp-hpa
 在服务器的 TFTP 根目录中创建一个用于测试下载的文件。
 
 ```
-echo "tftp test content" | sudo tee /srv/tftp/test.txt
+echo "tftp test content" | sudo tee /pxe/tftp/test.txt
 ```
 
 
@@ -286,9 +335,13 @@ tftp> put upload.txt
 tftp> quit
 
 # 在服务器上验证文件是否已上传
-ls -l /var/lib/tftpboot/upload.txt
-cat /var/lib/tftpboot/upload.txt
+ls -l /pxe/tftp/upload.txt
+cat /pxe/tftp/upload.txt
 ```
+
+
+
+**注意：测试完成后自行清理测试文件。**
 
 
 
@@ -311,12 +364,26 @@ Nginx 服务将自动启动。您可以通过以下命令来验证其运行状�
 systemctl status nginx
 ```
 
+**安装成功后会自动启动 Nginx 服务。**
+
 
 
 您需要创建一个专门的目录来存放您希望通过 HTTP 提供下载的文件。为了便于管理，我们将其创建在 /srv/http/。
 
 ```
-mkdir -p /srv/http/
+mkdir -p /pxe/http/
+```
+
+
+
+**为 /pxe/http 目录设置正确的所有权和权限**，以确保 Nginx 进程（通常以 www-data 用户身份运行）有权访问这些文件。
+
+```
+# 将目录的所有权递归地赋予 www-data 用户和组
+sudo chown -R www-data:www-data /pxe/http
+
+# 确保目录及其中的文件具有正确的读取权限
+sudo chmod -R 755 /pxe/http
 ```
 
 
@@ -324,19 +391,7 @@ mkdir -p /srv/http/
 为了进行测试，我们可以在这个目录中创建一个示例文件：
 
 ```
-echo "This is the nginx test file." | tee /srv/http/nginx_test.txt
-```
-
-
-
-**为 /srv/http 目录设置正确的所有权和权限**，以确保 Nginx 进程（通常以 www-data 用户身份运行）有权访问这些文件。
-
-```
-# 将目录的所有权递归地赋予 www-data 用户和组
-sudo chown -R www-data:www-data /srv/http
-
-# 确保目录及其中的文件具有正确的读取权限
-sudo chmod -R 755 /srv/http
+echo "This is the nginx test file." | tee /pxe/http/nginx_test.txt
 ```
 
 
@@ -356,7 +411,7 @@ server {
     listen 80 default_server;
 
     location / {
-        root /srv/http/;
+        root /pxe/http/;
 
 		# 开启目录浏览功能，当访问一个目录时，会列出其中的文件
         autoindex on;
@@ -370,6 +425,26 @@ server {
 		charset utf-8;
 		
 		# 尝试直接提供文件，如果找不到则返回 404 错误
+        try_files $uri $uri/ =404;
+    }
+
+}
+```
+
+
+
+以下是无注释版本：
+
+```
+server {
+    listen 80 default_server;
+
+    location / {
+        root /pxe/http/;
+        autoindex on;
+        autoindex_exact_size off;
+        autoindex_localtime on;
+		charset utf-8;
         try_files $uri $uri/ =404;
     }
 
@@ -414,8 +489,18 @@ nginx: configuration file /etc/nginx/nginx.conf test is successful
 **重载 Nginx 服务**，以应用所有更改。
 
 ```
-systemctl restart nginx
+systemctl reload nginx
 ```
+
+
+
+**将 Nginx 服务设置为开机自启动。**
+
+```
+systemctl enable nginx
+```
+
+**nginx 服务默认为开机自启动。**
 
 
 
@@ -445,6 +530,10 @@ Accept-Ranges: bytes
 
 This is the nginx test file.
 ```
+
+
+
+**注意：测试完成后自行清理测试文件。**
 
 
 
@@ -486,48 +575,92 @@ vim /etc/kea/kea-dhcp4.conf
 ```json
 {
     "Dhcp4": {
-        // 指定 Kea 监听 DHCP 请求的网络接口
+        // 配置 DHCPv4 服务器
         "interfaces-config": {
-            "interfaces": [ "enp0s3" ] // <<== 重要：将 enp0s3 替换为您的实际服务器网卡名称
+            // 指定监听的网络接口
+            "interfaces": [ "ens38" ]
         },
 
-        // 租约数据库配置，用于存储 IP 地址分配信息
+        // 配置租约存储
         "lease-database": {
-            "type": "memfile",
-            "persist": true,
-            "name": "/var/lib/kea/dhcp4.leases"
+            "type": "memfile", // 使用文件存储租约
+            "persist": true,   // 持久化存储租约
+            "name": "/var/lib/kea/kea-leases4.csv" // 租约文件路径
         },
 
-        // 定义子网和 IP 池
+        // 配置 DHCP 子网
         "subnet4": [
             {
-                // 定义您的网络子网和掩码
-                "subnet": "192.168.56.0/24", // <<== 修改为您的网络地址/掩码
-
-                // 定义可供分配的 IP 地址范围
+                "subnet": "10.33.0.0/16", // 子网范围
                 "pools": [
                     {
-                        "pool": "192.168.56.100 - 192.168.56.200" // <<== 修改为您希望分配的 IP 地址范围
+                        // 分配的 IP 地址池
+                        "pool": "10.33.1.100 - 10.33.1.200"
                     }
                 ],
 
-                // ================= PXE 启动核心配置 =================
-                // 指定 TFTP 服务器的 IP 地址 (DHCP Option 66)
-                "next-server": "192.168.56.10", // <<== 修改为您的 TFTP/PXE 服务器的 IP 地址
+                "next-server": "10.33.1.1", // TFTP 服务器地址
+                "boot-file-name": "ipxe.efi", // PXE 启动文件名
 
-                // 指定网络引导程序 (NBP) 的文件名 (DHCP Option 67)
-                "boot-file-name": "pxelinux.0", // <<== 修改为您的 NBP 文件名 (例如: undionly.kpxe, snponly.efi 等)
-                // ====================================================
+                "valid-lifetime": 4000, // 租约有效期（秒）
+                "renew-timer": 1000,    // 续租时间（秒）
+                "rebind-timer": 2000    // 重新绑定时间（秒）
+            }
+        ],
 
-                // 租约时间设置（可选）
+        // 配置日志
+        "loggers": [
+            {
+                "name": "kea-dhcp4", // 日志模块名称
+                "output_options": [
+                    {
+                        // 日志文件路径
+                        "output": "/var/log/kea/kea-dhcp4.log"
+                    }
+                ],
+                "severity": "INFO", // 日志级别
+                "debuglevel": 0     // 调试级别
+            }
+        ]
+    }
+}
+```
+
+
+
+以下是无注释版本：
+
+```json
+{
+    "Dhcp4": {
+        "interfaces-config": {
+            "interfaces": [ "ens38" ]
+        },
+
+        "lease-database": {
+            "type": "memfile",
+            "persist": true,
+            "name": "/var/lib/kea/kea-leases4.csv"
+        },
+
+        "subnet4": [
+            {
+                "subnet": "10.33.0.0/16",
+                "pools": [
+                    {
+                        "pool": "10.33.1.100 - 10.33.1.200"
+                    }
+                ],
+
+                "next-server": "10.33.1.1",
+                "boot-file-name": "ipxe.efi",
+
                 "valid-lifetime": 4000,
                 "renew-timer": 1000,
                 "rebind-timer": 2000
             }
-            // 如果需要，您可以添加更多的 subnet4 配置块
         ],
 
-        // 日志配置
         "loggers": [
             {
                 "name": "kea-dhcp4",
@@ -548,10 +681,18 @@ vim /etc/kea/kea-dhcp4.conf
 
 完成配置后，启动 Kea 服务并设置为开机自启。
 
-**启动 Kea DHCPv4 服务**
+**启动 kea-dhcp4-server 服务**
 
 ```
 systemctl start kea-dhcp4-server
+```
+
+
+
+**安装 kea-dhcp4-server 后，它会自动启动，无需手动启动。如果修改了配置文件，需重启服务以应用更改。**
+
+```
+systemctl restart kea-dhcp4-server
 ```
 
 
@@ -572,7 +713,7 @@ systemctl status kea-dhcp4-server
 systemctl enable kea-dhcp4-server
 ```
 
-
+**kea-dhcp4-server 默认为开机自启动，无需设置。**
 
 
 
@@ -582,7 +723,7 @@ systemctl enable kea-dhcp4-server
 
 ```
 apt-get update
-apt install -y build-essential git
+apt install -y git build-essential liblzma-dev
 ```
 
 
@@ -605,36 +746,27 @@ cd ipxe/src
 
 在 src 目录下，创建一个名为 boot.ipxe 的文件。这个文件将包含您希望 iPXE 在启动时执行的指令。
 
+```
+boot.ipxe
+```
+
+
+
 这是一个 boot.ipxe 文件的示例，您可以根据自己的需求进行修改：
 
 ```
 #!ipxe
 
-echo iPXE is booting...
-echo MAC address: ${net0/mac}
-echo IP address: ${net0/ip}
-
-# 设置您的服务器地址
-set server_ip 192.168.1.100
-
-# 从您的服务器加载启动菜单，或者直接加载内核和镜像
-# 示例：链式加载另一个 iPXE 脚本
-chain http://${server_ip}/menu.ipxe
-
-# 或者，您可以直接启动一个操作系统安装程序
-# kernel http://${server_ip}/ubuntu/casper/vmlinuz
-# initrd http://${server_ip}/ubuntu/casper/initrd
-# boot
-
-# 如果加载失败，则进入 iPXE shell
-shell
+dhcp
 ```
+
+这里有问题，这只是一个示例。
 
 
 
 #### ipxe.efi
 
-**编译为 bin-x86_64-efi 架构的 ipxe.efi 文件**
+**编译为 bin-x86_64-efi 架构的 ipxe.efi 文件**	
 
 使用 make 命令，并指定目标平台为 bin-x86_64-efi/ipxe.efi，同时通过 EMBED 参数嵌入您的 boot.ipxe 脚本。
 
