@@ -537,6 +537,81 @@ This is the nginx test file.
 
 
 
+### nfs 服务器
+
+安装 NFS 服务器软件包
+
+```
+sudo apt update
+sudo apt install nfs-kernel-server
+```
+
+
+
+创建一个用于共享的目录，例如 **/pxe/nfs**：
+
+```
+mkdir -p /pxe/nfs
+```
+
+
+
+设置目录权限，确保客户端可以访问（根据需求调整权限）：
+
+```
+chown nobody:nogroup /pxe/nfs
+chmod 755 /pxe/nfs
+```
+
+
+
+编辑 NFS 配置文件 /etc/exports，指定共享目录和访问权限：
+
+```
+vim /etc/exports
+```
+
+
+
+添加以下内容（根据你的网络和需求调整）：
+
+```
+/pxe/nfs 10.33.0.0/16(ro,sync,no_subtree_check)
+```
+
+- `/pxe/nfs`：共享的目录。
+- `10.33.0.0/16`：允许访问的客户端网络（替换为你的网络范围，例如 192.168.1.* 或特定 IP）。
+- `ro`：允许读，禁止写。
+- `sync`：确保数据同步写入。
+- `no_subtree_check`：禁用子树检查，提高性能。
+
+
+
+更新 NFS 导出表：
+
+```
+sudo exportfs -a
+```
+
+
+
+确保 NFS 服务运行并设置为开机启动：
+
+```
+sudo systemctl start nfs-kernel-server
+sudo systemctl enable nfs-kernel-server
+```
+
+
+
+检查 NFS 服务状态
+
+```
+sudo systemctl status nfs-kernel-server
+```
+
+
+
 ### kea-dhcp 服务器
 
 #### 安装
@@ -574,52 +649,67 @@ vim /etc/kea/kea-dhcp4.conf
 
 ```json
 {
-    "Dhcp4": {
-        // 配置 DHCPv4 服务器
+    "Dhcp4": { // Kea DHCPv4 服务器的主配置块
         "interfaces-config": {
-            // 指定监听的网络接口
-            "interfaces": [ "ens38" ]
+            "interfaces": [ "ens38" ] // 指定 DHCPv4 服务器监听的网络接口
         },
 
-        // 配置租约存储
         "lease-database": {
-            "type": "memfile", // 使用文件存储租约
-            "persist": true,   // 持久化存储租约
-            "name": "/var/lib/kea/kea-leases4.csv" // 租约文件路径
+            "type": "memfile", // 租约数据库类型：内存文件 (Memfile)
+            "persist": true, // 启用持久化存储
+            "name": "/var/lib/kea/kea-leases4.csv" // 存储 DHCPv4 租约信息的文件路径
         },
 
-        // 配置 DHCP 子网
-        "subnet4": [
+        "client-classes": [ // 客户端分类规则
             {
-                "subnet": "10.33.0.0/16", // 子网范围
-                "pools": [
+                "name": "PXE_BIOS",
+                // 测试条件：DHCP 选项 93 (Client System Architecture) 的值是 0x0000 (Intel x86PC / BIOS)
+                "test": "option[93].hex == 0x0000",
+                "option-data": [
                     {
-                        // 分配的 IP 地址池
-                        "pool": "10.33.1.100 - 10.33.1.200"
+                        "name": "boot-file-name", // 分配给符合此分类的客户端的启动文件名 (TFTP 文件名)
+                        "data": "undionly.kpxe" // 适用于 BIOS PXE 启动的 iPXE 文件
                     }
-                ],
-
-                "next-server": "10.33.1.1", // TFTP 服务器地址
-                "boot-file-name": "ipxe.efi", // PXE 启动文件名
-
-                "valid-lifetime": 4000, // 租约有效期（秒）
-                "renew-timer": 1000,    // 续租时间（秒）
-                "rebind-timer": 2000    // 重新绑定时间（秒）
+                ]
+            },
+            {
+                "name": "PXE_UEFI",
+                // 测试条件：选项 93 的值是 0x0007 (EFI IA32) 或 0x0009 (EFI X64)
+                "test": "option[93].hex == 0x0007 or option[93].hex == 0x0009",
+                "option-data": [
+                    {
+                        "name": "boot-file-name",
+                        "data": "ipxe.efi" // 适用于 UEFI PXE 启动的 iPXE 文件
+                    }
+                ]
             }
         ],
 
-        // 配置日志
-        "loggers": [
+        "subnet4": [ // IPv4 子网配置块
             {
-                "name": "kea-dhcp4", // 日志模块名称
-                "output_options": [
+                "subnet": "10.33.0.0/16", // 定义的子网 (网络地址和前缀长度)
+                "pools": [ // 可分配的 IP 地址池
                     {
-                        // 日志文件路径
-                        "output": "/var/log/kea/kea-dhcp4.log"
+                        "pool": "10.33.1.100 - 10.33.1.200" // IP 地址范围
                     }
                 ],
-                "severity": "INFO", // 日志级别
-                "debuglevel": 0     // 调试级别
+                "next-server": "10.33.1.1", // "next-server" 选项 (DHCP Option 66 / TFTP 服务器地址)
+                "valid-lifetime": 4000, // 租约有效时长 (秒)
+                "renew-timer": 1000, // 租约续期时间点 (秒)
+                "rebind-timer": 2000 // 租约重绑定时间点 (秒)
+            }
+        ],
+
+        "loggers": [ // 日志配置
+            {
+                "name": "kea-dhcp4", // 日志记录器名称
+                "output_options": [
+                    {
+                        "output": "/var/log/kea/kea-dhcp4.log" // 日志文件路径
+                    }
+                ],
+                "severity": "INFO", // 日志严重级别
+                "debuglevel": 0 // 调试级别 (0-9)
             }
         ]
     }
@@ -643,6 +733,29 @@ vim /etc/kea/kea-dhcp4.conf
             "name": "/var/lib/kea/kea-leases4.csv"
         },
 
+        "client-classes": [
+            {
+                "name": "PXE_BIOS",
+                "test": "option[93].hex == 0x0000",
+                "option-data": [
+                    {
+                        "name": "boot-file-name",
+                        "data": "undionly.kpxe"
+                    }
+                ]
+            },
+            {
+                "name": "PXE_UEFI",
+                "test": "option[93].hex == 0x0007 or option[93].hex == 0x0009",
+                "option-data": [
+                    {
+                        "name": "boot-file-name",
+                        "data": "ipxe.efi"
+                    }
+                ]
+            }
+        ],
+
         "subnet4": [
             {
                 "subnet": "10.33.0.0/16",
@@ -651,10 +764,7 @@ vim /etc/kea/kea-dhcp4.conf
                         "pool": "10.33.1.100 - 10.33.1.200"
                     }
                 ],
-
                 "next-server": "10.33.1.1",
-                "boot-file-name": "ipxe.efi",
-
                 "valid-lifetime": 4000,
                 "renew-timer": 1000,
                 "rebind-timer": 2000
@@ -675,6 +785,7 @@ vim /etc/kea/kea-dhcp4.conf
         ]
     }
 }
+
 ```
 
 
