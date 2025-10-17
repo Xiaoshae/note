@@ -1308,6 +1308,689 @@ make bin/undionly.kpxe EMBED=boot.ipxe
 
 
 
+## Anaconda Kickstart
+
+Anaconda Kickstart 是 Red Hat 系列 Linux 发行版（如 RHEL, CentOS, Fedora, Rocky Linux, AlmaLinux 等）使用的一种自动化安装方法。通过创建一个名为 `anaconda-ks.cfg` 的纯文本文件，您可以预先定义安装过程中的所有设置（如语言、时区、磁盘分区、网络配置、要安装的软件包等），从而实现无人值守的、可重复的、标准化的系统安装。
+
+
+
+Kickstart 文件基本结构和语法
+
+一个 Kickstart 文件主要由三个部分组成，并遵循以下语法规则：
+
+1. **命令部分 (Command Section)**：必需。定义了核心的系统配置。
+2. **软件包部分 (`%packages` Section)**：必需。定义了需要安装的软件包和软件包组。
+3. **脚本部分 (`%pre` & `%post` Sections)**：可选。允许您在安装前和安装后执行自定义脚本。
+
+
+
+### 命令部分
+
+这是 Kickstart 文件的核心，用于配置安装过程和目标系统。
+
+
+
+### 基本系统设置（命令部分）
+
+#### lang
+
+语法：
+
+```
+lang LANG
+```
+
+描述：
+
+- 设置系统语言（如 `en_US.UTF-8`）。
+
+示例：`lang en_US`
+
+
+
+#### keyboard
+
+语法：
+
+```
+keyboard [--vckeymap=KEYMAP | --xlayouts=LAYOUTS]
+```
+
+描述：
+
+- 设置键盘布局。
+- 选项包括：
+  - `--vckeymap=`: Virtual Console 键图。
+  - `--xlayouts=`: X 窗口布局列表。
+
+示例：`keyboard --vckeymap=us`
+
+
+
+#### timezone
+
+语法：
+
+```
+timezone TIMEZONE [选项]
+```
+
+描述：
+
+- 设置时区。
+- 选项包括：
+  - `--utc`: 硬件时钟使用 UTC。
+  - `--nontp`: 禁用 NTP。
+  - `--ntpservers=`: NTP 服务器列表。
+
+示例：`timezone America/New_York --utc`
+
+
+
+#### network
+
+语法：
+
+```
+network [选项]
+```
+
+描述：
+
+- 配置网络接口。
+- 选项包括：
+  - `--bootproto=`: 协议（dhcp, static, bootp）。
+  - `--device=`: 设备名称。
+  - `--ip=`: IP 地址。
+  - `--netmask=`: 子网掩码。
+  - `--hostname=`: 主机名。
+  - `--activate`: 激活接口。
+
+示例：`network --bootproto=dhcp --device=eth0`
+
+
+
+#### auth/authconfig
+
+语法：
+
+```
+auth [选项]
+```
+
+描述：
+
+- 设置认证方式（已弃用，推荐使用 `authselect`）。
+- 选项包括：
+  - `--enableldap`: 启用 LDAP。
+  - `--passalgo=sha512`: 设置密码算法等。
+
+示例：`auth --passalgo=sha512`
+
+
+
+#### authselect
+
+语法：
+
+```
+authselect [选项]
+```
+
+描述：
+
+- 替换 `authconfig`，用于配置认证。
+
+示例：`authselect select sssd`
+
+
+
+#### bootloader
+
+语法：
+
+```
+bootloader [选项]
+```
+
+描述：
+
+- 配置引导加载器（必选）。
+- 选项包括：
+  - `--location=`: 安装位置（mbr, partition, none）。
+  - `--append=`: 内核参数。
+  - `--password=`: 引导密码。
+  - `--boot-drive=`: 引导磁盘。
+  - `--disabled`: 不安装引导加载器。
+
+示例：`bootloader --location=mbr --append="rhgb quiet"`
+
+
+
+#### rootpw
+
+语法：
+
+```
+rootpw [选项] PASSWORD
+```
+
+描述：
+
+- 设置 root 密码（必选）。
+- 选项包括：
+  - `--iscrypted`: 密码已加密。
+  - `--lock`: 锁定账户。
+  - `--plaintext`: 明文密码。
+
+示例：`rootpw --iscrypted $6$encryptedhash`
+
+
+
+#### user
+
+语法：
+
+```
+user --name=NAME [选项]
+```
+
+描述：
+
+- 创建用户账户。
+- 选项包括：
+  - `--password=`: 用户密码。
+  - `--groups=`: 附加组。
+  - `--uid=`: 用户 ID。
+
+示例：`user --name=admin --password=pass --groups=wheel`
+
+
+
+#### group
+
+语法：
+
+```
+group --name=NAME [选项]
+```
+
+描述：
+
+- 创建用户组。
+- 选项包括：
+  - `--gid=`: 组 ID。
+
+示例：`group --name=admins --gid=1001`
+
+
+
+#### services
+
+语法：
+
+```
+services [--enabled=LIST] [--disabled=LIST]
+```
+
+描述：
+
+- 管理系统服务启用或禁用。
+
+示例：`services --enabled=sshd --disabled=firewalld`
+
+
+
+#### selinux
+
+语法：
+
+```
+selinux [--disabled | --enforcing | --permissive]
+```
+
+描述：
+
+- 设置 SELinux 模式。
+
+示例：`selinux --enforcing`
+
+
+
+#### firewall
+
+语法：
+
+```
+firewall [选项]
+```
+
+描述：
+
+- 配置防火墙规则。
+- 选项包括：
+  - `--enabled`: 启用防火墙。
+  - `--port=`: 开放端口。
+  - `--service=`: 开放服务。
+
+示例：`firewall --enabled --service=ssh`
+
+
+
+### 存储和分区
+
+#### autopart
+
+语法：
+
+```
+autopart [选项]
+```
+
+描述：
+
+- 自动创建分区（包括根、swap、boot；大磁盘会加 /home）。
+- 选项包括：
+  - `--type=`: 分区类型（lvm, btrfs, plain, thinp）。
+  - `--fstype=`: 文件系统类型（如 ext4）。
+  - `--nohome`: 不创建 /home 分区。
+  - `--nolvm`: 不使用 LVM。
+  - `--encrypted`: 加密所有分区。
+  - `--passphrase=`: 加密密码。
+  - `--cipher=`: 加密算法。
+  - `--hibernation`: 自动调整 swap 支持休眠。
+
+示例：`autopart --type=lvm --encrypted`
+
+
+
+#### clearpart
+
+语法：
+
+```
+clearpart [选项]
+```
+
+描述：
+
+- 清除磁盘分区。
+- 选项包括：
+  - `--all`: 清除所有分区。
+  - `--drives=`: 指定驱动器（如 `sda,sdb` 或 `vd*|hd*`）。
+  - `--initlabel`: 初始化磁盘标签。
+  - `--linux`: 仅清除 Linux 分区。
+  - `--list=`: 指定分区列表。
+
+示例：`clearpart --all --drives=sda`
+
+
+
+#### part/partition
+
+语法：
+
+```
+part MNTPOINT [选项]
+```
+
+描述：
+
+- 创建分区，MNTPOINT 为挂载点或特殊值（如 `biosboot`）。
+- 选项包括：
+  - `--size=`: 分区大小（MiB）。
+  - `--grow`: 增长以填充可用空间。
+  - `--ondisk=`: 指定磁盘。
+  - `--fstype=`: 文件系统类型（如 ext4, swap）。
+  - `--encrypted`: 加密分区。
+  - `--label=`: 分区标签。
+  - `--asprimary`: 强制为主分区。
+
+示例：`part / --size=10000 --fstype=ext4 --grow`
+
+
+
+#### raid
+
+语法：
+
+```
+raid MNTPOINT [选项]
+```
+
+描述：
+
+- 创建 RAID 阵列。
+- 选项包括：
+  - `--level=`: RAID 级别（0, 1, 5, 6, 10）。
+  - `--device=`: RAID 设备名。
+  - `--spares=`: 备用盘数量。
+  - `--encrypted`: 加密。
+
+示例：`raid / --level=1 --device=md0 raid.01 raid.02`
+
+
+
+#### logvol
+
+语法：
+
+```
+logvol MNTPOINT --vgname=VG --name=LV [选项]
+```
+
+描述：
+
+- 创建 LVM 逻辑卷。
+- 选项包括：
+  - `--size=`: 大小（MiB）。
+  - `--grow`: 增长填充。
+  - `--thinpool`: 创建薄池。
+  - `--thin`: 创建薄卷。
+  - `--encrypted`: 加密。
+
+示例：`logvol / --vgname=vg00 --name=root --size=5000`
+
+
+
+#### volgroup
+
+语法：
+
+```
+volgroup VG [选项] PARTITIONS
+```
+
+描述：
+
+- 创建 LVM 卷组。
+- 选项包括：
+  - `--pesize=`: 物理扩展大小。
+  - `--reserved-space=`: 保留空间。
+
+示例：`volgroup vg00 pv.01 pv.02`
+
+
+
+#### btrfs
+
+语法：
+
+```
+btrfs MNTPOINT [选项] PARTITIONS
+```
+
+描述：
+
+- 创建 Btrfs 卷或子卷。
+- 选项包括：
+  - `--data=`: 数据 RAID 级别。
+  - `--metadata=`: 元数据 RAID 级别。
+  - `--subvol`: 创建子卷。
+  - `--name=`: 子卷或卷名称。
+  - `--label=`: 标签。
+
+示例：`btrfs / --subvol --name=root LABEL=fedora`
+
+
+
+#### ignoredisk
+
+语法：
+
+```
+ignoredisk [--drives=DRIVES | --only-use=DRIVES]
+```
+
+描述：
+
+- 忽略或仅使用指定磁盘。
+- 选项包括：
+  - `--drives=`: 忽略的磁盘列表。
+  - `--only-use=`: 仅使用的磁盘列表。
+
+示例：`ignoredisk --only-use=sda`
+
+
+
+#### reqpart
+
+语法：
+
+```
+reqpart [--add-boot]
+```
+
+描述：
+
+- 创建平台所需分区（如 EFI boot）。
+- 选项包括：
+  - `--add-boot`: 添加 /boot 分区。
+
+示例：`reqpart --add-boot`
+
+
+
+#### zerombr
+
+语法：
+
+```
+zerombr
+```
+
+描述：
+
+- 初始化无效分区表（常用于 IBM Z DASD）。
+
+示例：`zerombr`
+
+
+
+### 安装源
+
+#### cdrom
+
+cdrom：从第一个 CD/DVD 驱动器安装，无需额外选项。示例：cdrom
+
+
+
+#### harddrive
+
+harddrive：从硬盘上的 ISO 文件或安装树进行安装。支持选项：
+
+- --biospart=BIOSPART：指定 BIOS 分区，如 82p2
+- --partition=PARTITION：指定分区，如 /dev/sda1
+- --dir=DIR：指定 ISO 文件或安装树的目录
+
+示例：harddrive --partition=sdb2 --dir=/install-source
+
+
+
+#### nfs
+
+nfs：从 NFS 服务器安装。支持选项：
+
+- --server=SERVER：指定 NFS 服务器主机
+- --dir=DIR：指定服务器上的导出目录
+- --opts=OPTS：设置 NFS 挂载选项，如 nolock
+
+示例：nfs --server=192.168.1.100 --dir=/mnt/install
+
+
+
+#### url
+
+url：从 FTP、HTTP 或 HTTPS 服务器安装。支持选项：
+
+- --url=URL：指定安装源 URL
+- --mirrorlist=URL：指定镜像列表 URL
+- --metalink=METALINK：指定元链接 URL
+- --proxy=PROXY：指定代理地址
+- --noverifyssl：禁用 SSL 证书验证
+
+示例：url --url=`http://mirror.example.com/fedora`
+
+
+
+#### liveimg
+
+liveimg：从实时镜像安装。支持选项：
+
+- --url=URL：指定实时镜像的 URL
+- --proxy=PROXY：指定代理地址
+- --noverifyssl：禁用 SSL 证书验证
+- --checksum=CHECKSUM：指定镜像的 SHA256 校验和
+
+示例：liveimg --url=`http://example.com/live.img`
+
+
+
+#### ostreesetup
+
+ostreesetup：从 OSTree 仓库安装。支持选项：
+
+- --osname=OSNAME：指定操作系统名称
+- --remote=REMOTE：指定远程仓库名称
+- --url=URL：指定 OSTree 仓库 URL
+- --ref=REF：指定分支引用，如 fedora/36/x86_64/silverblue
+- --nogpg：禁用 GPG 签名验证
+
+示例：ostreesetup --osname=fedora --url=`https://ostree.example.com` --ref=fedora/36/x86_64/silverblue
+
+
+
+#### repo
+
+repo：添加额外的软件仓库。支持选项：
+
+1. --name=NAME：指定仓库名称（必选）
+2. --baseurl=URL：指定仓库基础 URL
+3. --mirrorlist=URL：指定镜像列表 URL
+4. --metalink=METALINK：指定元链接 URL
+5. --cost=COST：设置仓库优先级成本
+6. --excludepkgs=PKGS：指定排除的软件包
+7. --includepkgs=PKGS：指定包含的软件包
+8. --proxy=PROXY：指定代理地址
+9. --noverifyssl：禁用 SSL 证书验证
+10. --install：将仓库安装到目标系统
+11. --sslcacert=FILE：指定 CA 证书文件（已弃用）
+
+示例：repo --name=updates --baseurl=`http://updates.example.com`
+
+
+
+在提供的安装方法和源指令中，某些方法在功能上具有排他性，因为它们定义了安装源的类型，且一次安装通常只能使用一种主要安装源。
+
+**cdrom、harddrive、nfs、url、liveimg、ostreesetup 互相排斥**
+
+这些方法分别指定了不同的安装源（CD/DVD、硬盘、NFS 服务器、HTTP/FTP/HTTPS 服务器、实时镜像、OSTree 仓库），一次安装只能选择一种主要安装源。
+
+例如，使用 cdrom 就不能同时使用 url 或 nfs，因为它们定义了互斥的安装介质或位置。
+
+
+
+**repo 与上述方法不完全排斥**
+
+repo 用于添加额外的软件仓库，可以与 cdrom、harddrive、nfs、url、liveimg 或 ostreesetup 结合使用，以补充软件包来源。
+
+但多个 repo 指令之间不排斥，可以同时定义多个软件仓库（如一个用于主软件包，一个用于更新）。
+
+
+
+### 其他指令
+
+#### reboot/halt/poweroff/shutdown
+
+语法：
+
+```
+reboot [选项]
+```
+
+描述：
+
+- 定义安装后行为（如重启、关机）。
+- 选项包括：
+  - `--eject`: 弹出介质。
+
+示例：`reboot --eject`
+
+
+
+#### skipx
+
+语法：
+
+```
+skipx
+```
+
+描述：
+
+- 跳过 X 窗口配置。
+
+示例：`skipx`
+
+
+
+#### vnc
+
+语法：
+
+```
+vnc [选项]
+```
+
+描述：
+
+- 启用 VNC 远程安装。
+
+示例：`vnc`
+
+
+
+#### %include
+
+语法：
+
+```
+%include FILE
+```
+
+描述：
+
+- 包含其他文件内容。
+
+示例：`%include /path/to/partition.ks`
+
+
+
+#### %addon
+
+语法：
+
+```
+%addon NAME [选项]
+[插件内容]
+%end
+```
+
+描述：
+
+- 扩展插件（如 kdump）。
+
+示例：
+
+```
+%addon com_redhat_kdump
+%end
+```
+
+
+
+
+
 ## 示例
 
 ### CentOS 7.9
