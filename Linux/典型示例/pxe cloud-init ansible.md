@@ -257,6 +257,9 @@ rc-service nginx reload
 ```
 apk add nfs-utils
 
+rc-service rpcbind start
+rc-update add rpcbind default
+
 rc-service nfs start
 rc-update add nfs default
 ```
