@@ -4,23 +4,27 @@
 
 ## 介绍
 
-防火墙是保护服务器和基础设施的重要工具。在Linux生态系统中，iptables是一个广泛使用的防火墙工具，它与内核的 netfilter 数据包过滤框架协同工作。
+防火墙是保护服务器和基础设施的重要工具。在 Linux 生态系统中，iptables 是一个广泛使用的防火墙工具，它与内核的 netfilter 数据包过滤框架协同工作。
 
-Netfilter为程序提供了钩子点。当数据包流经网络栈时，将触发相应钩子的内核模块。具体触发哪些钩子取决于数据包的进出方向、目标地址以及是否在之前节点被丢弃/拒绝。
+Netfilter 为程序提供了钩子点。当数据包流经网络栈时，将触发相应钩子的内核模块。具体触发哪些钩子取决于数据包的进出方向、目标地址以及是否在之前节点被丢弃/拒绝。
 
 
 
 ### 钩子与内置链
 
-Netfilter钩子与内置链的对应关系及触发场景:
+**iptables 中存在 5 条内置链，分别对应 Netfilter 中的 5 个钩子**，以下是 Netfilter 钩子与内置链的对应关系及触发场景:
 
 | netfilter 钩子       | 内置链      | 触发场景                                                     |
 | -------------------- | ----------- | ------------------------------------------------------------ |
-| `NF_IP_PRE_ROUTING`  | PREROUTING  | 所有入站流量进入网络栈后立即触发，发生于路由决策之前。       |
-| `NF_IP_LOCAL_IN`     | INPUT       | 经路由判定目标为本机的入站数据包触发。                       |
-| `NF_IP_FORWARD`      | FORWARD     | 经路由判定需转发至其他主机的数据包触发。                     |
-| `NF_IP_LOCAL_OUT`    | OUTPUT      | 本地生成的出站流量进入网络栈时即刻触发。                     |
-| `NF_IP_POST_ROUTING` | POSTROUTING | 所有出站或转发的流量在完成路由后、即将发送至物理链路前触发。 |
+| `NF_IP_PRE_ROUTING`  | PREROUTING  | 所有入站流量进入网络栈后立即触发。路由决策（前）。           |
+| `NF_IP_LOCAL_IN`     | INPUT       | 经路由判定目标为本机的入站数据包触发。路由决策（后）。       |
+| `NF_IP_FORWARD`      | FORWARD     | 经路由判定需转发至其他主机的数据包触发。路由决策（后）。     |
+| `NF_IP_LOCAL_OUT`    | OUTPUT      | 本地生成的出站流量进入网络栈时即刻触发。路由决策（前）。     |
+| `NF_IP_POST_ROUTING` | POSTROUTING | 所有出站或转发的流量在完成路由后、即将发送至物理链路前触发。路由决策（后）。 |
+
+
+
+## 触发顺序
 
 假设服务器知道如何路由数据包，而且防火墙允许数据包传输，下面就是不同场景下包的游走流程：
 
@@ -29,6 +33,14 @@ Netfilter钩子与内置链的对应关系及触发场景:
 - 本地产生的包：`OUTPUT` -> `POSTROUTING`
 
 ![image-20250220125111553](./images/iptables.assets/image-20250220125111553.png)
+
+
+
+考虑路由决策后的顺序。
+
+- 收到的、目的是本机的包：`PRETOUTING` -> `路由决策` -> `INPUT`
+- 收到的、目的是其他主机的包：`PRETOUTING` -> `路由决策` -> `FORWARD` -> `POSTROUTING`
+- 本地产生的包：`OUTPUT` -> `路由决策` -> `POSTROUTING`
 
 
 
@@ -554,6 +566,24 @@ iptables -A FORWARD -i eth1 -o eth0 -j ACCEPT
 ```
 
 - 允许从内网接口 eth1 到外网接口 eth0 的转发流量。
+
+
+
+这里仅允许 **eth1 网卡发送到 eth0** 的流量通过，但是由于**内网发送到外网**的数据包需要**接收返回的数据**，因此还需要允许 **eth0 到 eth1** 的流量通过。
+
+```
+iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT
+```
+
+
+
+如果您想**阻止来自外网的连接主动进入内网**，可以使用**连接追踪**（Connection Tracking）模块。
+
+```
+iptables -A FORWARD -i eth0 -o eth1 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+```
+
+**仅允许 ESTABLISHED (已建立的) 和 RELATED (相关的) 状态的包通过。**
 
 
 
