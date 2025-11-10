@@ -1528,9 +1528,465 @@ lvm lvscan
 
 
 
-## 常用示例
+## 典型示例
+
+### 物理卷、卷组、逻辑卷管理
+
+#### 添加物理卷
+
+使用 fdisk -l 查看当前硬盘，当前存在的硬盘。
+
+存在 sda 硬盘，分区为 sda1 sda2 sda3。
+
+```
+# fdisk -l 
+Disk /dev/sda: 1 TiB, 1099511627776 bytes, 2147483648 sectors
+Disk model: VMware Virtual S
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: gpt
+Disk identifier: 824DCF65-0391-4463-81E8-E7A000B5B927
+
+Device       Start        End    Sectors  Size Type
+/dev/sda1     2048       4095       2048    1M BIOS boot
+/dev/sda2     4096    2101247    2097152    1G Linux filesystem
+/dev/sda3  2101248 2147481599 2145380352 1023G Linux filesystem
+```
 
 
+
+添加三块硬盘后，再次使用 fdisk -l 查看。
+
+新增了硬盘 sdb sdc sdd。
+
+```
+# fdisk -l 
+Disk /dev/sda: 1 TiB, 1099511627776 bytes, 2147483648 sectors
+Disk model: VMware Virtual S
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: gpt
+Disk identifier: 824DCF65-0391-4463-81E8-E7A000B5B927
+
+Device       Start        End    Sectors  Size Type
+/dev/sda1     2048       4095       2048    1M BIOS boot
+/dev/sda2     4096    2101247    2097152    1G Linux filesystem
+/dev/sda3  2101248 2147481599 2145380352 1023G Linux filesystem
+
+
+Disk /dev/mapper/vg0-lv--root: 1023 GiB, 1098433691648 bytes, 2145378304 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+
+
+Disk /dev/sdb: 20 GiB, 21474836480 bytes, 41943040 sectors
+Disk model: VMware Virtual S
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+
+
+Disk /dev/sdc: 20 GiB, 21474836480 bytes, 41943040 sectors
+Disk model: VMware Virtual S
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+```
+
+
+
+将 sdb sdc 转为物理卷
+
+```
+lvm pvcreate /dev/sdb /dev/sdc
+```
+
+```
+# lvm pvcreate /dev/sdb /dev/sdc 
+  Physical volume "/dev/sdb" successfully created.
+  Physical volume "/dev/sdc" successfully created.
+```
+
+
+
+#### 创建卷组
+
+创建卷组，命名为 vg1，将 /dev/sdb 和 /dev/sdc 物理卷加入卷组
+
+```
+lvm vgcreate vg1 /dev/sdb /dev/sdc
+```
+
+```
+# lvm vgcreate vg1 /dev/sdb /dev/sdc 
+  Volume group "vg1" successfully created
+```
+
+
+
+#### 创建逻辑卷
+
+创建逻辑卷，命名为 vg1-data，卷大小为卷组全部剩余空间。由于卷组还没有被使用，实际上是全部卷组空间。
+
+```
+lvm lvcreate -n vg1-data -l 100%FREE vg1
+```
+
+
+
+#### 格式化逻辑卷并使用
+
+将逻辑卷 vg1-data 格式化为 ext4 文件系统。
+
+```
+mkfs.ext4 /dev/vg1/vg1-data
+```
+
+```
+# mkfs.ext4 /dev/vg1/vg1-data  
+mke2fs 1.47.0 (5-Feb-2023)
+Creating filesystem with 10483712 4k blocks and 2621440 inodes
+Filesystem UUID: 26cdd81d-dcca-46db-87e6-05788ccee383
+Superblock backups stored on blocks: 
+	32768, 98304, 163840, 229376, 294912, 819200, 884736, 1605632, 2654208, 
+	4096000, 7962624
+
+Allocating group tables: done                            
+Writing inode tables: done                            
+Creating journal (65536 blocks): done
+Writing superblocks and filesystem accounting information: done
+```
+
+
+
+创建 /mnt/data 目录，并将逻辑卷挂载到 /mnt/data 路径。
+
+```
+mkdir /mnt/data
+```
+
+```
+mount /dev/vg1/vg1-data /mnt/data
+```
+
+
+
+#### 扩展卷组
+
+将 /dev/sdd 转为物理卷
+
+```
+lvm pvcreate /dev/sdd
+```
+
+```
+# lvm pvcreate /dev/sdd 
+  Physical volume "/dev/sdd" successfully created.
+```
+
+
+
+将 /dev/sdd 添加到 vg1 卷组中。
+
+```
+lvm vgextend vg1 /dev/sdd 
+```
+
+```
+# lvm vgextend vg1 /dev/sdd 
+  Volume group "vg1" successfully extended
+```
+
+
+
+#### 扩展逻辑卷
+
+将 vg1 卷组剩余的空间分配给 vg1-data 逻辑卷。
+
+```
+lvm lvextend -l +100%FREE /dev/vg1/vg1-data
+```
+
+```
+# lvm lvextend -l +100%FREE /dev/vg1/vg-data 
+  Logical volume vg-data not found in volume group vg1.
+```
+
+
+
+使用 lvresize 命令扩展，与上面的命令等价：
+
+```
+lvm lvresize -l +100%FREE /dev/vg1/vg1-data 
+```
+
+```
+# lvm lvresize -l +100%FREE /dev/vg1/vg1-data 
+  Size of logical volume vg1/vg1-data changed from 39.99 GiB (10238 extents) to <59.99 GiB (15357 extents).
+  Logical volume vg1/vg1-data successfully resized.
+```
+
+
+
+#### 扩展 ext4 文件系统
+
+使用 resize2fs 命令扩展 vg1-data 逻辑卷的文件系统。
+
+```
+resize2fs /dev/vg1/vg1-data
+```
+
+```
+# resize2fs /dev/vg1/vg1-data 
+resize2fs 1.47.0 (5-Feb-2023)
+Filesystem at /dev/vg1/vg1-data is mounted on /mnt/data; on-line resizing required
+old_desc_blocks = 5, new_desc_blocks = 8
+The filesystem on /dev/vg1/vg1-data is now 15725568 (4k) blocks long.
+```
+
+
+
+#### 缩小文件系统
+
+缩小文件系统以移除 /dev/sdc 物理卷。
+
+
+
+**卸载文件系统**
+
+在进行任何更改之前，您必须先卸载文件系统。假设文件系统挂载在 `/mnt/data`，您可以运行以下命令：
+
+```
+umount /mnt/data
+```
+
+如果文件系统正在被使用，您可以使用 `lsof` 或 `fuser` 命令来找出占用它的进程并终止它们。
+
+
+
+**检查文件系统**
+
+在调整大小之前，强烈建议您检查文件系统的完整性，以防万一。
+
+```
+e2fsck -f /dev/vg1/vg1-data
+```
+
+这个命令会对 `/dev/vg1/vg1-data` 上的文件系统进行强制检查。
+
+
+
+计算要减小的大小，由于要移除 /dev/sdc 物理卷，所以要从卷组中减少 /dev/sdc 物理卷的总 PE 数量和 PE 大小。
+
+查看 /dev/sdc 的总 PE 数。**总 PE 数量为 5119，PE 大小为 4 MiB**
+
+```
+lvm pvdisplay /dev/sdc 
+```
+
+```
+# lvm pvdisplay /dev/sdc 
+  --- Physical volume ---
+  PV Name               /dev/sdc
+  VG Name               vg1
+  PV Size               20.00 GiB / not usable 4.00 MiB
+  Allocatable           yes (but full)
+  PE Size               4.00 MiB
+  Total PE              5119
+  Free PE               0
+  Allocated PE          5119
+  PV UUID               n6V9es-Eu3V-xubB-kgg5-UUXN-JXcv-zKni7V
+```
+
+
+
+应为要减少的**总 PE 数量为 5119，PE 大小为 4 MiB**。所以需要从文件系统中减少 **20476 MiB（5119 * 4）**。
+
+由于 `resize2fs` 不支持相对大小，你必须**手动计算出最终的绝对大小**。
+
+首先计算出 /dev/vg1/vg1-data 逻辑卷的总大小（单位为 MiB），使用 **fdisk -l /dev/vg1/vg1-data** 查看逻辑卷的总大小。
+
+```
+fdisk -l /dev/vg1/vg1-data
+```
+
+```
+# fdisk -l /dev/vg1/vg1-data 
+Disk /dev/vg1/vg1-data: 59.99 GiB, 64411926528 bytes, 125804544 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+```
+
+
+
+逻辑卷总大小为 **125804544 扇区（sectors）**，每个扇区的大小为 **512 bytes（字节）**，总大小为 **64411926528 bytes（字节）** 
+
+将 **bytes（字节） 转为 MiB（兆字节）**的公式为：**n / 1024 / 1024**
+
+逻辑卷总大小为：**61428 MiB**
+
+
+
+逻辑卷总大小为 **61428 MiB（64411926528 / 1024 / 1024）**，需要减少 **20476 MiB**，需要将**文件系统**大小调整为 **40952 MiB**。
+
+```
+resize2fs -p /dev/vg1/vg1-data 40952M
+```
+
+```
+# resize2fs -p /dev/vg1/vg1-data 40952M
+resize2fs 1.47.0 (5-Feb-2023)
+Resizing the filesystem on /dev/vg1/vg1-data to 10483712 (4k) blocks.
+Begin pass 3 (max = 480)
+Scanning inode table          XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+The filesystem on /dev/vg1/vg1-data is now 10483712 (4k) blocks long
+```
+
+
+
+将逻辑卷大小减少 **5119 PE（/dev/sdc 总 PE 为 5119）**
+
+```
+lvm lvreduce -l -5119 /dev/vg1/vg1-data 
+```
+
+```
+# lvm lvreduce -l -5119 /dev/vg1/vg1-data 
+  WARNING: Reducing active logical volume to 39.99 GiB.
+  THIS MAY DESTROY YOUR DATA (filesystem etc.)
+Do you really want to reduce vg1/vg1-data? [y/n]: y
+  Size of logical volume vg1/vg1-data changed from <59.99 GiB (15357 extents) to 39.99 GiB (10238 extents).
+  Logical volume vg1/vg1-data successfully resized.
+```
+
+
+
+或者使用 lvresize 子命令，与上面的命令等价
+
+```
+lvm lvresize -l -5119 /dev/vg1/vg1-data 
+```
+
+```
+# lvm lvresize -l -5119 /dev/vg1/vg1-data 
+  WARNING: Reducing active logical volume to 39.99 GiB.
+  THIS MAY DESTROY YOUR DATA (filesystem etc.)
+Do you really want to reduce vg1/vg1-data? [y/n]: y
+  Size of logical volume vg1/vg1-data changed from <59.99 GiB (15357 extents) to 39.99 GiB (10238 extents).
+  Logical volume vg1/vg1-data successfully resized.
+```
+
+
+
+#### 迁移物理卷数据并从卷组中移除
+
+查看 /dev/sdd 物理卷，已用 PE 为 0 ，所有 PE 为空闲状态。
+
+```
+lvm pvdisplay /dev/sdd
+  --- Physical volume ---
+  PV Name               /dev/sdd
+  VG Name               vg1
+  PV Size               20.00 GiB / not usable 4.00 MiB
+  Allocatable           yes 
+  PE Size               4.00 MiB
+  Total PE              5119
+  Free PE               5119
+  Allocated PE          0
+  PV UUID               BUYV5o-vEad-ezKp-eBZh-tweX-Weti-xMQXX2
+```
+
+由于 /dev/sdd 是最后一个加入卷组的物理卷，所以当减少逻辑卷大小时，会优先将空闲 PE 规划还给 /dev/sdd 物理卷。
+
+
+
+现在可用使用 `lvm vgreduce vg1 /dev/sdd` 将 sdd 从卷组中移除。但我们需要移除的是 /dev/sdc 物理卷，此时 /dev/sdc 物理卷的所有 PE 都在使用状态，无法直接移除。
+
+```
+lvm pvdisplay /dev/sdc
+```
+
+```
+# lvm pvdisplay /dev/sdc 
+  --- Physical volume ---
+  PV Name               /dev/sdc
+  VG Name               vg1
+  PV Size               20.00 GiB / not usable 4.00 MiB
+  Allocatable           yes (but full)
+  PE Size               4.00 MiB
+  Total PE              5119
+  Free PE               0
+  Allocated PE          5119
+  PV UUID               n6V9es-Eu3V-xubB-kgg5-UUXN-JXcv-zKni7V
+```
+
+
+
+可用使用 pvmove 命令将 /dev/sdc 的数据（已使用 PE 迁移）到 /dev/sdd 中。
+
+```
+lvm pvmove /dev/sdc
+```
+
+```
+# lvm pvmove /dev/sdc 
+  /dev/sdc: Moved: 2.85%
+  /dev/sdc: Moved: 100.00%
+```
+
+由于 /dev/sdc 物理卷和 /dev/sdd 物理卷总 PE 数一样，且只有 /dev/sdd 中的 PE 有空闲（所有 PE 空闲），所以 pvmove 命令会自动将 /dev/sdc 的数据迁移到 /dev/sdd 中。
+
+
+
+也可以在命令中指定，将 /dev/sdc 的数据迁移到 /dev/sdd 中。该命令和上面的命令等价。
+
+```
+lvm pvmove /dev/sdc /dev/sdd
+```
+
+```
+# lvm pvmove /dev/sdc /dev/sdd 
+  /dev/sdc: Moved: 1.15%
+  /dev/sdc: Moved: 100.00%
+```
+
+
+
+将 /dev/sdc 物理卷总 vg1 卷组中移除。
+
+```
+lvm vgreduce vg1 /dev/sdc
+```
+
+```
+# lvm vgreduce vg1 /dev/sdc 
+  Removed "/dev/sdc" from volume group "vg1"
+```
+
+
+
+#### 移除物理卷（转为普通硬盘）
+
+```
+lvm pvremove /dev/sdc 
+```
+
+```
+# lvm pvremove /dev/sdc 
+  Labels on physical volume "/dev/sdc" successfully wiped.
+```
+
+
+
+### 缩小 xfs 文件系统的逻辑卷
+
+XFS 文件系统在创建后，**不支持**直接缩小。这是 XFS 文件系统设计的一个特点。
+
+唯一的办法是：首先完整备份数据，然后卸载并删除当前的文件系统，接着使用 `lvreduce` 命令缩小逻辑卷，之后再创建新的 XFS 文件系统，最后将备份的数据恢复到新的文件系统上。这个过程存在数据丢失的风险，操作前务必谨慎。
 
 
 
@@ -1539,272 +1995,4 @@ lvm lvscan
 ### pvs 支持的字段
 
 以下为 lvm pvs -o help 的输出结果（AI 翻译）：
-
-```
-
-```
-
-
-
-
-
-## 常用操作
-
-### 快照
-
-
-
-### 扩展卷组
-
-
-
-### 移除物理卷（缩小卷组）
-
-三个物理硬盘初始化为物理卷。使用这三个物理卷组成一个卷组，并在这个卷组上创建了一个逻辑卷，这个逻辑卷用于存储数据。 
-
-现在，需要将其中一个物理卷从卷组中分离出来，使其恢复成普通的物理硬盘。 
-
-将该物理卷上的所有数据迁移到卷组中剩余的其他物理卷上。数据迁移完成后，可以安全地将该物理卷从卷组中移除。最后使其恢复成普通的物理硬盘。 
-
-
-
-三块物理硬盘：**/dev/sda**、**/dev/sdb** 和 **/dev/sdc**。
-
-卷组名：**vg0**
-
-逻辑卷名：**lv0**
-
-
-
-1. **初始化为物理卷**
-
-使用 `pvcreate` 命令将三个物理硬盘初始化为物理卷。
-
-```
-pvcreate /dev/sda /dev/sdb /dev/sdc
-```
-
-
-
-2. **创建卷组**
-
-使用 `vgcreate` 命令创建一个名为 **vg0** 的卷组，并将这三个物理卷添加到其中。
-
-```
-vgcreate vg0 /dev/sda /dev/sdb /dev/sdc
-```
-
-
-
-3. **创建逻辑卷**
-
-使用 `lvcreate` 命令在 **vg0** 卷组上创建一个名为 **lv0** 的逻辑卷，并指定其大小。例如，创建一个大小为 100GB 的逻辑卷。
-
-```
-lvcreate -L 100G -n lv0 vg0
-```
-
-
-
-4. **格式化为文件系统**
-
-格式化逻辑卷并将其挂载到文件系统。
-
-```
-mkfs.ext4 /dev/vg0/lv0
-mkdir /mnt/data
-mount /dev/vg0/lv0 /mnt/data
-```
-
-
-
-5. **检查物理卷**
-
-准备将物理卷从卷组中移除，在移除之前，需要确认待移除的物理卷上是否有数据。`pvdisplay` 或 `pvs` 命令可以查看物理卷的详细信息。
-
-```
-pvs
-```
-
-
-
-6. **迁移物理卷数据**
-
-假设您要移除的是 **/dev/sdc**。使用 `pvmove` 命令将 **/dev/sdc** 上的所有数据迁移到卷组中的其他物理卷（在本例中为 **/dev/sda** 和 **/dev/sdb**）。这个过程可能需要一些时间，取决于数据量的大小。
-
-```
-pvmove /dev/sdc
-```
-
-
-
-7. **将物理卷从卷组中移除**
-
-数据迁移完成后，使用 `vgreduce` 命令将 **/dev/sdc** 从 **vg0** 卷组中移除。
-
-```
-vgreduce vg0 /dev/sdc
-```
-
-
-
-8. **将物理卷恢复成普通的物理硬盘**
-
-使用 `pvremove` 命令删除 **/dev/sdc** 上的物理卷元数据，使其恢复成普通的物理硬盘。
-
-```
-pvremove /dev/sdc
-```
-
-
-
-
-
-### 扩展逻辑卷
-
-#### ext4
-
-linux xfs 文件系统创建在 lvm2 逻辑卷上，如何扩展逻辑卷，然后在扩展 xfs 文件系统。 
-
-卷组名 vg0 逻辑卷名 lv0 
-
-
-
-1. **扩展逻辑卷**
-
-使用 `lvextend` 命令扩展逻辑卷。`lvextend` 可以增加逻辑卷的大小.
-
-```
-lvextend -L +10G /dev/vg0/lv0
-```
-
-也可以将逻辑卷扩展到指定的总大小，例如 100G：
-
-```
-lvextend -L 100G /dev/vg0/lv0
-```
-
-
-
-2. **扩展 XFS 文件系统**
-
-逻辑卷扩展后，你需要扩展 ext4 文件系统以利用新增的空间。ext4 文件系统的扩展命令是 `resize2fs `。
-
-你需要指定**逻辑卷设备路径**作为参数。
-
-```
-resize2fs /dev/vg0/lv0
-```
-
-
-
-
-
-#### xfs
-
-linux xfs 文件系统创建在 lvm2 逻辑卷上，如何扩展逻辑卷，然后在扩展 xfs 文件系统。 
-
-卷组名 vg0 逻辑卷名 lv0 
-
-
-
-1. **扩展逻辑卷**
-
-使用 `lvextend` 命令扩展逻辑卷。`lvextend` 可以增加逻辑卷的大小.
-
-```
-lvextend -L +10G /dev/vg0/lv0
-```
-
-也可以将逻辑卷扩展到指定的总大小，例如 100G：
-
-```
-lvextend -L 100G /dev/vg0/lv0
-```
-
-
-
-2. **扩展 XFS 文件系统**
-
-`lvextend` 命令只扩展了逻辑卷的大小，文件系统本身并没有自动扩展。
-
-需要使用 `xfs_growfs` 命令来扩展文件系统，让它利用新增加的逻辑卷空间。
-
-```
-xfs_growfs /dev/vg0/lv0
-```
-
-
-
-### 缩小逻辑卷
-
-#### ext4
-
-为了缩小 LVM2 逻辑卷上的 ext4 文件系统，需要先缩小文件系统，然后再缩小逻辑卷。如果顺序颠倒，可能会导致数据丢失或文件系统损坏。
-
-
-
-1. **卸载文件系统**
-
-在进行任何更改之前，您必须先卸载文件系统。假设文件系统挂载在 `/mnt/mydata`，您可以运行以下命令：
-
-```
-umount /mnt/mydata
-```
-
-如果文件系统正在被使用，您可以使用 `lsof` 或 `fuser` 命令来找出占用它的进程并终止它们。
-
-
-
-2. **检查文件系统**
-
-在调整大小之前，强烈建议您检查文件系统的完整性，以防万一。
-
-```
-e2fsck -f /dev/vg0/lv0
-```
-
-这个命令会对 `/dev/vg0/lv0` 上的文件系统进行强制检查。
-
-
-
-3. **缩小 ext4 文件系统**
-
-现在可以使用 `resize2fs` 命令来缩小 ext4 文件系统。您需要指定目标大小，例如，如果想缩小到 20GB，可以这样操作：
-
-```
-resize2fs /dev/vg0/lv0 20G
-```
-
-**重要提示:** `resize2fs` 只能将文件系统缩小到小于或等于其当前大小。请确保您指定的大小小于逻辑卷的当前大小。
-
-
-
-4. **缩小 LVM2 逻辑卷**
-
-文件系统缩小后，就可以安全地缩小逻辑卷了。使用 `lvreduce` 命令，并指定与文件系统匹配的或略大于文件系统的新大小。
-
-```
-lvreduce -L 20G /dev/vg0/lv0
-```
-
-`-L` 参数用于指定新的逻辑卷大小。
-
-
-
-6. **重新挂载文件系统**
-
-最后，将文件系统重新挂载到其原始挂载点。
-
-```
-mount /dev/vg0/lv0 /mnt/mydata
-```
-
-
-
-#### xfs
-
-XFS 文件系统在创建后，**不支持**直接缩小。这是 XFS 文件系统设计的一个特点。
-
-唯一的办法是：首先完整备份数据，然后卸载并删除当前的文件系统，接着使用 `lvreduce` 命令缩小逻辑卷，之后再创建新的 XFS 文件系统，最后将备份的数据恢复到新的文件系统上。这个过程存在数据丢失的风险，操作前务必谨慎。
 
