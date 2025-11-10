@@ -30,6 +30,39 @@ LVM2（Logical Volume Manager 2）是一个功能强大的存储管理工具，�
 
 
 
+### PE
+
+**PE (Physical Extent)**，中文常称为“**物理区段**”或“**物理扩展**”，是 LVM 架构中**最小的、连续的存储分配单元**。
+
+当您将一个物理硬盘（如 `/dev/sda1`）添加到 LVM 中（将其初始化为 **PV, Physical Volume**）时，LVM 会在内部将这个 PV 划分为许多大小完全相等的“块”，这些“块”就是 PE。
+
+
+
+当使用 `vgcreate` 命令将一个或多个 PV 组合成一个大的“存储池”，即“卷组”。
+
+VG 的总容量就是其包含的所有 PV 中的 PE 数量的总和。**PE 的大小是在创建 VG 时确定的**，并且一旦设定，该 VG 的 PE 大小**不能更改**。
+
+
+
+
+
+使用 `lvcreate` 命令从 VG 这个“存储池”中划分出一块空间，创建为“逻辑卷”。
+
+当你写入数据时，数据会被存储到哪个物理卷中，不是在写入数据时确定的，而是在创建逻辑卷时就已经确定的。
+
+
+
+**PE 的核心作用：映射（Mapping）**
+
+LVM 的所有魔力（如拉伸、缩减、快照、条带化）都源于它维护的一个**映射表**。这个表的核心就是：
+
+**“LV 上的第 N 个 LE 对应到哪个 PV 上的第 M 个 PE”**
+
+- 当您创建一个 LV 时，LVM 就会从 VG 的空闲 PE 池中抓取所需数量的 PE，并将它们“映射”给这个 LV 的 LE。
+- 当您扩展 LV 时，LVM 只是从 VG 池中抓取更多的空闲 PE，并将它们添加到这个 LV 的映射表中。
+
+
+
 ## 语法格式
 
 在 LVM1 的时代，`pvcreate`、`vgcreate`、`lvcreate` 等**确实是各自独立的二进制可执行文件**。它们的功能是分散的。
@@ -845,6 +878,68 @@ lvcreate 命名用于从一个已经存在的**卷组 (Volume Group, VG)** 中�
 
 
 
+**-l 支持的所有格式**
+
+
+
+**绝对 PE 数量** 
+
+**语法:** `-l <Number>`
+
+**示例:** `lvcreate -l 1280 -n lv_data vg_main`
+
+
+
+从 `vg_main` 卷组中，分配 **1280 个 PE** 来创建一个名为 `lv_data` 的逻辑卷。
+
+如果 PE Size 是 4MB，这个 LV 的实际大小将是 1280 × 4MB = 5120MB = 5GB。
+
+
+
+**可用空间百分比 (%FREE)**
+
+**最常用**的百分比格式。它基于**当前剩余的 PE** (Free PE) 来计算。
+
+**语法:** `-l <Number>%FREE`
+
+
+
+**示例 1 :** `lvcreate -l 100%FREE -n lv_archive vg_main`
+
+使用 `vg_main` 中**所有**剩余的可用空间 (100% of Free PE) 来创建 `lv_archive`。
+
+
+
+**示例 2:** `lvcreate -l 50%FREE -n lv_web vg_main`
+
+使用 `vg_main` 中剩余可用空间的一半 (50% of Free PE) 来创建 `lv_web`。
+
+
+
+**卷组总大小百分比 (%VG)**
+
+**语法:** `-l <Number>%VG`
+
+**示例:** `lvcreate -l 25%VG -n lv_apps vg_main`
+
+创建一个 LV，其大小为**整个 VG 总大小的 25%**。
+
+
+
+**特定物理卷大小百分比 (%PV)**
+
+**指定的一个或多个 PV (物理卷) 的总 PE** 来计算 LV 的*大小*。
+
+**语法:** `lvcreate -l <Number>%PV -n <LV_Name> <VG_Name> [PV_Path ...]`
+
+**示例:** `lvcreate -l 50%PV -n lv_from_sdb1 vg_main /dev/sdb1`
+
+此命令会计算 `/dev/sdb1` 这个 PV 在 `vg_main` 中总共贡献了多少 PE。然后，它会创建一个*大小*为" `/dev/sdb1` 总 PE 数的 50%"的 LV。
+
+这**定义的是 LV 的大小**，并且 LVM 会*尝试*从 `/dev/sdb1` 上分配这些 PE。如果 `/dev/sdb1` 空间不足，但 VG 的分配策略允许 (e.g., `normal`)，它可能会从 VG 中的其他 PV 分配空间。
+
+
+
 
 
 **lvcreate 不仅能创建简单的 LV，还能创建具有高级特性（如性能或冗余）的 LV。**
@@ -974,7 +1069,7 @@ lvcreate -L 100G -n my_thin_pool vg_data --type thin-pool
 
 
 
-创建精简卷 (Thin Volume)
+**创建精简卷 (Thin Volume)**
 
 精简卷的“虚拟大小”可以**远大于**精简池的实际物理大小（这称为**超售 Over-provisioning**）。
 
@@ -997,7 +1092,445 @@ lvcreate -V 500G -n thin_lv_01 --thinpool my_thin_pool vg_data
 
 
 
+#### lvextend
+
+lvextend 命令用于**扩展（增加）一个已存在的逻辑卷（Logical Volume, LV）的容量**。
+
+
+
+**-L|--size [+]Size[m|UNIT]**
+
+按绝对大小扩展。
+
+`Size` 是一个数字，`UNIT` 是单位 (如 `K`, `M`, `G`, `T`，默认为 `M`)。
+
+
+
+**在 lv_data 现有基础上增加 1G**
+
+```
+lvextend -L +1G /dev/vg0/lv_data
+```
+
+
+
+**将 lv_data 的总大小调整到 10G（假设它原来小于10G）**
+
+```
+lvextend -L 10G /dev/vg0/lv_data
+```
+
+
+
+**-l|--extents [+]Number[PERCENT]**
+
+按 LVM 的基本单位 (PE, Physical Extent) 数量扩展。
+
+`+Number`：增加指定数量的 PE。
+
+`Number`：设置总 PE 数量。
+
+`[PERCENT]`：这允许你按百分比扩展，最实用的是 `FREE`。
+
+
+
+**使用这个 VG 中所有剩余的空闲空间来扩展 lv_data**
+
+```
+lvextend -l +100%FREE /dev/vg0/lv_data
+```
+
+
+
+**增加 VG 总大小的 50%**
+
+```
+lvextend -l +50%VG /dev/vg0/lv_data
+```
+
+
+
+**-r|--resizefs**
+
+自动调整文件系统。
+
+在 LVM 层面（块设备）扩展逻辑卷后，你**必须**再扩展上层的文件系统（如 ext4, xfs）才能真正使用那些新空间。
+
+如果不带 `-r`，你扩容后还需要手动执行 `resize2fs` (ext4) 或 `xfs_growfs` (xfs) 命令。
+
+**如果带了 `-r`**，`lvextend` 会在扩展 LV 成功后，**自动**帮你调用相应的工具扩展文件系统。
+
+
+
+**[PV ...] (在命令末尾指定物理卷)**
+
+默认情况下，`lvextend` 会自动从卷组(VG)中任何有空闲空间的物理卷(PV)上分配空间。
+
+如果你指定了 PV (例如 `/dev/sda2`)，LVM 将**只**尝试从你指定的那个 PV 上获取新空间。
+
+
+
+示例：
+
+```
+lvextend -L +1G /dev/vg0/lv_data /dev/sda2
+```
+
+
+
+#### lvreduce
+
+lvreduce 子命令**专门用于缩减一个逻辑卷 (Logical Volume, LV) 的大小**。
+
+这是一个**高风险操作**。在缩减逻辑卷之前，**您必须首先确保逻辑卷之上的文件系统已经被缩减**，并且缩减后的文件系统大小必须**小于或等于**您将要设置的逻辑卷新大小。如果操作不当，**将导致文件系统损坏和数据永久丢失**。
+
+
+
+缩减 LV 的操作顺序：
+
+1. **必须**先缩减文件系统。
+2. **然后**才能缩减逻辑卷 (LV)。
+
+如果您跳过第一步，或者文件系统缩减后的实际大小依然大于 LV 缩减后的大小，那么位于 LV "尾部" 的文件系统数据将被截断，导致整个文件系统损坏。
+
+
+
+lvreduce 的基本语法是：
+
+```
+lvreduce [选项] <逻辑卷路径>
+```
+
+
+
+**将逻辑卷的大小缩减到指定的 10GB**
+
+```
+lvreduce -L 10G /dev/vg_main/lv_data
+```
+
+
+
+**减去指定大小**
+
+```
+lvreduce -L -1G /dev/vg_main/lv_data
+```
+
+`UNIT`：单位可以是 `k` (KB), `m` (MB), `g` (GB), `t` (TB) 等。
+
+
+
+**将逻辑卷缩减到 1280 个 PE**
+
+```
+lvreduce -l 1280 /dev/vg_main/lv_data
+```
+
+
+
+**从当前大小减去 100 个 PE**
+
+```
+lvreduce -l -100 /dev/vg_main/lv_data
+```
+
+
+
+**-r|--resizefs**
+
+**自动调整文件系统**。这是一个非常方便但也需要谨慎使用的选项。
+
+当使用此选项时，`lvreduce` 会**在**缩减 LV **之前**，尝试自动调用相应的文件系统工具（如 `resize2fs`）来缩减文件系统。
+
+这只适用于某些 LVM 知道如何处理的文件系统（如 ext2/3/4）。对于 XFS 等**不支持**在线缩减的文件系统，此选项无效且极其危险。
+
+
+
+**-f|--force**
+
+跳过一些交互式确认和安全检查。
+
+它允许您在没有先缩减文件系统的情况下强行缩减 LV，这几乎 100% 会导致数据丢失。**请勿随意使用**。
+
+
+
+#### lvresize
+
+lvresize 命令用于**调整（放大或缩小）一个已存在的逻辑卷（Logical Volume, LV）的大小**。通常用于扩展一个快满的磁盘空间，或者在需要时缩减一个分配过大的空间。
+
+
+
+**-L, --size [+|-]Size[UNIT]**
+
+按人类可读的单位（如 G, M, T）调整。
+
+
+
+将 `data` 卷的大小**设置为 50G**（绝对值）。
+
+```
+lvresize -L 50G /dev/vg01/data
+```
+
+
+
+在 `data` 卷的**当前基础上增加 10G**。
+
+```
+lvresize -L +10G /dev/vg01/data
+```
+
+
+
+在 `data` 卷的**当前基础上缩减 5G**。
+
+```
+lvresize -L -5G /dev/vg01/data
+```
+
+
+
+**-l, --extents [+|-]Number[PERCENT]**
+
+按 LVM 的基本单位“PE”（Physical Extent，物理扩展单元）来调整。
+
+
+
+增加 100 个 PE
+
+```
+lvresize -l +100 /dev/vg01/data
+```
+
+
+
+将卷组（VG）中所有剩余的空闲空间都分配给这个 LV
+
+```
+lvresize -l +100%FREE /dev/vg01/data
+```
+
+
+
+**-r, --resizefs**
+
+自动调整文件系统
+
+
+
+**-f, --force**
+
+强制执行。
+
+
+
+#### lvrename
+
+lvrename 命令用于**更改一个已存在的逻辑卷（LV）的名称**。命令有两种主要的使用格式，效果相同。
+
+​	
+
+**指定卷组 (VG) 和逻辑卷 (LV) 名称**
+
+```
+lvrename [VG名] [旧LV名] [新LV名]
+```
+
+`[VG名]`：逻辑卷所在的卷组名称。
+
+`[旧LV名]`：你想要重命名的逻辑卷的当前名称。
+
+`[新LV名]`：你希望逻辑卷使用的新名称。
+
+
+
+将卷组 "vg01" 中的 "data_lv" 重命名为 "archive_lv"
+
+```
+lvrename vg01 data_lv archive_lv
+```
+
+
+
+**使用逻辑卷的完整路径**
+
+```
+lvrename [旧LV的完整路径] [新LV的完整路径]
+```
+
+- `[旧LV的完整路径]`：通常是 `/dev/[VG名]/[旧LV名]` 或 `/dev/mapper/[VG名]-[旧LV名]`。
+- `[新LV的完整路径]`：通常是 `/dev/[VG名]/[新LV名]`。
+
+
+
+**旧 LV 也可以不使用完整路径**，如果你只使用 `LV` 名称（如 `lv_docs`），LVM 会在所有卷组中查找它。如果该名称在系统中不唯一（即多个 VG 中有同名 LV），命令将会失败。
+
+
+
+同上，将 /dev/vg01/data_lv 重命名为 /dev/vg01/archive_lv
+
+```
+lvrename /dev/vg01/data_lv /dev/vg01/archive_lv
+```
+
+
+
+**重要注意事项**
+
+重命名逻辑卷 (LV) 本身只是第一步。为了让系统完全识别这个新名称（尤其是挂载的文件系统），你**必须**执行以下后续步骤：
+
+1. **更新 `/etc/fstab` 文件**
+
+   - `lvrename` **不会**自动更新你的 `/etc/fstab` 文件。
+   - 如果你的 `/etc/fstab` 中使用设备路径（如 `/dev/vg01/data_lv`）来挂载文件系统，你必须手动将其修改为新路径（如 `/dev/vg01/archive_lv`）。
+   - **最佳实践**：在 `/etc/fstab` 中使用 **UUID** (通用唯一标识符) 来挂载文件系统。UUID 在重命名后保持不变，这样可以避免在重命名后出现挂载失败。
+
+2. **更新挂载点 (如果 LV 已挂载)**
+
+   - 如果该 LV 当前已被挂载，`df` 等命令可能仍显示旧名称。
+   - 你需要先卸载 (unmount) 该文件系统，然后再用新名称重新挂载 (mount) 它，以使更改完全生效。
+
+   ```
+   # 假设 /data 是旧 LV 的挂载点
+   umount /data
+   
+   # (此时应已更新 /etc/fstab)
+   
+   # 重新挂载
+   mount /data
+   # 或者使用新路径挂载
+   # mount /dev/vg01/archive_lv /data
+   ```
+
+3. **重命名根 (Root) 卷**
+
+   - **警告**：重命名包含根文件系统 (`/`) 的逻辑卷是一个**高风险**操作，远比重命名普通数据卷复杂。
+   - 你必须额外更新 **GRUB 启动加载器**配置，并**重建 `initramfs`** (初始 RAM 文件系统)，否则系统将在下次启动时因找不到根文件系统而**无法启动**。
+
+
+
+#### lvremove
+
+**lvremove** 命令用于删除一个或多个逻辑卷 (Logical Volume, LV) 的命令。
+
+这是一个**破坏性操作**，一旦执行，**逻辑卷上的所有数据都将丢失**，并且通常无法恢复。
+
+
+
+基本的语法结构是：
+
+```
+lvremove [选项] 逻辑卷路径1 [逻辑卷路径2...]
+```
+
+你可以通过多种方式指定要删除的逻辑卷：
+
+- **完整路径:** `lvremove /dev/MyVG/MyLV` (最常见、最明确的方式)
+- **卷组/逻辑卷:** `lvremove MyVG/MyLV`
+- **仅逻辑卷名:** `lvremove MyLV` (如果名称在所有卷组中是唯一的)
+
+
+
+**-f | --force**
+
+这是**最重要也最危险**的选项之一。
+
+它会**强制删除**逻辑卷，**不会**向你请求确认（"Are you sure you want to remove..."）。
+
+它还可以用来尝试删除**当前处于活动状态**（open）的逻辑卷，但这**极不推荐**，可能导致系统不稳定或数据损坏。在删除前，应始终确保逻辑卷已**卸载 (unmounted)** 并**停用 (deactivated)**。
+
+
+
+#### lvdisplay
+
+lvdisplay 用于显示一个或多个逻辑卷的详细属性和元数据。
+
+`lvdisplay` 默认以**多行的“键值对”格式**显示每个LV的**所有**元数据。如果您不指定LV名称，它会显示所有LV的详细信息。
+
+
+
+示例：
+
+```
+lvm lvdisplay
+```
+
+```
+  --- Logical volume ---
+  LV Path                /dev/vg0/lv-root
+  LV Name                lv-root
+  VG Name                vg0
+  LV UUID                LJHRny-9fIE-n0Im-h6Jy-RaUi-lck2-vuPjcn
+  LV Write Access        read/write
+  LV Creation host, time ubuntu-server, 2025-11-03 15:05:38 +0000
+  LV Status              available
+  # open                 1
+  LV Size                <1023.00 GiB
+  Current LE             261887
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     256
+  Block device           252:0
+```
+
+
+
+#### lvs
+
+lvs 的主要用途是以**可定制的表格（摘要）形式**列出系统上一个或多个逻辑卷的信息。它非常像 `ls` (列出文件) 或 `ps` (列出进程) 命令，用于快速概览。
+
+
+
+示例：
+
+```
+lvm lvs
+```
+
+```
+# lvm lvs
+  LV      VG  Attr       LSize     Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  lv-root vg0 -wi-ao---- <1023.00g                                                    
+```
+
+
+
+配合 `-o` (options) 选项，您可以精确指定要显示的列。这在编写脚本时非常有用。
+
+`lvs -o lv_name,lv_size,vg_name` (只显示名称、大小、卷组)
+
+
+
+#### lvscan
+
+lvscan 主要用途是**扫描系统上的所有块设备**，找出属于LVM的物理卷（PV），并列出从这些PV中找到的所有逻辑卷（LV）。
+
+`lvscan` 的输出是三者中最简单的。它通常只列出找到的LV的**设备路径**和**状态**（如 `ACTIVE` 或 `inactive`）。
+
+
+
+示例：
+
+```
+lvm lvscan
+```
+
+```
+# lvm lvscan 
+  ACTIVE            '/dev/vg0/lv-root' [<1023.00 GiB] inherit
+```
+
+
+
+ 当您添加了新磁盘（可能包含LVM信息，例如从另一台机器迁移过来的磁盘）后，运行 `vgscan`（扫描卷组）和 `lvscan` 可以帮助系统识别它们。
+
+
+
 ## 常用示例
+
+
 
 
 
