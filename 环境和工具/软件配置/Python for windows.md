@@ -72,3 +72,8 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
+
+
+以 `.zip` 结尾的 “Windows embeddable package”，这个版本是一个极简版，**不包含** `venv`、`pip` 等标准库和工具，主要用于嵌入到其他 C/C++ 应用程序中。
+
+- **解决方法**：需要去 [Python 官网](https://www.python.org/downloads/windows/) 下载标准的 **Windows installer (64-bit)** (通常是 `.exe` 文件) 进行完整安装。

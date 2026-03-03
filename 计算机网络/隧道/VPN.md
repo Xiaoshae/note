@@ -624,7 +624,7 @@ IPsec 使用预共享密钥，密钥为：123456
 
 
 
-使用 Wireguard 抓包查看数据包类型，此时数据包为 ICMP 协议。
+使用 WireShark 抓包查看数据包类型，此时数据包为 ICMP 协议。
 
 ![image-20250910104026929](./images/VPN.assets/image-20250910104026929.png)
 
