@@ -32,7 +32,7 @@
 - **-D**：打印系统中所有可用的网络接口列表，每个接口会显示编号和名称，可用于 `-i` 参数引用。
 - **-L**：列出指定接口在指定模式下（是否监控模式）支持的数据链路类型（如：Ethernet、PPPOE 等），然后退出。该列表可能因模式而异。
 
-- **-i interface**：选项来强制 `tcpdump` 监听你指定的网络接口，可以使用 any 参数监听所有的接口。如：`tcpdump -i eth0`，`-i any` 。
+- **-i interface**：选项指定 `tcpdump` 监听你指定的网卡，可以使用 `any` 参数监听所有的接口。如：`tcpdump -i eth0`、`-i any` 。
 
 
 
@@ -79,11 +79,7 @@ ether host {local-hw-addr} or ether broadcast
 
 - **-e**：在每一行输出中显示链路层头部信息，如源 MAC 地址、目的 MAC 地址、协议类型等。
 
-- **-A**：以 ASCII 格式打印每个数据包的内容（去掉链路层头部），便于直接查看网页等文本数据。
-
-- **-x**：以十六进制打印每个数据包的内容（不含链路层头）。若需包含链路层头，使用 `-xx`。
-
-- **-X**：以十六进制和 ASCII 混合格式打印数据包内容（不含链路层头），`-XX` 则包含链路层头。这对分析未知协议非常有用。
+- **-S**：打印 TCP 序列号时使用绝对序列号，而不是相对序列号。默认情况下，tcpdump 显示相对于初始序列号的偏移量。
 
 - **-v, -vv, -vvv**：增加输出的详细程度。
 
@@ -93,23 +89,29 @@ ether host {local-hw-addr} or ether broadcast
 
   - `-vvv`：极度详细，例如打印 Telnet 的 SB … SE 选项。
 
-**-S**：打印 TCP 序列号时使用绝对序列号，而不是相对序列号。默认情况下，tcpdump 显示相对于初始序列号的偏移量。
+- **-t, -tt, -ttt, -tttt, -ttttt**：控制时间戳的打印格式
 
-**-t, -tt, -ttt, -tttt, -ttttt**：控制时间戳的打印格式
+  - `-t`：不打印时间戳。
 
-- `-t`：不打印时间戳。
-- `-tt`：打印自 1970-01-01 以来的秒数。
-- `-ttt`：打印当前行与上一行的时间差（微秒精度）。
-- `-tttt`：打印可读的日期和时间。
-- `-ttttt`：打印当前行与第一行的时间差。
+  - `-tt`：打印自 1970-01-01 以来的秒数。
+
+  - `-ttt`：打印当前行与上一行的时间差（微秒精度）。
+
+  - `-tttt`：打印可读的日期和时间。
+
+  - `-ttttt`：打印当前行与第一行的时间差。
+
+- **-A**：以 ASCII 格式打印每个数据包的内容（去掉链路层头部），便于直接查看网页等文本数据。
+- **-x**：以十六进制打印每个数据包的内容（不含链路层头）。若需包含链路层头，使用 `-xx`。
+- **-X**：以十六进制和 ASCII 混合格式打印数据包内容（不含链路层头），`-XX` 则包含链路层头。这对分析未知协议非常有用。
 
 
 
 ### 过滤与表达式相关
 
-**-F file**：从指定的文件中读取过滤表达式。命令行中额外给出的表达式将被忽略。
+- **-F file**：从指定的文件中读取过滤表达式。命令行中额外给出的表达式将被忽略。
 
-**-f**：以数字形式打印“外部”IPv4 地址（非本地地址），用于绕过 Sun NIS 服务器的缺陷。此选项依赖接口地址和掩码，在 Linux `any` 接口上可能失效。
+- **-f**：以数字形式打印“外部”IPv4 地址（非本地地址），用于绕过 Sun NIS 服务器的缺陷。此选项依赖接口地址和掩码，在 Linux `any` 接口上可能失效。
 
 
 
@@ -117,17 +119,17 @@ ether host {local-hw-addr} or ether broadcast
 
 这类参数用于将捕获的数据包保存到文件、从文件读取，以及管理文件轮转和压缩。
 
-**-w file**：将原始数据包写入文件，而不是解析并打印到标准输出。该文件可用 `-r` 重新读取。
+- **-w file**：将原始数据包写入文件，而不是解析并打印到标准输出。该文件可用 `-r` 重新读取。
 
-**-r file**：从文件读取数据包进行分析，文件必须是 `-w` 生成的格式。
+- **-r file**：从文件读取数据包进行分析，文件必须是 `-w` 生成的格式。
 
-**-C file_size**：与 `-w` 配合使用，当保存文件大小超过 `file_size`（百万字节）时，关闭当前文件并新建一个文件，新文件名为原文件名后加数字。注意：`file_size` 以 1,000,000 字节为单位，而非 1,048,576 字节。
+- **-C file_size**：与 `-w` 配合使用，当保存文件大小超过 `file_size`（百万字节）时，关闭当前文件并新建一个文件，新文件名为原文件名后加数字。注意：`file_size` 以 1,000,000 字节为单位，而非 1,048,576 字节。
 
-**-G rotate_seconds**：与 `-w` 配合，每隔 `rotate_seconds` 秒轮转保存文件。文件名中可使用 `strftime` 格式，若未指定格式，则新文件会覆盖旧文件。
+- **-G rotate_seconds**：与 `-w` 配合，每隔 `rotate_seconds` 秒轮转保存文件。文件名中可使用 `strftime` 格式，若未指定格式，则新文件会覆盖旧文件。
 
-**-W filecount**：与 `-C` 或 `-G` 配合使用，限制创建的文件数量。达到上限后，从第一个文件开始循环覆盖（类似环形缓冲区）。同时，文件名会自动补零以正确排序。
+- **-W filecount**：与 `-C` 或 `-G` 配合使用，限制创建的文件数量。达到上限后，从第一个文件开始循环覆盖（类似环形缓冲区）。同时，文件名会自动补零以正确排序。
 
-**-z postrotate-command**：与 `-C` 或 `-G` 配合，在每个文件轮转后执行指定的命令（如 `gzip`）来压缩文件。命令会以最低优先级并行运行。
+- **-z postrotate-command**：与 `-C` 或 `-G` 配合，在每个文件轮转后执行指定的命令（如 `gzip`）来压缩文件。命令会以最低优先级并行运行。
 
 
 
@@ -150,4 +152,216 @@ ether host {local-hw-addr} or ether broadcast
 
 
 ## 表达式
+
+tcpdump 的表达式参数用于定义数据包的过滤规则，只有匹配表达式的包才会被捕获或显示。表达式由一系列**原语（primitives）**组成，每个原语通常包含一个或多个**限定符（qualifiers）**和一个**标识符（id）**（名称或数字）。限定符分为三种类型：**类型（type）**、**方向（dir）**和**协议（proto）**。
+
+此外，还有一些特殊原语和组合方式。以下按照表达式的构成和常用类别详细介绍。
+
+
+
+### 原语结构
+
+一个典型的原语格式为：`[qualifier...] id`。限定符可选，**若省略则有默认值。**
+
+- **host hostname/ip_addr**：`host` 是类型限定符，`sundown` 是主机名，表示匹配源或目的地址为 sundown 的包。
+- **src port 80**：`src` 是方向限定符，`port` 是类型限定符，`80` 是端口号，表示匹配源端口为 80 的包。
+- **tcp dst port ftp**：`tcp` 是协议限定符，`dst` 是方向，`port` 是类型，`ftp` 是服务名，表示匹配目的端口为 ftp（21）的 TCP 包。
+
+
+
+#### 默认值
+
+默认**类型限定符**： `host`。
+
+默认**方向限定符**： `src or dst`（源或目的）。
+
+默认**协议限定符**：根据类型推断所有可能的协议（例如 `port 53` 匹配 TCP 或 UDP 的 53 端口）。
+
+
+
+#### 组合表达式
+
+原语可通过逻辑运算符组合，构建复杂条件。
+
+- **否定**：`!` 或 `not`。例如 `not port 22`。
+- **连接**：`&&` 或 `and`。例如 `host foo and port 80`。
+- **或**：`||` 或 `or`。例如 `port 80 or port 443`。
+- **括号**：`( ... )` 改变优先级，括号在 shell 中需转义或加引号。
+
+优先级：`not` 最高，`and` 和 `or` 同级且左结合。
+注意：`and` 必须显式写出，不能省略（不同于某些语言）。
+
+简化写法：若连续原语使用相同限定符列表，可省略后续的限定符。例如：
+
+- `tcp dst port ftp or ftp-data or domain` 等价于 `tcp dst port ftp or tcp dst port ftp-data or tcp dst port domain`。
+
+
+
+### 类型限定符
+
+类型限定符指明标识符的种类，常用的有：
+
+- **host**：主机名或 IP 地址。例如 `host 192.168.1.1`、`host www.example.com`。
+- **net**：网络号。例如 `net 192.168.1`（匹配 192.168.1.0/24）、`net 10.0.0.0 mask 255.0.0.0` 或 `net 10/8`。
+- **port**：端口号或服务名。例如 `port 80`、`port http`。
+- **portrange**：端口范围。例如 `portrange 6000-6008`。
+
+注意：`port` 默认匹配 TCP 和 UDP，若需特定协议需加协议限定符，如 `tcp port 80`。
+
+
+
+### 方向限定符
+
+方向限定符指定流量的传输方向，主要针对主机、网络、端口等。
+
+- **src**：源地址/端口。例如 `src host 192.168.1.10`、`src port 22`。
+- **dst**：目的地址/端口。例如 `dst net 10.0.0.0`、`dst port 53`。
+- **src or dst**：源或目的（默认）。例如 `host foo` 等价于 `src or dst host foo`。
+- **src and dst**：同时匹配源和目的。例如 `src and dst host foo` 要求包的两端都是 foo。
+- 特殊方向（仅用于 802.11 无线）：`addr1`、`addr2`、`addr3`、`addr4`，用于匹配无线帧中的特定地址字段。
+
+对于某些链路类型（如 SLIP、Linux “cooked” 模式），还可使用 `inbound` 和 `outbound` 来指定方向。
+
+
+
+### 协议限定符
+
+协议限定符限制匹配的协议栈层次。常用协议有：
+
+- `ether`、`fddi`、`tr`、`wlan`：链路层协议（后三者是 `ether` 的别名，用于对应类型的网络）。
+- `ip`、`ip6`：IPv4 或 IPv6。
+- `arp`、`rarp`：地址解析协议。
+- `tcp`、`udp`、`icmp`：传输层和网络层协议。
+- `decnet`：DECnet 协议。
+- 其他： `iso`（OSI）、`stp`（生成树）、`ipx` 等。
+
+例如：`ip host 10.0.0.1` 匹配 IPv4 的包；`tcp port 80` 匹配 TCP 端口 80。
+
+**注意**：`fddi`、`tr`、`wlan` 视为 `ether` 的别名，因为它们的地址格式与 Ethernet 类似，过滤时按 Ethernet 语义处理。
+
+
+
+### 常用原语详解
+
+#### 基于主机
+
+- `dst host H`：目的地址为 H。
+- `src host H`：源地址为 H。
+- `host H`：源或目的地址为 H。
+- `ip host H`、`ip6 host H`：限定 IP 版本的主机匹配。
+
+注意：H 可以是主机名或 IP 地址。若主机名有多个 IP，每个都会检查。
+
+
+
+#### 基于网络
+
+`dst net N`、`src net N`、`net N`：匹配目的、源或任意方向的网络号为 N。
+
+`net N mask M`：指定掩码的网络匹配（仅 IPv4）。
+
+`net N/len`：CIDR 表示法，如 `net 192.168.1.0/24` 或 `net 2001:db8::/32`。
+
+
+
+#### 基于端口
+
+`dst port P`、`src port P`、`port P`：匹配目的、源或任意方向的端口。P 可以是数字或 `/etc/services` 中的名称。
+
+`dst portrange P1-P2`、`src portrange P1-P2`、`portrange P1-P2`：匹配端口范围。
+
+
+
+#### 基于以太网地址
+
+`ether dst E`、`ether src E`、`ether host E`：匹配以太网目的、源或任意地址。E 可以是 `/etc/ethers` 中的名称或十六进制地址（如 `00:11:22:33:44:55`）。
+
+`ether broadcast`：匹配以太网广播包。
+
+`ether multicast`：匹配以太网组播包（等价于 `ether[0] & 1 != 0`）。
+
+
+
+#### 基于协议类型
+
+`ether proto PROTO`：匹配以太网类型字段为 PROTO 的包。PROTO 可以是数字或名称如 `ip`、`ip6`、`arp`、`rarp`、`atalk` 等。
+
+`ip`、`ip6`、`arp`、`rarp` 等是 `ether proto p` 的缩写。
+
+对于 802.11、FDDI、Token Ring，协议判断通常来自 LLC 头，但过滤器会尽可能模拟 Ethernet 的行为。
+
+
+
+#### 基于 IP 特性
+
+`ip broadcast`：匹配 IPv4 广播包（检查全零和全一广播，并参考接口子网掩码）。
+
+`ip multicast`、`ip6 multicast`：匹配组播包。
+
+`ip proto PROTO`：匹配 IPv4 包中协议字段为 PROTO（如 `tcp`、`udp`、`icmp`、`6` 等）。注意 `tcp`、`udp` 等是 `ip proto p` 的缩写。
+
+`ip6 proto PROTO`：IPv6 的下一个头字段匹配。
+
+
+
+#### 基于 TCP/UDP/ICMP 特性
+
+`tcp`、`udp`、`icmp`：缩写形式，等价于 `ip proto p` 或 `ip6 proto p`。
+
+对于 TCP 可访问标志位：如 `tcp[tcpflags] & tcp-syn != 0` 匹配 SYN 包。可用标志名称：`tcp-fin`、`tcp-syn`、`tcp-rst`、`tcp-push`、`tcp-ack`、`tcp-urg`。
+
+对于 ICMP：可用类型名称如 `icmp-echoreply`、`icmp-unreach`、`icmp-echo` 等，用于 `icmp[icmptype]` 比较。
+
+
+
+#### 网关、广播、长度等特殊原语
+
+`gateway H`：匹配将 H 作为网关的包（以太网地址是 H，但 IP 源和目的都不是 H）。需要主机名同时能解析为 IP 和以太网地址。
+
+`broadcast`：同 `ether broadcast`。
+
+`less L`、`greater L`：包长度小于或大于 L（L 是字节数）。
+
+`len`：可在算术表达式中使用，表示包长度。
+
+
+
+#### VLAN 和 MPLS 标签
+
+`vlan [vlan_id]`：匹配 VLAN 包。若指定 vlan_id，则匹配该 ID。可多次使用以匹配嵌套 VLAN。
+
+`mpls [label_num]`：匹配 MPLS 包，类似 VLAN。
+
+
+
+#### 其他链路层特性
+
+`pppoed`：匹配 PPPoE 发现包（以太网类型 0x8863）。
+
+`pppoes`：匹配 PPPoE 会话包（类型 0x8864），并会调整后续解析偏移。
+
+对于 ATM（SunATM）：有 `vpi`、`vci`、`lane`、`llc`、`oam` 等原语。
+
+对于 PF 防火墙日志（OpenBSD/FreeBSD）：有 `ifname`、`rulenum`、`reason`、`action` 等。
+
+
+
+#### 数据包随机访问（高级过滤）
+
+通过 `proto [expr : size]` 语法直接访问包内任意字节，实现复杂过滤。
+
+- `proto` 可以是 `ether`、`ip`、`tcp`、`udp`、`icmp`、`ip6`、`radio` 等，表示从哪个协议层开始计算偏移。
+- `expr` 是字节偏移量（相对于协议层起始）。
+- `size` 可选，为 1、2 或 4，默认 1。
+
+
+
+例如：
+
+- `ether[0] & 1 != 0`：检查以太网目的地址的第一字节最低位，判断是否为组播。
+- `ip[0] & 0xf != 5`：IP 首部长度字段不等于 5（即有选项）。
+- `ip[6:2] & 0x1fff = 0`：IP 分片偏移为 0（未分片或第一个分片）。
+- `tcp[13] = 2`：TCP 标志位只有 SYN（参见手册中经典例子）。
+
+还可用命名常量简化，如 `icmp[icmptype]`、`tcp[tcpflags]`。
 
